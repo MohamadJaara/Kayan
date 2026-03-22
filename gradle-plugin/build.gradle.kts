@@ -1,0 +1,87 @@
+import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+
+plugins {
+    alias(libs.plugins.kotlinJvm)
+    id("java-gradle-plugin")
+    alias(libs.plugins.vanniktech.mavenPublish)
+}
+
+group = rootProject.extra["publishedGroup"].toString()
+version = rootProject.extra["publishedVersion"].toString()
+
+dependencies {
+    implementation(gradleApi())
+    implementation(localGroovy())
+    implementation(libs.arrow.core)
+    implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(gradleTestKit())
+    testImplementation(libs.kotlin.test)
+}
+
+kotlin {
+    jvmToolchain(11)
+}
+
+tasks.named<Jar>("jar") {
+    dependsOn(tasks.named("classes"))
+    from(sourceSets.main.get().output)
+}
+
+gradlePlugin {
+    plugins {
+        create("kayanConfigPlugin") {
+            id = "io.kayan.config"
+            implementationClass = "io.kayan.gradle.KayanConfigPlugin"
+            displayName = "Kayan Config Plugin"
+            description = "Generates a typed BuildConfig-like Kotlin object from Kayan JSON config files."
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+
+    pom {
+        name = "Kayan Gradle Plugin"
+        description = "Gradle plugin for generating typed Kayan configuration objects from JSON."
+        inceptionYear = "2026"
+        url = "https://github.com/MohamadJaara/Kayan"
+
+        licenses {
+            license {
+                name = "MIT License"
+                url = "https://opensource.org/licenses/MIT"
+                distribution = "repo"
+            }
+        }
+
+        developers {
+            developer {
+                id = "MohamadJaara"
+                name = "Mohamad Jaara"
+                url = "https://github.com/MohamadJaara"
+            }
+        }
+
+        scm {
+            url = "https://github.com/MohamadJaara/Kayan"
+            connection = "scm:git:git://github.com/MohamadJaara/Kayan.git"
+            developerConnection = "scm:git:ssh://git@github.com/MohamadJaara/Kayan.git"
+        }
+    }
+}
+
+extensions.configure<PublishingExtension> {
+    publications.withType<MavenPublication>().configureEach {
+        artifactId = when {
+            artifactId == project.name -> "kayan-gradle-plugin"
+            artifactId.startsWith("${project.name}-") -> artifactId.replaceFirst(project.name, "kayan-gradle-plugin")
+            else -> artifactId
+        }
+    }
+}

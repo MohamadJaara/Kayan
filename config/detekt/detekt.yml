@@ -1,0 +1,71 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: true
+  excludes: ""
+
+style:
+  BracesOnIfStatements:
+    active: true
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: Resolve before merge.
+        value: "TODO:"
+      - reason: Resolve before merge.
+        value: "FIXME:"
+  WildcardImport:
+    active: true
+    excludeImports: []
+
+exceptions:
+  NotImplementedDeclaration:
+    active: true
+
+complexity:
+  LargeClass:
+    excludes:
+      - '**/src/test/**'
+      - '**/src/*Test/**'
+  LongMethod:
+    excludes:
+      - '**/src/test/**'
+      - '**/src/*Test/**'
+  LongParameterList:
+    active: false
+  NamedArguments:
+    active: true
+  NestedScopeFunctions:
+    active: true
+  TooManyFunctions:
+    active: true
+    excludes:
+      - '**/src/test/**'
+      - '**/src/*Test/**'
+    thresholdInClasses: 15
+    thresholdInObjects: 15
+
+potential-bugs:
+  DontDowncastCollectionTypes:
+    active: true
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+
+naming:
+  BooleanPropertyNaming:
+    active: true
+    allowedPattern: '^(is|has|are)'
+
+formatting:
+  active: true
+  NoBlankLineBeforeRbrace:
+    active: true
+  NoBlankLineInList:
+    active: true
+  NoConsecutiveBlankLines:
+    active: true
+  NoWildcardImports:
+    # Intentionally disabled to avoid duplicate violations with style.WildcardImport.
+    active: false
