@@ -545,7 +545,7 @@ class KayanConfigPluginFunctionalTest {
         val projectDir = createProject(
             buildScript = """
                 plugins {
-                    id("io.kayan.config")
+                    id("io.github.mohamadjaara.kayan")
                 }
 
                 repositories {
@@ -585,7 +585,7 @@ class KayanConfigPluginFunctionalTest {
         val projectDir = createProject(
             buildScript = """
                 plugins {
-                    id("io.kayan.config")
+                    id("io.github.mohamadjaara.kayan")
                 }
 
                 repositories {
@@ -616,7 +616,7 @@ class KayanConfigPluginFunctionalTest {
 
         val result = gradleRunner(projectDir, "generateKayanConfig").buildAndFail()
 
-        assertTrue(result.output.contains("requires `org.jetbrains.kotlin.multiplatform`"))
+        assertTrue(result.output.contains("The `io.github.mohamadjaara.kayan` plugin requires"))
     }
 
     private fun createProject(
@@ -667,7 +667,7 @@ class KayanConfigPluginFunctionalTest {
 
         plugins {
             kotlin("multiplatform") version "2.3.20"
-            id("io.kayan.config")
+            id("io.github.mohamadjaara.kayan")
         }
 
         repositories {

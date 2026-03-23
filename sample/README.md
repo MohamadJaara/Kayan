@@ -5,7 +5,7 @@ parent repository using `includeBuild("..")`.
 
 It demonstrates:
 
-- applying `io.kayan.config`
+- applying `io.github.mohamadjaara.kayan`
 - applying Compose Multiplatform with shared UI in `commonMain`
 - resolving `default.json` plus `custom-overrides.json`
 - resolving a brand override from any file path passed into Gradle

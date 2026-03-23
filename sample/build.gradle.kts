@@ -12,7 +12,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.compose)
     alias(libs.plugins.kotlin.compose)
-    id("io.kayan.config")
+    id("io.github.mohamadjaara.kayan")
 }
 
 repositories {

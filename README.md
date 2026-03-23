@@ -20,7 +20,7 @@ The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", 
 ## Modules
 
 - `gradle-plugin/`
-  Gradle plugin that generates the typed Kotlin object and contains the internal config resolver/model. Published as `io.kayan:kayan-gradle-plugin`.
+  Gradle plugin that generates the typed Kotlin object and contains the internal config resolver/model. Published as `io.github.mohamadjaara:kayan-gradle-plugin`.
 - `sample/`
   Standalone Compose Multiplatform app that consumes the local plugin with `includeBuild("..")`.
 - `site/`
@@ -45,7 +45,7 @@ Then apply the plugin with an explicit version:
 ```kotlin
 plugins {
     kotlin("multiplatform") version "<kotlin-version>"
-    id("io.kayan.config") version "<kayan-version>"
+    id("io.github.mohamadjaara.kayan") version "<kayan-version>"
 }
 ```
 
@@ -141,7 +141,7 @@ Apply the Kotlin Multiplatform plugin and the Kayan plugin, then declare the pac
 ```kotlin
 plugins {
     kotlin("multiplatform") version "<kotlin-version>"
-    id("io.kayan.config") version "<kayan-version>"
+    id("io.github.mohamadjaara.kayan") version "<kayan-version>"
 }
 
 kayan {

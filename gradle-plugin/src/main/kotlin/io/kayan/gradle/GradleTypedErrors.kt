@@ -44,7 +44,7 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         override val cause: Throwable? = null
 
         override fun message(): String =
-            "The `io.kayan.config` plugin requires `org.jetbrains.kotlin.multiplatform`."
+            "The `io.github.mohamadjaara.kayan` plugin requires `org.jetbrains.kotlin.multiplatform`."
     }
 }
 
