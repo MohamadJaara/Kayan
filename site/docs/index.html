@@ -60,8 +60,9 @@
             <h1>Kayan</h1>
           </div>
           <p class="lead">
-            A small, opinionated Kotlin Multiplatform library for layered JSON config.
-            Generates a typed Kotlin API so shared code can read configuration directly instead
+            A small, opinionated Kotlin Gradle plugin for layered JSON config.
+            Works with Kotlin Multiplatform, JVM, and Android projects.
+            Generates a typed Kotlin API so your code can read configuration directly instead
             of routing values through platform-specific build config.
           </p>
         </section>
@@ -120,9 +121,11 @@
     }
 }</code></pre>
           </div>
-          <p>Apply the Kayan plugin and declare package, flavor, input files, and schema.</p>
+          <p>Apply the Kayan plugin alongside any supported Kotlin plugin, then declare package, flavor, input files, and schema.</p>
           <div class="code-wrapper">
             <pre><code class="language-kotlin">plugins {
+    // Use any supported Kotlin plugin:
+    // kotlin("multiplatform"), kotlin("jvm"), or kotlin("android")
     kotlin("multiplatform") version "&lt;kotlin-version&gt;"
     id("io.github.mohamadjaara.kayan") version "&lt;kayan-version&gt;"
 }
@@ -151,8 +154,9 @@ kayan {
           </div>
           <p>
             Generated source is written under
-            <code>build/generated/kayan/commonMain/kotlin</code> and automatically wired into
-            <code>commonMain</code>.
+            <code>build/generated/kayan/kotlin</code> and automatically wired into
+            the appropriate source set (<code>commonMain</code> for KMP,
+            <code>main</code> for JVM and Android).
           </p>
         </section>
 
@@ -307,7 +311,7 @@ kayan {
       </article>
     </main>
 
-    <footer class="site-footer">Kayan &mdash; typed config for Kotlin Multiplatform</footer>
+    <footer class="site-footer">Kayan &mdash; typed config for Kotlin Multiplatform, JVM, and Android</footer>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>

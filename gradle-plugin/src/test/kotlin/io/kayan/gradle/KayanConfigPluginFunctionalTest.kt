@@ -44,7 +44,7 @@ class KayanConfigPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(":exportKayanSchema")?.outcome)
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val jsonSchemaFile = File(projectDir, "build/generated/kayan/schema/kayan.schema.json")
         val markdownSchemaFile = File(projectDir, "build/generated/kayan/schema/SCHEMA.md")
         assertTrue(generatedFile.exists())
@@ -102,7 +102,7 @@ class KayanConfigPluginFunctionalTest {
 
         gradleRunner(projectDir, "compileKotlinJvm").build()
 
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val generatedText = generatedFile.readText()
         assertTrue(
             generatedText.contains(
@@ -145,7 +145,7 @@ class KayanConfigPluginFunctionalTest {
                 val bundleId: String = KayanConfig.BUNDLE_ID
             """.trimIndent(),
         )
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         generatedFile.parentFile.mkdirs()
         generatedFile.writeText("stale content")
 
@@ -217,7 +217,7 @@ class KayanConfigPluginFunctionalTest {
 
         gradleRunner(projectDir, "compileKotlinJvm").build()
 
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val jsonSchemaFile = File(projectDir, "build/generated/kayan/schema/kayan.schema.json")
         val markdownSchemaFile = File(projectDir, "build/generated/kayan/schema/SCHEMA.md")
         val generatedText = generatedFile.readText()
@@ -393,7 +393,7 @@ class KayanConfigPluginFunctionalTest {
 
         gradleRunner(projectDir, "compileKotlinJvm").build()
 
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val generatedText = generatedFile.readText()
         assertTrue(
             generatedText.contains(
@@ -451,7 +451,7 @@ class KayanConfigPluginFunctionalTest {
         assertTrue(firstRun.output.contains("Configuration cache entry stored."))
         assertTrue(secondRun.output.contains("Configuration cache entry reused."))
 
-        val generatedFile = File(projectDir, "build/generated/kayan/commonMain/kotlin/sample/config/KayanConfig.kt")
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         assertTrue(
             generatedFile.readText().contains(
                 "public val RELEASE_STAGE: sample.ReleaseStage = sample.ReleaseStage.BETA"
@@ -581,7 +581,48 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
-    fun failsGenerateTaskLazilyWhenKotlinMultiplatformPluginIsMissing() {
+    fun generatesConfigForJvmOnlyProject() {
+        val projectDir = createProject(
+            buildScript = jvmBuildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                """.trimIndent()
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "feature_search_enabled": false
+                    }
+                  },
+                  "brand_name": "Example"
+                }
+            """.trimIndent(),
+            commonSource = """
+                package sample
+
+                import sample.config.KayanConfig
+
+                val bundleId: String = KayanConfig.BUNDLE_ID
+                val brandName: String? = KayanConfig.BRAND_NAME
+            """.trimIndent(),
+            sourceDir = "src/main/kotlin",
+        )
+
+        val result = gradleRunner(projectDir, "compileKotlin").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":exportKayanSchema")?.outcome)
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
+        assertTrue(generatedFile.exists())
+        assertTrue(generatedFile.readText().contains("public object KayanConfig"))
+        assertTrue(generatedFile.readText().contains("public const val BUNDLE_ID: String = \"com.example.prod\""))
+    }
+
+    @Test
+    fun failsGenerateTaskLazilyWhenNoKotlinPluginIsApplied() {
         val projectDir = createProject(
             buildScript = """
                 plugins {
@@ -616,7 +657,7 @@ class KayanConfigPluginFunctionalTest {
 
         val result = gradleRunner(projectDir, "generateKayanConfig").buildAndFail()
 
-        assertTrue(result.output.contains("The `io.github.mohamadjaara.kayan` plugin requires"))
+        assertTrue(result.output.contains("The `io.github.mohamadjaara.kayan` plugin requires one of"))
     }
 
     private fun createProject(
@@ -624,6 +665,7 @@ class KayanConfigPluginFunctionalTest {
         baseJson: String,
         commonSource: String,
         customJson: String? = null,
+        sourceDir: String = "src/commonMain/kotlin",
     ): File {
         val projectDir = createTempDirectory(prefix = "kayan-plugin-test").toFile()
         File(projectDir, "settings.gradle.kts").writeText(
@@ -650,7 +692,7 @@ class KayanConfigPluginFunctionalTest {
         File(projectDir, "default.json").writeText(baseJson)
         customJson?.let { File(projectDir, "custom-overrides.json").writeText(it) }
 
-        val sourceFile = File(projectDir, "src/commonMain/kotlin/sample/UseConfig.kt")
+        val sourceFile = File(projectDir, "$sourceDir/sample/UseConfig.kt")
         sourceFile.parentFile.mkdirs()
         sourceFile.writeText(commonSource)
         return projectDir
@@ -677,6 +719,35 @@ class KayanConfigPluginFunctionalTest {
 
         kotlin {
             jvm()
+        }
+
+        kayan {
+            schema {
+                string("bundle_id", "BUNDLE_ID", required = true)
+                string("brand_name", "BRAND_NAME")
+                boolean("feature_search_enabled", "FEATURE_SEARCH_ENABLED")
+                int("max_workspace_count", "MAX_WORKSPACE_COUNT")
+                stringList("support_links", "SUPPORT_LINKS")
+                stringListMap("regional_support_links", "REGIONAL_SUPPORT_LINKS")
+                $schemaBlock
+            }
+
+            $kayanBlock
+        }
+    """.trimIndent()
+
+    private fun jvmBuildScript(
+        kayanBlock: String,
+        schemaBlock: String = "",
+    ): String = """
+        plugins {
+            kotlin("jvm") version "2.3.20"
+            id("io.github.mohamadjaara.kayan")
+        }
+
+        repositories {
+            google()
+            mavenCentral()
         }
 
         kayan {

@@ -4,7 +4,7 @@
 
 <h1 align="center">Kayan</h1>
 
-<p align="center">Typed layered JSON config for Kotlin Multiplatform.</p>
+<p align="center">Typed layered JSON config for Kotlin Multiplatform, JVM, and Android.</p>
 
 <p align="center">
   <a href="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml"><img src="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml/badge.svg" alt="CI"></a>
@@ -15,7 +15,7 @@
   <a href="https://mohamadjaara.github.io/Kayan/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs"></a>
 </p>
 
-Kayan is a small, opinionated Kotlin Multiplatform library for apps that keep configuration in layered JSON files and want a typed API in shared code instead of wiring everything through platform-specific build config. Its opinion is simple: keep one shared base config, layer optional overrides on top, and generate a typed object that `commonMain` can read directly. It is especially useful when you have multiple flavors or white-label builds that share most of the app but need different compile time config values.
+Kayan is a small, opinionated Kotlin Gradle plugin for apps and libraries that keep configuration in layered JSON files and want a typed API instead of wiring everything through platform-specific build config. It works with Kotlin Multiplatform, Kotlin/JVM, and Kotlin Android projects. Its opinion is simple: keep one shared base config, layer optional overrides on top, and generate a typed object that your code can read directly. It is especially useful when you have multiple flavors or white-label builds that share most of the app but need different compile time config values.
 
 The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", "structure", or "being".
 
@@ -23,7 +23,7 @@ The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", 
 
 - keeps configuration in JSON while exposing a typed Kotlin API
 - lets the consuming app own the schema and generated property names
-- works in shared Kotlin instead of Android-only `BuildConfig`
+- works in shared Kotlin instead of Android-only `BuildConfig`, across KMP, JVM, and Android modules
 - enforces deterministic merge rules and strict validation at build time
 
 ## Modules
@@ -49,11 +49,25 @@ pluginManagement {
 }
 ```
 
-Then apply the plugin with an explicit version:
+Then apply the plugin alongside any supported Kotlin plugin:
 
 ```kotlin
+// Kotlin Multiplatform
 plugins {
     kotlin("multiplatform") version "<kotlin-version>"
+    id("io.github.mohamadjaara.kayan") version "<kayan-version>"
+}
+
+// Kotlin/JVM
+plugins {
+    kotlin("jvm") version "<kotlin-version>"
+    id("io.github.mohamadjaara.kayan") version "<kayan-version>"
+}
+
+// Kotlin Android (works with com.android.library or com.android.application)
+plugins {
+    id("com.android.library") // or com.android.application
+    kotlin("android") version "<kotlin-version>"
     id("io.github.mohamadjaara.kayan") version "<kayan-version>"
 }
 ```
@@ -145,11 +159,11 @@ Built-in schema entries can also opt into:
 
 ## Gradle usage
 
-Apply the Kotlin Multiplatform plugin and the Kayan plugin, then declare the package, target flavor, input files, and schema:
+Apply a supported Kotlin plugin and the Kayan plugin, then declare the package, target flavor, input files, and schema:
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "<kotlin-version>"
+    kotlin("multiplatform") version "<kotlin-version>" // or kotlin("jvm") or kotlin("android")
     id("io.github.mohamadjaara.kayan") version "<kayan-version>"
 }
 
@@ -234,7 +248,7 @@ Notes:
 - `jsonSchemaOutputFile` defaults to `build/generated/kayan/schema/kayan.schema.json`.
 - `markdownSchemaOutputFile` defaults to `build/generated/kayan/schema/SCHEMA.md`.
 
-The plugin generates Kotlin source under `build/generated/kayan/commonMain/kotlin` and wires it into `commonMain`.
+The plugin generates Kotlin source under `build/generated/kayan/kotlin` and wires it into the appropriate source set automatically (`commonMain` for Kotlin Multiplatform, `main` for Kotlin/JVM and Kotlin Android).
 It also exports JSON Schema and Markdown documentation through `exportKayanSchema`, and `generateKayanConfig` runs that export automatically first.
 
 ## Schema export

@@ -1,7 +1,8 @@
 # AGENTS.md — Kayan Gradle Plugin
 
-Kayan is a Kotlin Multiplatform Gradle plugin that generates typed `BuildConfig`-like
-Kotlin objects from layered JSON config files. The main module is `:gradle-plugin`.
+Kayan is a Kotlin Gradle plugin that generates typed `BuildConfig`-like
+Kotlin objects from layered JSON config files. It supports Kotlin Multiplatform,
+Kotlin/JVM, and Kotlin Android projects. The main module is `:gradle-plugin`.
 
 ## Build System
 

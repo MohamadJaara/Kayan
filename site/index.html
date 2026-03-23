@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kayan — Kotlin Multiplatform library for layered JSON config with a typed API in shared code.">
+  <meta name="description" content="Kayan — Kotlin Gradle plugin for layered JSON config with a typed API. Works with Kotlin Multiplatform, JVM, and Android.">
   <title>Kayan</title>
   <link rel="icon" href="./kayan-icon.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <div class="badge">Kotlin Multiplatform</div>
+          <div class="badge">Kotlin Multiplatform / JVM / Android</div>
           <h1>Layered JSON config. <em>Typed API</em> in shared code.</h1>
           <p class="lead">
             Kayan merges base config with optional overrides and generates Kotlin values.
@@ -123,6 +123,8 @@
             <p class="code-label"><span class="step-num">2</span> Apply the plugin &amp; declare schema</p>
             <div class="code-wrapper">
               <pre><code class="language-kotlin">plugins {
+    // Use any supported Kotlin plugin:
+    // kotlin("multiplatform"), kotlin("jvm"), or kotlin("android")
     kotlin("multiplatform") version "&lt;kotlin-version&gt;"
     id("io.github.mohamadjaara.kayan") version "&lt;kayan-version&gt;"
 }
@@ -153,8 +155,9 @@ kayan {
             </div>
             <p class="code-note">
               Generated source lands in
-              <code>build/generated/kayan/commonMain/kotlin</code>
-              and is wired into <code>commonMain</code> automatically.
+              <code>build/generated/kayan/kotlin</code>
+              and is wired into the appropriate source set automatically
+              (<code>commonMain</code> for KMP, <code>main</code> for JVM/Android).
             </p>
           </article>
 
@@ -260,7 +263,7 @@ val brand   = SampleConfig.BRAND_NAME</code></pre>
       </div>
     </main>
 
-    <footer class="site-footer">Kayan &mdash; typed config for Kotlin Multiplatform</footer>
+    <footer class="site-footer">Kayan &mdash; typed config for Kotlin Multiplatform, JVM, and Android</footer>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>

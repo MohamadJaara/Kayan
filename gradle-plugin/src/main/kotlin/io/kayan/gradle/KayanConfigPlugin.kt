@@ -2,7 +2,8 @@ package io.kayan.gradle
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.gradle.api.tasks.TaskProvider
+import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
 public class KayanConfigPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -33,23 +34,42 @@ public class KayanConfigPlugin : Plugin<Project> {
             task.packageName.set(extension.packageName)
             task.flavor.set(extension.flavor)
             task.className.set(extension.className)
-            task.kotlinMultiplatformPluginApplied.convention(false)
+            task.kotlinPluginApplied.convention(false)
             task.baseConfigFile.set(extension.baseConfigFile)
             task.customConfigFile.set(extension.customConfigFile)
             task.schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
-            task.outputDir.set(project.layout.buildDirectory.dir("generated/kayan/commonMain/kotlin"))
+            task.outputDir.set(project.layout.buildDirectory.dir("generated/kayan/kotlin"))
             project.buildscript.configurations.findByName("classpath")?.let { classpath ->
                 task.buildscriptClasspath.from(classpath)
             }
             task.dependsOn(exportSchemaTask)
         }
 
-        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        wireKotlinSourceSet(project, KOTLIN_MULTIPLATFORM_PLUGIN_ID, "commonMain", generateTask)
+        wireKotlinSourceSet(project, KOTLIN_JVM_PLUGIN_ID, "main", generateTask)
+        wireKotlinSourceSet(project, KOTLIN_ANDROID_PLUGIN_ID, "main", generateTask)
+    }
+
+    private fun wireKotlinSourceSet(
+        project: Project,
+        pluginId: String,
+        sourceSetName: String,
+        generateTask: TaskProvider<GenerateKayanConfigTask>,
+    ) {
+        project.pluginManager.withPlugin(pluginId) {
             generateTask.configure { task ->
-                task.kotlinMultiplatformPluginApplied.set(true)
+                task.kotlinPluginApplied.set(true)
             }
-            val kotlinExtension = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
-            kotlinExtension.sourceSets.getByName("commonMain").kotlin.srcDir(generateTask.flatMap { it.outputDir })
+            val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
+            kotlinExtension.sourceSets.getByName(sourceSetName).kotlin.srcDir(
+                generateTask.flatMap { it.outputDir },
+            )
         }
+    }
+
+    internal companion object {
+        internal const val KOTLIN_MULTIPLATFORM_PLUGIN_ID: String = "org.jetbrains.kotlin.multiplatform"
+        internal const val KOTLIN_JVM_PLUGIN_ID: String = "org.jetbrains.kotlin.jvm"
+        internal const val KOTLIN_ANDROID_PLUGIN_ID: String = "org.jetbrains.kotlin.android"
     }
 }

@@ -40,11 +40,14 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         override fun message(): String = "Kayan $fileLabel config file does not exist: $path"
     }
 
-    data object MissingKotlinMultiplatformPlugin : PluginConfigurationError {
+    data object MissingKotlinPlugin : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
-            "The `io.github.mohamadjaara.kayan` plugin requires `org.jetbrains.kotlin.multiplatform`."
+            "The `io.github.mohamadjaara.kayan` plugin requires one of: " +
+                "`org.jetbrains.kotlin.multiplatform`, " +
+                "`org.jetbrains.kotlin.jvm`, or " +
+                "`org.jetbrains.kotlin.android`."
     }
 }
 

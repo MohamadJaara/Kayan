@@ -38,7 +38,7 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
     public abstract val className: Property<String>
 
     @get:Input
-    public abstract val kotlinMultiplatformPluginApplied: Property<Boolean>
+    public abstract val kotlinPluginApplied: Property<Boolean>
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -60,13 +60,13 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
 
     @TaskAction
     public fun generate() {
-        requireKotlinMultiplatformPlugin()
+        requireKotlinPlugin()
         generateEither().getOrElse { throw it.toGradleException() }
     }
 
-    private fun requireKotlinMultiplatformPlugin() {
-        if (!kotlinMultiplatformPluginApplied.get()) {
-            throw PluginConfigurationError.MissingKotlinMultiplatformPlugin.toGradleException()
+    private fun requireKotlinPlugin() {
+        if (!kotlinPluginApplied.get()) {
+            throw PluginConfigurationError.MissingKotlinPlugin.toGradleException()
         }
     }
 
