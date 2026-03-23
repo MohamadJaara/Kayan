@@ -109,15 +109,25 @@ Run before submitting: `./gradlew detekt`
 
 ## Error Handling Patterns
 
-1. **`ConfigValidationException`** for config parsing/resolution errors — always include
-   diagnostic context (source name, flavor, JSON path)
-2. **`require()`** for precondition checks with descriptive messages
-3. **`GradleException`** for Gradle-level plugin configuration failures
-4. **`runCatching` + `getOrElse`** for recoverable operations with context wrapping
-5. **`runCatching` + `recoverCatching`** for fallback chains (e.g., reflection)
-6. **Wrap lower-level exceptions** — catch `SerializationException` etc. and rethrow as
-   `ConfigValidationException` with added context
-7. **Never swallow exceptions silently**
+1. **Prefer typed errors over ad-hoc exceptions** — model recoverable failures with sealed
+   error types such as `SchemaError`, `ConfigError`, `PluginConfigurationError`, and
+   `GenerationError`
+2. **Use Arrow `Either` / `either {}` for fallible internal flows** — keep parsing,
+   resolution, validation, reflection, and file I/O in `Either`-returning helpers and
+   raise typed errors instead of throwing immediately
+3. **Throw only at API and Gradle boundaries** — convert `ConfigError` to
+   `ConfigValidationException` and Gradle-layer errors to `GradleException` via the
+   existing `toConfigValidationException()` / `toGradleException()` helpers
+4. **Reserve `require()` for programmer-invariant checks** — use it in model constructors
+   and schema invariants, with descriptive messages; prefer typed errors for user/config
+   input failures
+5. **Preserve diagnostic context** — include source name, flavor, key/path, adapter class,
+   file path, or operation name in error messages so failures are actionable
+6. **Wrap low-level causes instead of leaking them raw** — translate
+   `SerializationException`, reflection errors, and file I/O failures into the appropriate
+   typed error while keeping the original cause attached
+7. **Never swallow failures silently** — return or raise a typed error, or rethrow at the
+   boundary with context
 
 ## Project Structure
 
