@@ -1,0 +1,27 @@
+/* Kayan brand colors for Starlight */
+
+:root {
+  --sl-color-accent-low: rgba(15, 118, 110, 0.15);
+  --sl-color-accent: #0f766e;
+  --sl-color-accent-high: #115e59;
+  --sl-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+    Menlo, Consolas, monospace;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: rgba(45, 212, 191, 0.12);
+  --sl-color-accent: #2dd4bf;
+  --sl-color-accent-high: #99f6e4;
+  --sl-color-text-accent: #99f6e4;
+  --sl-color-text-invert: #042f2e;
+}
+
+:root[data-theme='dark'] .sidebar-content a[aria-current='page'],
+:root[data-theme='dark'] .sidebar-content a[aria-current='page']:hover,
+:root[data-theme='dark'] .sidebar-content a[aria-current='page']:focus {
+  color: #ecfeff;
+  background-color: rgba(45, 212, 191, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.35);
+}

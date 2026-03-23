@@ -11,3 +11,8 @@ xcuserdata
 .kotlin
 #So we don't accidentally commit our private keys
 *.gpg
+
+# Astro / site
+site/node_modules
+site/dist
+site/.astro

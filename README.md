@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="site/kayan-icon.png" alt="Kayan icon" width="144">
+  <img src="site/public/kayan-icon.png" alt="Kayan icon" width="144">
 </p>
 
 <h1 align="center">Kayan</h1>

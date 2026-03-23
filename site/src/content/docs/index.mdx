@@ -1,0 +1,50 @@
+---
+title: Kayan
+description: Kotlin Gradle plugin for layered JSON config with a typed API. Works with Kotlin Multiplatform, JVM, and Android.
+template: splash
+hero:
+  tagline: Kayan merges base config with optional overrides and generates Kotlin values. Shared code reads typed properties directly — no platform-specific wiring.
+  image:
+    file: ../../assets/kayan-icon.png
+  actions:
+    - text: Read the docs
+      link: /docs/overview/
+      icon: right-arrow
+      variant: primary
+    - text: Quick start
+      link: /docs/quick-start/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why Kayan
+
+<CardGrid>
+  <Card title="Shared code first" icon="rocket">
+    No more Android-only `BuildConfig`. Generated typed object readable from shared Kotlin code across every platform target.
+  </Card>
+  <Card title="Opinionated merging" icon="puzzle">
+    One base, external brand overrides, predictable resolution. Keep the app in one repo and pull customer overrides at build time without forking.
+  </Card>
+  <Card title="Build-time guarantees" icon="approve-check-circle">
+    Schema ownership lives with the app. Unknown keys, missing values, and type mismatches fail the build, not runtime.
+  </Card>
+</CardGrid>
+
+## What you get
+
+<CardGrid>
+  <Card title="Use cases" icon="list-format">
+    - Gradual migration away from `BuildConfig`
+    - White-label products with one shared base config
+    - Compile-time feature flags and endpoints
+    - Generated JSON Schema and Markdown docs
+  </Card>
+  <Card title="Schema kinds" icon="seti:json">
+    - `string`, `boolean`, `int`, `long`, `double`
+    - `stringMap`, `stringList`, `stringListMap`
+    - `enumValue` for normalized enum generation
+    - `custom` adapters for consumer-owned types
+  </Card>
+</CardGrid>
