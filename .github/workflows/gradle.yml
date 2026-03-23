@@ -62,3 +62,12 @@ jobs:
       uses: gradle/actions/setup-gradle@v4
     - name: Build with Gradle
       run: ./gradlew ${{ matrix.target }}
+    - name: Upload coverage to Codecov
+      if: matrix.target == ':gradle-plugin:test'
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./gradle-plugin/build/reports/jacoco/test/jacocoTestReport.xml
+        fail_ci_if_error: true
+        flags: gradle-plugin
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true

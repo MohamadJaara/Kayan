@@ -5,6 +5,7 @@ on:
 jobs:
   verify:
     uses: ./.github/workflows/gradle.yml
+    secrets: inherit
 
   publish:
     name: Release build and publish

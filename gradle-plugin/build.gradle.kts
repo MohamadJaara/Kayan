@@ -1,10 +1,12 @@
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     alias(libs.plugins.kotlinJvm)
     id("java-gradle-plugin")
+    jacoco
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
@@ -29,6 +31,35 @@ kotlin {
 tasks.named<Jar>("jar") {
     dependsOn(tasks.named("classes"))
     from(sourceSets.main.get().output)
+}
+
+tasks.named("test") {
+    finalizedBy(tasks.named("jacocoTestReport"))
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("test"))
+
+    classDirectories.setFrom(
+        fileTree(layout.buildDirectory.dir("classes/kotlin/main")) {
+            exclude(
+                "io/kayan/ConfigError*.class",
+                "io/kayan/DiagnosticContext.class",
+                "io/kayan/KayanError.class",
+                "io/kayan/PathSegment*.class",
+                "io/kayan/SchemaError*.class",
+                "io/kayan/gradle/GenerationError*.class",
+                "io/kayan/gradle/KayanGradleError*.class",
+                "io/kayan/gradle/PluginConfigurationError*.class",
+            )
+        }
+    )
+
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.required.set(true)
+    }
 }
 
 gradlePlugin {

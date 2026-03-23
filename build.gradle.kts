@@ -73,3 +73,9 @@ subprojects {
         }
     }
 }
+
+tasks.register("codeCoverageReport") {
+    group = "verification"
+    description = "Generates code coverage reports for all supported modules."
+    dependsOn(":gradle-plugin:jacocoTestReport")
+}

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml"><img src="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/github/MohamadJaara/Kayan"><img src="https://codecov.io/github/MohamadJaara/Kayan/graph/badge.svg?branch=main" alt="Codecov coverage"></a>
   <a href="https://central.sonatype.com/artifact/io.github.mohamadjaara/kayan-gradle-plugin"><img src="https://img.shields.io/maven-central/v/io.github.mohamadjaara/kayan-gradle-plugin" alt="Maven Central"></a>
   <a href="https://github.com/MohamadJaara/Kayan/releases"><img src="https://img.shields.io/github/v/release/MohamadJaara/Kayan" alt="Release"></a>
   <a href="https://github.com/MohamadJaara/Kayan/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MohamadJaara/Kayan" alt="License"></a>
