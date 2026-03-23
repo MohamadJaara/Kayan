@@ -6,6 +6,14 @@
 
 <p align="center">Typed layered JSON config for Kotlin Multiplatform.</p>
 
+<p align="center">
+  <a href="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml"><img src="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml/badge.svg" alt="CI"></a>
+  <a href="https://central.sonatype.com/artifact/io.github.mohamadjaara/kayan-gradle-plugin"><img src="https://img.shields.io/maven-central/v/io.github.mohamadjaara/kayan-gradle-plugin" alt="Maven Central"></a>
+  <a href="https://github.com/MohamadJaara/Kayan/releases"><img src="https://img.shields.io/github/v/release/MohamadJaara/Kayan" alt="Release"></a>
+  <a href="https://github.com/MohamadJaara/Kayan/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MohamadJaara/Kayan" alt="License"></a>
+  <a href="https://mohamadjaara.github.io/Kayan/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs"></a>
+</p>
+
 Kayan is a small, opinionated Kotlin Multiplatform library for apps that keep configuration in layered JSON files and want a typed API in shared code instead of wiring everything through platform-specific build config. Its opinion is simple: keep one shared base config, layer optional overrides on top, and generate a typed object that `commonMain` can read directly. It is especially useful when you have multiple flavors or white-label builds that share most of the app but need different compile time config values.
 
 The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", "structure", or "being".
