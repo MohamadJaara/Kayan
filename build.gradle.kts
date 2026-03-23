@@ -20,7 +20,7 @@ fun normalizeVersion(rawVersion: String): String {
 }
 
 val publishedGroup = providers.gradleProperty("GROUP")
-    .orElse("io.kayan")
+    .orElse("io.github.mohamadjaara")
     .get()
 val publishedVersion = providers.gradleProperty("PUBLISH_VERSION")
     .orElse("0.0.1-SNAPSHOT")

@@ -34,7 +34,7 @@ tasks.named<Jar>("jar") {
 gradlePlugin {
     plugins {
         create("kayanConfigPlugin") {
-            id = "io.kayan.config"
+            id = "io.github.mohamadjaara.kayan"
             implementationClass = "io.kayan.gradle.KayanConfigPlugin"
             displayName = "Kayan Config Plugin"
             description = "Generates a typed BuildConfig-like Kotlin object from Kayan JSON config files."
