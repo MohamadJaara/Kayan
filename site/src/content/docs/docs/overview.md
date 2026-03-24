@@ -9,6 +9,10 @@ It works with **Kotlin Multiplatform**, **JVM**, and **Android** projects.
 Kayan generates a typed Kotlin API so your code can read configuration directly
 instead of routing values through platform-specific build config.
 
+Kayan is designed for non-sensitive configuration. If a value should stay out
+of generated code or normal Gradle configuration, keep it out of Kayan. See
+[Security](./security.md) for the trust model and main boundaries.
+
 ## How it works
 
 1. You write JSON or YAML config files with a `flavors` object for environment-specific values

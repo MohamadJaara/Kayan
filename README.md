@@ -159,6 +159,7 @@ wiring.
 - [BuildConfig Migration](https://mohamadjaara.github.io/Kayan/docs/buildconfig-migration/)
 - [White-label Configs](https://mohamadjaara.github.io/Kayan/docs/white-label/)
 - [Commands](https://mohamadjaara.github.io/Kayan/docs/commands/)
+- [Threat Model](THREAT_MODEL.md)
 
 ## Development
 
