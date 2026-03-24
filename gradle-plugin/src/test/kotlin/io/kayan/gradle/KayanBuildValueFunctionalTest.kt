@@ -4,6 +4,7 @@ import io.kayan.assertMessageContains
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import java.io.File
+import java.nio.charset.StandardCharsets
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -450,12 +451,32 @@ class KayanBuildValueFunctionalTest {
             return false
         }
 
+        val needleBytes = needle.toByteArray(StandardCharsets.UTF_8)
         return cacheDir.walkTopDown()
             .filter(File::isFile)
-            .any { file ->
-                runCatching {
-                    file.readText().contains(needle)
-                }.getOrDefault(false)
-            }
+            .any { file -> fileContainsBytes(file, needleBytes) }
     }
+
+    private fun fileContainsBytes(file: File, needle: ByteArray): Boolean =
+        runCatching {
+            val bytes = file.readBytes()
+            if (needle.isEmpty() || bytes.size < needle.size) {
+                return@runCatching false
+            }
+
+            for (start in 0..bytes.size - needle.size) {
+                var matches = true
+                for (index in needle.indices) {
+                    if (bytes[start + index] != needle[index]) {
+                        matches = false
+                        break
+                    }
+                }
+                if (matches) {
+                    return@runCatching true
+                }
+            }
+
+            false
+        }.getOrDefault(false)
 }
