@@ -53,6 +53,10 @@ kayan {
 Generated source is written under `build/generated/kayan/kotlin` and automatically wired
 into the appropriate source set (`commonMain` for KMP, `main` for JVM and Android).
 
+By design, Kayan targets non-sensitive configuration that you want available as generated Kotlin
+code. If a value should not appear in generated sources, build outputs, or normal Gradle
+configuration, keep it out of Kayan and use your platform's secret-management approach instead.
+
 Use `.json` files with `ConfigFormat.JSON` and `.yaml` / `.yml` files with `ConfigFormat.YAML`.
 `ConfigFormat.AUTO` is available as an experimental opt-in when you want Kayan to infer the format
 from file extensions.

@@ -36,6 +36,11 @@ dependencies {
 }
 ```
 
+By design, this API is meant for non-sensitive build configuration. If a value is appropriate for
+Gradle to read during configuration, it is usually fine for `buildValue()`. Secrets such as API
+keys, passwords, and tokens should stay in dedicated secret-management or environment-specific
+secure storage instead.
+
 ## When to use it
 
 :::caution

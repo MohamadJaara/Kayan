@@ -113,6 +113,11 @@ val brandName = SampleConfig.BRAND_NAME
 Generated source lands in `build/generated/kayan/kotlin` and is wired into the appropriate source
 set automatically.
 
+By design, Kayan is a fit for non-sensitive build and app configuration. Values declared in the
+schema can be generated into source or consumed by Gradle during the build, so secrets such as API
+keys, passwords, and tokens should stay in dedicated secret-management or environment-specific
+secure storage.
+
 > `buildValue()` is experimental.
 > Opt in with `@file:OptIn(io.kayan.gradle.ExperimentalKayanGradleApi::class)` when using
 > the Gradle build-time API from `build.gradle.kts`.
