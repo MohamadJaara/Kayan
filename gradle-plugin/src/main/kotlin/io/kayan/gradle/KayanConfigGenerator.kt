@@ -178,6 +178,7 @@ internal object KayanConfigGenerator {
             when (character) {
                 '\\' -> append("\\\\")
                 '"' -> append("\\\"")
+                '$' -> append("\\$")
                 '\n' -> append("\\n")
                 '\r' -> append("\\r")
                 '\t' -> append("\\t")

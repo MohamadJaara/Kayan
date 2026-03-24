@@ -6,7 +6,9 @@ import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.ResolvedFlavorConfig
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class KayanGeneratorGoldenTest {
     private val bundleId = ConfigDefinition(
@@ -122,23 +124,88 @@ class KayanGeneratorGoldenTest {
             environment to ConfigValue.StringValue("prod"),
         ),
     )
+    private val escapedTemplateResolvedFlavorConfig = resolvedFlavorConfig.copy(
+        values = resolvedFlavorConfig.values + mapOf(
+            bundleId to ConfigValue.StringValue("com.example.${'$'}brand"),
+            brandName to ConfigValue.StringValue("Welcome ${'$'}{System.getenv(\"TOKEN\")}"),
+            supportLinks to ConfigValue.StringListValue(
+                listOf(
+                    "${'$'}",
+                    "${'$'}${'$'}",
+                    "${'$'}brandName",
+                    "${'$'}{System.getProperty(\"user.home\")}",
+                    "line1\nline2\rline3\t${'$'}tail",
+                )
+            ),
+            supportLabels to ConfigValue.StringMapValue(
+                mapOf(
+                    "${'$'}only" to "quote \" slash \\ dollar ${'$'}",
+                    "key-${'$'}{env}" to "value ${'$'}channel",
+                )
+            ),
+            regionalSupportLinks to ConfigValue.StringListMapValue(
+                mapOf(
+                    "region-${'$'}{brand}" to listOf(
+                        "item ${'$'}{index}",
+                        "mix ${'$'}brand / ${'$'}{expr} / ${'$'}${'$'}",
+                    ),
+                )
+            ),
+        ),
+    )
 
     @Test
     fun generatedKotlinMatchesGoldenFile() {
-        val actual = KayanConfigGenerator.generate(
-            packageName = "sample.config",
-            className = "KayanConfig",
-            schema = schema,
-            resolvedFlavorConfig = resolvedFlavorConfig,
-            renderedCustomProperties = mapOf(
-                environment to RenderedCustomProperty(
-                    typeName = "sample.Environment",
-                    expression = "sample.Environment.PROD",
-                )
-            ),
-        )
+        val actual = generateKotlin()
 
         assertGoldenFile("/golden/KayanConfig.kt", actual)
+    }
+
+    @Test
+    fun generatedKotlinEscapedTemplateFixtureMatchesGoldenFile() {
+        val actual = generateKotlin(escapedTemplateResolvedFlavorConfig)
+
+        assertGoldenFile("/golden/KayanConfigEscapedTemplates.kt", actual)
+    }
+
+    @Test
+    fun generatedKotlinDoesNotLeaveRawStringTemplatesInEscapedFixture() {
+        val actual = generateKotlin(escapedTemplateResolvedFlavorConfig)
+
+        assertContains(
+            actual,
+            "public val BRAND_NAME: String = \"Welcome \\${'$'}{System.getenv(\\\"TOKEN\\\")}\"",
+        )
+        assertContains(
+            actual,
+            "public const val BUNDLE_ID: String = \"com.example.\\${'$'}brand\"",
+        )
+        assertContains(actual, "\"key-\\${'$'}{env}\" to \"value \\${'$'}channel\"")
+        assertContains(
+            actual,
+            "mapOf(\"region-\\${'$'}{brand}\" to listOf(" +
+                "\"item \\${'$'}{index}\", " +
+                "\"mix \\${'$'}brand / \\${'$'}{expr} / \\${'$'}\\${'$'}\"))",
+        )
+        assertContains(
+            actual,
+            "listOf(\"\\${'$'}\", \"\\${'$'}\\${'$'}\", \"\\${'$'}brandName\", " +
+                "\"\\${'$'}{System.getProperty(\\\"user.home\\\")}\", " +
+                "\"line1\\nline2\\rline3\\t\\${'$'}tail\")",
+        )
+        assertContains(
+            actual,
+            "mapOf(\"\\${'$'}only\" to \"quote \\\" slash \\\\ dollar \\${'$'}\", " +
+                "\"key-\\${'$'}{env}\" to \"value \\${'$'}channel\")",
+        )
+        assertFalse(
+            actual.contains("public const val BUNDLE_ID: String = \"com.example.${'$'}brand\""),
+        )
+        assertFalse(
+            actual.contains("public val BRAND_NAME: String = \"Welcome ${'$'}{System.getenv(\\\"TOKEN\\\")}\""),
+        )
+        assertFalse(actual.contains("listOf(\"${'$'}\", \"${'$'}${'$'}\", \"${'$'}brandName\""))
+        assertFalse(actual.contains("mapOf(\"${'$'}only\" to \"quote \\\" slash \\\\ dollar ${'$'}\""))
     }
 
     @Test
@@ -157,6 +224,21 @@ class KayanGeneratorGoldenTest {
 
         assertGoldenFile("/golden/SCHEMA.md", actual)
     }
+
+    private fun generateKotlin(
+        resolvedFlavorConfig: ResolvedFlavorConfig = this.resolvedFlavorConfig,
+    ): String = KayanConfigGenerator.generate(
+        packageName = "sample.config",
+        className = "KayanConfig",
+        schema = schema,
+        resolvedFlavorConfig = resolvedFlavorConfig,
+        renderedCustomProperties = mapOf(
+            environment to RenderedCustomProperty(
+                typeName = "sample.Environment",
+                expression = "sample.Environment.PROD",
+            )
+        ),
+    )
 
     private fun assertGoldenFile(resourcePath: String, actual: String) {
         val expected = checkNotNull(this::class.java.getResource(resourcePath)) {
