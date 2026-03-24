@@ -1,7 +1,5 @@
 package io.kayan
 
-import kotlinx.serialization.SerializationException
-
 internal interface KayanError
 
 internal sealed interface SchemaError : KayanError {
@@ -133,13 +131,14 @@ internal sealed interface SchemaError : KayanError {
 internal sealed interface ConfigError : KayanError {
     fun toConfigValidationException(): ConfigValidationException
 
-    data class InvalidJson(
+    data class InvalidConfigSyntax(
         val sourceName: String,
+        val formatName: String,
         val detail: String?,
-        val cause: SerializationException,
+        val cause: Throwable?,
     ) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
-            "Invalid JSON in source '$sourceName': $detail",
+            "Invalid $formatName in source '$sourceName': $detail",
             cause,
         )
     }

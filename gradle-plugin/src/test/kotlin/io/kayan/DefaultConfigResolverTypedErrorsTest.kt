@@ -20,6 +20,25 @@ class DefaultConfigResolverTypedErrorsTest {
     )
 
     @Test
+    fun parseEitherReturnsStructuredInvalidConfigSyntaxError() {
+        when (
+            val result = resolver.parseEither(
+                configJson = "{",
+                schema = schema,
+                sourceName = "broken.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidConfigSyntax>(result.value)
+                assertEquals("broken.json", error.sourceName)
+                assertEquals("JSON", error.formatName)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
+
+    @Test
     fun parseEitherReturnsStructuredInvalidTypeError() {
         when (
             val result = resolver.parseEither(
@@ -38,6 +57,70 @@ class DefaultConfigResolverTypedErrorsTest {
             }
 
             is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
+
+    @Test
+    fun parseEitherUsesConfiguredParserTree() {
+        val resolver = DefaultConfigResolver(
+            parser = object : ConfigFormatParser {
+                override val formatName: String = "TEST"
+
+                override fun parseRootEither(
+                    configText: String,
+                    sourceName: String,
+                ): Either<ConfigError, ConfigNode.ObjectNode> = Either.Right(
+                    ConfigNode.ObjectNode(
+                        entries = mapOf(
+                            "brand_name" to ConfigNode.StringNode("Example"),
+                            DefaultConfigResolver.FLAVORS_KEY to ConfigNode.ObjectNode(
+                                entries = mapOf(
+                                    "prod" to ConfigNode.ObjectNode(
+                                        entries = mapOf(
+                                            "bundle_id" to ConfigNode.StringNode("com.example.prod"),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+            },
+        )
+        val schema = ConfigSchema(
+            listOf(
+                ConfigDefinition(
+                    jsonKey = "bundle_id",
+                    propertyName = "BUNDLE_ID",
+                    kind = ConfigValueKind.STRING,
+                    required = true,
+                ),
+                ConfigDefinition(
+                    jsonKey = "brand_name",
+                    propertyName = "BRAND_NAME",
+                    kind = ConfigValueKind.STRING,
+                ),
+            ),
+        )
+
+        when (
+            val result = resolver.parseEither(
+                configJson = "ignored",
+                schema = schema,
+                sourceName = "ignored.test",
+            )
+        ) {
+            is Either.Left -> fail("Expected parsed config from canonical tree.")
+            is Either.Right -> {
+                assertEquals(
+                    ConfigValue.StringValue("Example"),
+                    result.value.defaults.values.entries.single().value,
+                )
+                assertEquals(
+                    ConfigValue.StringValue("com.example.prod"),
+                    result.value.flavors.getValue("prod").values.entries.single().value,
+                )
+            }
         }
     }
 

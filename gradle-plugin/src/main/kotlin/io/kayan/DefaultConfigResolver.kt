@@ -3,24 +3,17 @@ package io.kayan
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.doubleOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.longOrNull
 
 @Suppress("TooManyFunctions")
 public class DefaultConfigResolver : ConfigResolver {
-    private val json: Json = Json {
-        ignoreUnknownKeys = false
-        isLenient = false
+    private val parser: ConfigFormatParser
+
+    public constructor() {
+        parser = JsonConfigFormatParser()
+    }
+
+    internal constructor(parser: ConfigFormatParser) {
+        this.parser = parser
     }
 
     override fun parse(
@@ -98,43 +91,44 @@ public class DefaultConfigResolver : ConfigResolver {
         sourceName: String,
     ): Either<ConfigError, AppConfigFile> = either {
         val rootContext = DiagnosticContext(sourceName = sourceName)
-        val root = parseRootEither(configJson, rootContext).bind()
+        val root = parser.parseRootEither(configJson, sourceName).bind()
         val flavorsLocation = rootContext.atKey(FLAVORS_KEY)
-        val flavorsElement = root[FLAVORS_KEY] ?: raise(ConfigError.MissingRequiredFlavorsObject(flavorsLocation))
-        val flavorsObject = flavorsElement as? JsonObject
+        val flavorsNode = root.entries[FLAVORS_KEY]
+            ?: raise(ConfigError.MissingRequiredFlavorsObject(flavorsLocation))
+        val flavorsObject = flavorsNode as? ConfigNode.ObjectNode
             ?: raise(
                 invalidTypeError(
                     subject = "value for key '$FLAVORS_KEY'",
                     expectedType = "object",
-                    actualElement = flavorsElement,
+                    actualNode = flavorsNode,
                     context = flavorsLocation,
-                )
+                ),
             )
 
         val defaults = parseSectionEither(
             schema = schema,
-            jsonObject = JsonObject(root.filterKeys { it != FLAVORS_KEY }),
+            objectNode = ConfigNode.ObjectNode(root.entries.filterKeys { it != FLAVORS_KEY }),
             context = rootContext,
         ).bind()
 
         val flavors = buildMap<String, ConfigSection> {
-            for ((flavorName, flavorElement) in flavorsObject) {
+            for ((flavorName, flavorNode) in flavorsObject.entries) {
                 val flavorContext = rootContext.atFlavor(flavorName)
-                val flavorObject = flavorElement as? JsonObject
+                val flavorObject = flavorNode as? ConfigNode.ObjectNode
                     ?: raise(
                         invalidTypeError(
                             subject = "value for flavor '$flavorName'",
                             expectedType = "object",
-                            actualElement = flavorElement,
+                            actualNode = flavorNode,
                             context = flavorContext,
-                        )
+                        ),
                     )
 
                 put(
                     flavorName,
                     parseSectionEither(
                         schema = schema,
-                        jsonObject = flavorObject,
+                        objectNode = flavorObject,
                         context = flavorContext,
                     ).bind(),
                 )
@@ -212,43 +206,17 @@ public class DefaultConfigResolver : ConfigResolver {
         ResolvedConfigsByFlavor(resolvedFlavors)
     }
 
-    private fun parseRootEither(
-        configJson: String,
-        context: DiagnosticContext,
-    ): Either<ConfigError, JsonObject> = either {
-        val root = try {
-            json.parseToJsonElement(configJson)
-        } catch (error: SerializationException) {
-            raise(
-                ConfigError.InvalidJson(
-                    sourceName = context.sourceName,
-                    detail = error.message,
-                    cause = error,
-                ),
-            )
-        }
-
-        root as? JsonObject ?: raise(
-            invalidTypeError(
-                subject = "configuration root",
-                expectedType = "object",
-                actualElement = root,
-                context = context,
-            )
-        )
-    }
-
     private fun parseSectionEither(
         schema: ConfigSchema,
-        jsonObject: JsonObject,
+        objectNode: ConfigNode.ObjectNode,
         context: DiagnosticContext,
     ): Either<ConfigError, ConfigSection> = either {
         val values = buildMap<ConfigDefinition, ConfigValue> {
-            for ((jsonKey, jsonValue) in jsonObject) {
+            for ((jsonKey, node) in objectNode.entries) {
                 val valueContext = context.atKey(jsonKey)
                 val definition = schema.definitionFor(jsonKey)
                     ?: raise(unknownKeyError(jsonKey, schema, valueContext))
-                put(definition, parseValueEither(definition, jsonValue, valueContext).bind())
+                put(definition, parseValueEither(definition, node, valueContext).bind())
             }
         }
 
@@ -258,10 +226,10 @@ public class DefaultConfigResolver : ConfigResolver {
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     private fun parseValueEither(
         definition: ConfigDefinition,
-        jsonElement: JsonElement,
+        node: ConfigNode,
         context: DiagnosticContext,
     ): Either<ConfigError, ConfigValue> = either {
-        if (jsonElement is JsonNull) {
+        if (node is ConfigNode.NullNode) {
             if (definition.nullable) {
                 return@either ConfigValue.NullValue(definition.kind)
             }
@@ -269,7 +237,7 @@ public class DefaultConfigResolver : ConfigResolver {
                 invalidTypeError(
                     subject = "value for key '${definition.jsonKey}'",
                     expectedType = expectedType(definition),
-                    actualElement = jsonElement,
+                    actualNode = node,
                     context = context,
                 ),
             )
@@ -277,13 +245,12 @@ public class DefaultConfigResolver : ConfigResolver {
 
         when (definition.kind) {
             ConfigValueKind.STRING -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { it.isString }?.contentOrNull
+                val value = (node as? ConfigNode.StringNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "value for key '${definition.jsonKey}'",
                             expectedType = expectedType(definition),
-                            actualElement = jsonElement,
+                            actualNode = node,
                             context = context,
                         ),
                     )
@@ -291,13 +258,12 @@ public class DefaultConfigResolver : ConfigResolver {
             }
 
             ConfigValueKind.BOOLEAN -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { !it.isString }?.booleanOrNull
+                val value = (node as? ConfigNode.BooleanNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "value for key '${definition.jsonKey}'",
                             expectedType = expectedType(definition),
-                            actualElement = jsonElement,
+                            actualNode = node,
                             context = context,
                         ),
                     )
@@ -305,13 +271,12 @@ public class DefaultConfigResolver : ConfigResolver {
             }
 
             ConfigValueKind.INT -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { !it.isString }?.intOrNull
+                val value = (node as? ConfigNode.IntNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "value for key '${definition.jsonKey}'",
                             expectedType = expectedType(definition),
-                            actualElement = jsonElement,
+                            actualNode = node,
                             context = context,
                         ),
                     )
@@ -319,37 +284,42 @@ public class DefaultConfigResolver : ConfigResolver {
             }
 
             ConfigValueKind.LONG -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { !it.isString }?.longOrNull
-                    ?: raise(
-                        invalidTypeError(
-                            subject = "value for key '${definition.jsonKey}'",
-                            expectedType = expectedType(definition),
-                            actualElement = jsonElement,
-                            context = context,
-                        ),
-                    )
+                val value = when (node) {
+                    is ConfigNode.IntNode -> node.value.toLong()
+                    is ConfigNode.LongNode -> node.value
+                    else -> null
+                } ?: raise(
+                    invalidTypeError(
+                        subject = "value for key '${definition.jsonKey}'",
+                        expectedType = expectedType(definition),
+                        actualNode = node,
+                        context = context,
+                    ),
+                )
                 ConfigValue.LongValue(value)
             }
 
             ConfigValueKind.DOUBLE -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { !it.isString }?.doubleOrNull
-                    ?: raise(
-                        invalidTypeError(
-                            subject = "value for key '${definition.jsonKey}'",
-                            expectedType = expectedType(definition),
-                            actualElement = jsonElement,
-                            context = context,
-                        ),
-                    )
+                val value = when (node) {
+                    is ConfigNode.IntNode -> node.value.toDouble()
+                    is ConfigNode.LongNode -> node.value.toDouble()
+                    is ConfigNode.DoubleNode -> node.value
+                    else -> null
+                } ?: raise(
+                    invalidTypeError(
+                        subject = "value for key '${definition.jsonKey}'",
+                        expectedType = expectedType(definition),
+                        actualNode = node,
+                        context = context,
+                    ),
+                )
                 ConfigValue.DoubleValue(value)
             }
 
             ConfigValueKind.STRING_MAP -> ConfigValue.StringMapValue(
                 parseStringMapEither(
                     definition = definition,
-                    jsonElement = jsonElement,
+                    node = node,
                     context = context,
                 ).bind(),
             )
@@ -357,7 +327,7 @@ public class DefaultConfigResolver : ConfigResolver {
             ConfigValueKind.STRING_LIST -> ConfigValue.StringListValue(
                 parseStringListEither(
                     definition = definition,
-                    jsonElement = jsonElement,
+                    node = node,
                     context = context,
                 ).bind(),
             )
@@ -365,19 +335,18 @@ public class DefaultConfigResolver : ConfigResolver {
             ConfigValueKind.STRING_LIST_MAP -> ConfigValue.StringListMapValue(
                 parseStringListMapEither(
                     definition = definition,
-                    jsonElement = jsonElement,
+                    node = node,
                     context = context,
                 ).bind(),
             )
 
             ConfigValueKind.ENUM -> {
-                val primitive = jsonElement as? JsonPrimitive
-                val value = primitive?.takeIf { it.isString }?.contentOrNull
+                val value = (node as? ConfigNode.StringNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "value for key '${definition.jsonKey}'",
                             expectedType = expectedType(definition),
-                            actualElement = jsonElement,
+                            actualNode = node,
                             context = context,
                         ),
                     )
@@ -394,31 +363,29 @@ public class DefaultConfigResolver : ConfigResolver {
 
     private fun parseStringListEither(
         definition: ConfigDefinition,
-        jsonElement: JsonElement,
+        node: ConfigNode,
         context: DiagnosticContext,
         expectedType: String = expectedType(definition),
     ): Either<ConfigError, List<String>> = either {
-        val jsonArray = jsonElement as? JsonArray
+        val listNode = node as? ConfigNode.ListNode
             ?: raise(
                 invalidTypeError(
                     subject = "value for key '${definition.jsonKey}'",
                     expectedType = expectedType,
-                    actualElement = jsonElement,
+                    actualNode = node,
                     context = context,
                 ),
             )
 
         buildList {
-            jsonArray.forEachIndexed { index, element ->
-                val elementContext = context.atIndex(index)
-                val primitive = element as? JsonPrimitive
-                val value = primitive?.takeIf { it.isString }?.contentOrNull
+            listNode.items.forEachIndexed { index, element ->
+                val value = (element as? ConfigNode.StringNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "list entry for key '${definition.jsonKey}'",
                             expectedType = "string",
-                            actualElement = element,
-                            context = elementContext,
+                            actualNode = element,
+                            context = context.atIndex(index),
                         ),
                     )
                 add(value)
@@ -428,26 +395,26 @@ public class DefaultConfigResolver : ConfigResolver {
 
     private fun parseStringListMapEither(
         definition: ConfigDefinition,
-        jsonElement: JsonElement,
+        node: ConfigNode,
         context: DiagnosticContext,
     ): Either<ConfigError, Map<String, List<String>>> = either {
-        val jsonObject = jsonElement as? JsonObject
+        val objectNode = node as? ConfigNode.ObjectNode
             ?: raise(
                 invalidTypeError(
                     subject = "value for key '${definition.jsonKey}'",
                     expectedType = expectedType(definition),
-                    actualElement = jsonElement,
+                    actualNode = node,
                     context = context,
                 ),
             )
 
         buildMap {
-            for ((mapKey, element) in jsonObject) {
+            for ((mapKey, element) in objectNode.entries) {
                 put(
                     mapKey,
                     parseStringListEither(
                         definition = definition,
-                        jsonElement = element,
+                        node = element,
                         context = context.atKey(mapKey),
                         expectedType = "list of strings",
                     ).bind(),
@@ -458,28 +425,27 @@ public class DefaultConfigResolver : ConfigResolver {
 
     private fun parseStringMapEither(
         definition: ConfigDefinition,
-        jsonElement: JsonElement,
+        node: ConfigNode,
         context: DiagnosticContext,
     ): Either<ConfigError, Map<String, String>> = either {
-        val jsonObject = jsonElement as? JsonObject
+        val objectNode = node as? ConfigNode.ObjectNode
             ?: raise(
                 invalidTypeError(
                     subject = "value for key '${definition.jsonKey}'",
                     expectedType = expectedType(definition),
-                    actualElement = jsonElement,
+                    actualNode = node,
                     context = context,
                 ),
             )
 
         buildMap {
-            for ((mapKey, element) in jsonObject) {
-                val primitive = element as? JsonPrimitive
-                val value = primitive?.takeIf { it.isString }?.contentOrNull
+            for ((mapKey, element) in objectNode.entries) {
+                val value = (element as? ConfigNode.StringNode)?.value
                     ?: raise(
                         invalidTypeError(
                             subject = "map entry for key '${definition.jsonKey}'",
                             expectedType = "string",
-                            actualElement = element,
+                            actualNode = element,
                             context = context.atKey(mapKey),
                         ),
                     )
@@ -501,12 +467,12 @@ public class DefaultConfigResolver : ConfigResolver {
     private fun invalidTypeError(
         subject: String,
         expectedType: String,
-        actualElement: JsonElement,
+        actualNode: ConfigNode,
         context: DiagnosticContext,
     ): ConfigError.InvalidType = ConfigError.InvalidType(
         subject = subject,
         expectedType = expectedType,
-        actualType = describeActualType(actualElement),
+        actualType = actualNode.describeType(),
         context = context,
     )
 
@@ -523,20 +489,6 @@ public class DefaultConfigResolver : ConfigResolver {
             ConfigValueKind.ENUM -> "string"
         }
         return if (definition.nullable) "$rawType or null" else rawType
-    }
-
-    private fun describeActualType(jsonElement: JsonElement): String = when (jsonElement) {
-        is JsonObject -> "object"
-        is JsonArray -> "array"
-        is JsonPrimitive -> when {
-            jsonElement.isString -> "string"
-            jsonElement.content == NULL_LITERAL -> "null"
-            jsonElement.booleanOrNull != null -> "boolean"
-            jsonElement.intOrNull != null -> "int"
-            jsonElement.longOrNull != null -> "long"
-            jsonElement.doubleOrNull != null -> "double"
-            else -> "number"
-        }
     }
 
     private fun resolvedValue(
@@ -608,13 +560,12 @@ public class DefaultConfigResolver : ConfigResolver {
     }
 
     internal companion object {
-        internal const val FLAVORS_KEY = "flavors"
-        internal const val RESOLVED_CONFIG_SOURCE_NAME = "resolved config"
-        private const val DEFAULT_PARSE_SOURCE_NAME = "config"
-        private const val DEFAULT_BASE_SOURCE_NAME = "default config"
-        private const val DEFAULT_CUSTOM_SOURCE_NAME = "custom config"
-        private const val NULL_LITERAL = "null"
-        internal val IDENTIFIER_SEGMENT = Regex("[A-Za-z_][A-Za-z0-9_]*")
+        internal const val FLAVORS_KEY: String = "flavors"
+        internal const val RESOLVED_CONFIG_SOURCE_NAME: String = "resolved config"
+        private const val DEFAULT_PARSE_SOURCE_NAME: String = "config"
+        private const val DEFAULT_BASE_SOURCE_NAME: String = "default config"
+        private const val DEFAULT_CUSTOM_SOURCE_NAME: String = "custom config"
+        internal val IDENTIFIER_SEGMENT: Regex = Regex("[A-Za-z_][A-Za-z0-9_]*")
 
         private fun StringBuilder.shouldInsertEnumSeparator(
             character: Char,
