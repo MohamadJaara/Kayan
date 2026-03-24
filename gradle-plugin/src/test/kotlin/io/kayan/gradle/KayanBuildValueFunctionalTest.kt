@@ -7,6 +7,7 @@ import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalKayanGradleApi::class)
@@ -299,6 +300,73 @@ class KayanBuildValueFunctionalTest {
         assertTrue(thirdRun.output.contains("brand=Updated Example"))
     }
 
+    @Test
+    fun configurationCacheDoesNotPersistUnrequestedResolvedValues() {
+        val secret = "secret-prod-token"
+        val projectDir = createProject(
+            buildScript = """
+                import org.gradle.api.DefaultTask
+                import org.gradle.api.provider.Property
+                import org.gradle.api.tasks.Input
+                import org.gradle.api.tasks.TaskAction
+
+                plugins {
+                    kotlin("jvm") version "2.3.20"
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayan {
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    baseConfigFile.set(layout.projectDirectory.file("default.json"))
+
+                    schema {
+                        string("bundle_id", "BUNDLE_ID", required = true)
+                        string("brand_name", "BRAND_NAME")
+                        string("api_secret", "API_SECRET")
+                    }
+                }
+
+                abstract class PrintBuildValueTask : DefaultTask() {
+                    @get:Input
+                    abstract val value: Property<String>
+
+                    @TaskAction
+                    fun printValue() {
+                        println("brand=${'$'}{value.get()}")
+                    }
+                }
+
+                tasks.register<PrintBuildValueTask>("printBuildValue") {
+                    value.set(kayan.buildValue("brand_name").asStringProvider())
+                }
+            """.trimIndent(),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "api_secret": "$secret"
+                    }
+                  },
+                  "brand_name": "Example"
+                }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "printBuildValue", "--configuration-cache").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printBuildValue")?.outcome)
+        assertTrue(result.output.contains("Configuration cache entry stored."))
+        assertFalse(configurationCacheContains(projectDir, secret))
+        assertFalse(configurationCacheContains(projectDir, "api_secret"))
+    }
+
     private fun createProject(
         buildScript: String,
         baseJson: String,
@@ -375,4 +443,19 @@ class KayanBuildValueFunctionalTest {
             .withProjectDir(projectDir)
             .withPluginClasspath()
             .withArguments(*tasks, "--stacktrace")
+
+    private fun configurationCacheContains(projectDir: File, needle: String): Boolean {
+        val cacheDir = File(projectDir, ".gradle/configuration-cache")
+        if (!cacheDir.exists()) {
+            return false
+        }
+
+        return cacheDir.walkTopDown()
+            .filter(File::isFile)
+            .any { file ->
+                runCatching {
+                    file.readText().contains(needle)
+                }.getOrDefault(false)
+            }
+    }
 }

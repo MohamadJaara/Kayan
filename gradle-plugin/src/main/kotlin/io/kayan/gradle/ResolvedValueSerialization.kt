@@ -9,7 +9,6 @@ import arrow.core.right
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
-import io.kayan.ResolvedFlavorConfig
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -24,41 +23,33 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.long
 
-internal fun serializeResolvedValues(resolvedFlavorConfig: ResolvedFlavorConfig): String =
+internal fun serializeResolvedBuildValue(
+    definition: ConfigDefinition,
+    value: ConfigValue?,
+): String =
     resolvedValueJson.encodeToString(
         JsonObject.serializer(),
-        buildJsonObject {
-            resolvedFlavorConfig.values.entries
-                .sortedBy { it.key.jsonKey }
-                .forEach { (definition, value) ->
-                    put(definition.jsonKey, serializeResolvedValue(definition, value))
-                }
-        },
+        serializeResolvedValue(definition, value),
     )
 
-internal fun deserializeResolvedValues(serialized: String): Map<String, ResolvedBuildValue> =
-    deserializeResolvedValuesEither(serialized).getOrElse { throw it.toGradleException() }
-
-internal fun deserializeResolvedValuesEither(
+internal fun deserializeResolvedBuildValue(
+    jsonKey: String,
     serialized: String,
-): Either<BuildTimeAccessError, Map<String, ResolvedBuildValue>> {
+): ResolvedBuildValue =
+    deserializeResolvedBuildValueEither(jsonKey, serialized).getOrElse { throw it.toGradleException() }
+
+internal fun deserializeResolvedBuildValueEither(
+    jsonKey: String,
+    serialized: String,
+): Either<BuildTimeAccessError, ResolvedBuildValue> {
     val root = try {
         resolvedValueJson.parseToJsonElement(serialized)
     } catch (error: SerializationException) {
         return BuildTimeAccessError.InvalidSerializedResolvedValuesJson(error).left()
     }
 
-    val values = root as? JsonObject ?: return BuildTimeAccessError.InvalidSerializedResolvedValuesRoot.left()
-    val resolvedValues = linkedMapOf<String, ResolvedBuildValue>()
-
-    for ((jsonKey, element) in values) {
-        when (val resolvedValue = deserializeResolvedValueEither(jsonKey, element)) {
-            is Either.Left -> return resolvedValue
-            is Either.Right -> resolvedValues[jsonKey] = resolvedValue.value
-        }
-    }
-
-    return resolvedValues.right()
+    val value = root as? JsonObject ?: return BuildTimeAccessError.InvalidSerializedResolvedValuesRoot.left()
+    return deserializeResolvedValueEither(jsonKey, value)
 }
 
 private fun serializeResolvedValue(

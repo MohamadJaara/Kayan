@@ -34,6 +34,9 @@ public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigVa
 
         @get:Input
         public val schemaEntries: ListProperty<String>
+
+        @get:Input
+        public val jsonKey: Property<String>
     }
 
     override fun obtain(): String =
@@ -43,6 +46,7 @@ public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigVa
     private fun obtainEither(): Either<KayanGradleError, String> = either {
         val schema = requireSchemaEither(parameters.schemaEntries.get()).bind()
         val flavor = requireConfiguredEither(parameters.flavor.orNull, "flavor").bind()
+        val jsonKey = requireConfiguredEither(parameters.jsonKey.orNull, "jsonKey").bind()
         val baseFile = requireExistingFileEither(parameters.baseConfigFile.asFile.get(), "base").bind()
         val customFile = parameters.customConfigFile.orNull?.asFile?.let { file ->
             requireExistingFileEither(file, "custom").bind()
@@ -54,7 +58,10 @@ public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigVa
             configFormat = parameters.configFormat.orNull ?: ConfigFormat.AUTO,
         ).bind()
         val resolvedFlavor = requireResolvedFlavorEither(resolved, flavor).bind()
+        val resolvedEntry = resolvedFlavor.values.entries
+            .firstOrNull { (definition, _) -> definition.jsonKey == jsonKey }
+            ?: raise(BuildTimeAccessError.MissingResolvedBuildValue(jsonKey))
 
-        serializeResolvedValues(resolvedFlavor)
+        serializeResolvedBuildValue(resolvedEntry.key, resolvedEntry.value)
     }
 }

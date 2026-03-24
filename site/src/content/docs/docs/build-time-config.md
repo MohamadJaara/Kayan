@@ -143,4 +143,4 @@ That last point is intentional: Gradle build logic usually needs `Boolean`, `Str
 
 `buildValue()` is backed by a Gradle `ValueSource`, so file changes to the configured
 inputs invalidate resolution while configuration-cache-friendly builds can still reuse the
-result between runs.
+requested key between runs without serializing unrelated resolved values.

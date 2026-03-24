@@ -6,6 +6,7 @@ import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 @OptIn(ExperimentalKayanGradleApi::class)
 class KayanConfigValueSourceTest {
@@ -27,17 +28,10 @@ class KayanConfigValueSourceTest {
             )
         }
 
-        val actual = resolveWithValueSource(baseFile = baseFile)
+        val actual = resolveWithValueSource(baseFile = baseFile, jsonKey = "brand_name")
 
         assertEquals(
-            mapOf(
-                "brand_name" to ResolvedBuildValue("brand_name", io.kayan.ConfigValueKind.STRING, "Example"),
-                "bundle_id" to ResolvedBuildValue(
-                    "bundle_id",
-                    io.kayan.ConfigValueKind.STRING,
-                    "com.example.prod",
-                ),
-            ),
+            ResolvedBuildValue("brand_name", io.kayan.ConfigValueKind.STRING, "Example"),
             actual,
         )
     }
@@ -70,9 +64,13 @@ class KayanConfigValueSourceTest {
             )
         }
 
-        val actual = resolveWithValueSource(baseFile = baseFile, customFile = customFile)
+        val actual = resolveWithValueSource(
+            baseFile = baseFile,
+            customFile = customFile,
+            jsonKey = "brand_name",
+        )
 
-        assertEquals("Custom Example", actual.getValue("brand_name").rawValue)
+        assertEquals("Custom Example", actual.rawValue)
     }
 
     @Test
@@ -89,22 +87,63 @@ class KayanConfigValueSourceTest {
             )
         }
 
-        val actual = resolveWithValueSource(baseFile = baseFile)
+        val actual = resolveWithValueSource(baseFile = baseFile, jsonKey = "bundle_id")
 
-        assertEquals("Example", actual.getValue("brand_name").rawValue)
-        assertEquals("com.example.prod", actual.getValue("bundle_id").rawValue)
+        assertEquals("com.example.prod", actual.rawValue)
+    }
+
+    @Test
+    fun serializesOnlyRequestedValueThroughValueSource() {
+        val tempDir = createTempDirectory(prefix = "kayan-value-source-test").toFile()
+        val baseFile = File(tempDir, "default.json").apply {
+            writeText(
+                """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "api_secret": "secret-prod-token"
+                        }
+                      },
+                      "brand_name": "Example"
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        val serialized = resolveSerializedWithValueSource(baseFile = baseFile, jsonKey = "brand_name")
+
+        assertFalse(serialized.contains("api_secret"))
+        assertFalse(serialized.contains("secret-prod-token"))
+        assertFalse(serialized.contains("brand_name"))
     }
 
     private fun resolveWithValueSource(
         baseFile: File,
+        jsonKey: String,
         customFile: File? = null,
-    ): Map<String, ResolvedBuildValue> {
+    ): ResolvedBuildValue =
+        deserializeResolvedBuildValue(
+            jsonKey = jsonKey,
+            serialized = resolveSerializedWithValueSource(
+                baseFile = baseFile,
+                customFile = customFile,
+                jsonKey = jsonKey,
+            ),
+        )
+
+    private fun resolveSerializedWithValueSource(
+        baseFile: File,
+        jsonKey: String,
+        customFile: File? = null,
+    ): String {
         val project = ProjectBuilder.builder().build()
         val provider = project.providers.of(KayanConfigValueSource::class.java) { spec ->
             spec.parameters.baseConfigFile.set(baseFile)
             customFile?.let { spec.parameters.customConfigFile.set(it) }
             spec.parameters.configFormat.set(ConfigFormat.AUTO)
             spec.parameters.flavor.set("prod")
+            spec.parameters.jsonKey.set(jsonKey)
             spec.parameters.schemaEntries.set(
                 listOf(
                     KayanSchemaEntrySpec(
@@ -121,10 +160,17 @@ class KayanConfigValueSourceTest {
                         required = false,
                         nullable = false,
                     ).serialize(),
+                    KayanSchemaEntrySpec(
+                        jsonKey = "api_secret",
+                        propertyName = "API_SECRET",
+                        kind = io.kayan.ConfigValueKind.STRING,
+                        required = false,
+                        nullable = false,
+                    ).serialize(),
                 ),
             )
         }
 
-        return deserializeResolvedValues(provider.get())
+        return provider.get()
     }
 }

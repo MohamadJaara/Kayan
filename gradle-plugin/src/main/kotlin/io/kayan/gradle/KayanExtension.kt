@@ -32,7 +32,7 @@ import javax.inject.Inject
 
 public abstract class KayanExtension {
     internal val schemaBuilder: KayanSchemaBuilder = KayanSchemaBuilder()
-    private var resolvedBuildValuesProvider: Provider<Map<String, ResolvedBuildValue>>? = null
+    private val resolvedBuildValueProviders: MutableMap<String, Provider<ResolvedBuildValue>> = mutableMapOf()
 
     @get:Inject
     internal abstract val providers: ProviderFactory
@@ -60,27 +60,25 @@ public abstract class KayanExtension {
         validateSchemaKeyEither(schema, jsonKey).getOrElse { throw it.toGradleException() }
 
         return KayanBuildValue(
-            valueProvider = resolvedBuildValuesProvider().map { resolvedValues ->
-                requireResolvedBuildValueEither(resolvedValues, jsonKey)
-                    .getOrElse { throw it.toGradleException() }
-            },
+            valueProvider = resolvedBuildValueProvider(jsonKey),
         )
     }
 
     internal fun serializedSchemaEntries(): List<String> = schemaBuilder.entries.map(KayanSchemaEntrySpec::serialize)
 
-    private fun resolvedBuildValuesProvider(): Provider<Map<String, ResolvedBuildValue>> =
-        resolvedBuildValuesProvider ?: providers.of(KayanConfigValueSource::class.java) { spec ->
-            spec.parameters.baseConfigFile.set(baseConfigFile)
-            spec.parameters.customConfigFile.set(customConfigFile)
-            spec.parameters.configFormat.set(configFormat)
-            spec.parameters.flavor.set(flavor)
-            spec.parameters.schemaEntries.set(serializedSchemaEntries())
-        }.map { serialized ->
-            deserializeResolvedValuesEither(serialized)
-                .getOrElse { throw it.toGradleException() }
-        }.also { provider ->
-            resolvedBuildValuesProvider = provider
+    private fun resolvedBuildValueProvider(jsonKey: String): Provider<ResolvedBuildValue> =
+        resolvedBuildValueProviders.getOrPut(jsonKey) {
+            providers.of(KayanConfigValueSource::class.java) { spec ->
+                spec.parameters.baseConfigFile.set(baseConfigFile)
+                spec.parameters.customConfigFile.set(customConfigFile)
+                spec.parameters.configFormat.set(configFormat)
+                spec.parameters.flavor.set(flavor)
+                spec.parameters.schemaEntries.set(serializedSchemaEntries())
+                spec.parameters.jsonKey.set(jsonKey)
+            }.map { serialized ->
+                deserializeResolvedBuildValueEither(jsonKey, serialized)
+                    .getOrElse { throw it.toGradleException() }
+            }
         }
 
     private fun validateSchemaKeyEither(
@@ -94,12 +92,6 @@ public abstract class KayanExtension {
         val suggestions = closeKeyMatches(jsonKey, schema.entries.map(ConfigDefinition::jsonKey))
         return BuildTimeAccessError.UnknownSchemaKey(jsonKey, suggestions).left()
     }
-
-    private fun requireResolvedBuildValueEither(
-        resolvedValues: Map<String, ResolvedBuildValue>,
-        jsonKey: String,
-    ): Either<BuildTimeAccessError, ResolvedBuildValue> =
-        resolvedValues[jsonKey]?.right() ?: BuildTimeAccessError.MissingResolvedBuildValue(jsonKey).left()
 }
 
 public class KayanSchemaBuilder internal constructor() {
