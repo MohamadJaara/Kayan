@@ -10,7 +10,7 @@ class AppInfoTest {
         assertEquals("Example App Custom", AppInfo.brandName)
         assertEquals("com.example.app", AppInfo.bundleId)
         assertEquals("https://api.example.com", AppInfo.apiBaseUrl)
-        assertEquals("sunrise", AppInfo.themeName)
+        assertEquals("aurora", AppInfo.themeName)
         assertEquals(true, AppInfo.searchEnabled)
         assertEquals(listOf("https://custom.example.com/help"), AppInfo.supportLinks)
         assertEquals("global", AppInfo.supportMatrix.fallbackRegion)
@@ -35,7 +35,7 @@ class AppInfoTest {
         assertTrue(AppInfo.resolvedEntries.contains("ONBOARDING_ENABLED" to "true"))
         assertTrue(AppInfo.resolvedEntries.contains("FEATURE_SEARCH_ENABLED" to "true"))
         assertTrue(AppInfo.resolvedEntries.any { it.first == "API_BASE_URL" && it.second == "https://api.example.com" })
-        assertTrue(AppInfo.resolvedEntries.contains("THEME_NAME" to "sunrise"))
+        assertTrue(AppInfo.resolvedEntries.contains("THEME_NAME" to "aurora"))
         assertTrue(
             AppInfo.resolvedEntries.contains(
                 "SUPPORT_LINKS" to "[https://custom.example.com/help]"

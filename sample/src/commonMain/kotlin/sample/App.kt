@@ -26,14 +26,10 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SampleApp(platformLabel: String) {
+    val palette = SelectedThemePalette
+
     MaterialTheme(
-        colorScheme = MaterialTheme.colorScheme.copy(
-            primary = Color(0xFF7A4A23),
-            secondary = Color(0xFF5D6B3C),
-            tertiary = Color(0xFF3F6473),
-            surface = Color(0xFFFBF5EC),
-            background = Color(0xFFF3E8D8),
-        )
+        colorScheme = palette.toColorScheme(),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -85,7 +81,7 @@ private fun Header(platformLabel: String) {
 private fun SummaryCard() {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.84f),
+            containerColor = SelectedThemePalette.cardSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -110,7 +106,7 @@ private fun SummaryCard() {
 private fun SupportMatrixCard() {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.84f),
+            containerColor = SelectedThemePalette.cardSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -143,7 +139,7 @@ private fun SupportMatrixCard() {
 private fun ValuesCard() {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.84f),
+            containerColor = SelectedThemePalette.cardSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxSize(),
@@ -178,7 +174,7 @@ private fun SupportRegionRow(region: SupportRegion) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Color(0xFFF9F2E8),
+                color = SelectedThemePalette.insetSurface,
                 shape = CardDefaults.shape,
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -236,7 +232,7 @@ private fun ValueRow(key: String, value: String) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Color(0xFFF9F2E8),
+                color = SelectedThemePalette.insetSurface,
                 shape = CardDefaults.shape,
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),

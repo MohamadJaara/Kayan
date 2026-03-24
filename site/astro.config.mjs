@@ -38,6 +38,7 @@ export default defineConfig({
 						{ label: 'Resolution Order', slug: 'docs/resolution-order' },
 						{ label: 'JSON Shape', slug: 'docs/json-shape' },
 						{ label: 'Gradle Usage', slug: 'docs/gradle-usage' },
+						{ label: 'Build-Time Config Access', slug: 'docs/build-time-config' },
 						{ label: 'Schema Types', slug: 'docs/schema-types' },
 						{ label: 'Schema Export', slug: 'docs/schema-export' },
 					],

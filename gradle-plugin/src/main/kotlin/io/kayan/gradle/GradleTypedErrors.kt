@@ -234,3 +234,121 @@ internal sealed interface GenerationError : KayanGradleError {
         override fun message(): String = "Failed to generate $targetName: ${cause.message}"
     }
 }
+
+internal sealed interface BuildTimeAccessError : KayanGradleError {
+    data class UnknownSchemaKey(
+        val jsonKey: String,
+        val suggestions: List<String>,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String {
+            val suggestionMessage = when (suggestions.size) {
+                0 -> ""
+                1 -> " Did you mean '${suggestions.single()}'?"
+                else -> " Close matches: ${suggestions.joinToString { "'$it'" }}."
+            }
+
+            return "Key '$jsonKey' is not defined in the Kayan schema.$suggestionMessage"
+        }
+    }
+
+    data class MissingResolvedBuildValue(
+        val jsonKey: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Key '$jsonKey' was validated against the Kayan schema but was not resolved."
+    }
+
+    data class ValueKindMismatch(
+        val jsonKey: String,
+        val actualKind: ConfigValueKind,
+        val requestedType: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Key '$jsonKey' is $actualKind, cannot access as $requestedType"
+    }
+
+    data class NullValueAccess(
+        val jsonKey: String,
+        val nullAccessorHint: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Key '$jsonKey' is null; use $nullAccessorHint instead"
+    }
+
+    data class DecodedValueTypeMismatch(
+        val jsonKey: String,
+        val requestedType: String,
+        val actualType: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Key '$jsonKey' was decoded as $actualType, cannot access as $requestedType"
+    }
+
+    data class InvalidSerializedResolvedValuesJson(
+        override val cause: Throwable,
+    ) : BuildTimeAccessError {
+        override fun message(): String = "Invalid serialized resolved values JSON."
+    }
+
+    data object InvalidSerializedResolvedValuesRoot : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String = "Serialized resolved values must be a JSON object."
+    }
+
+    data class ResolvedValueNotAnObject(
+        val jsonKey: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String = "Resolved value '$jsonKey' must be a JSON object."
+    }
+
+    data class MissingResolvedValueField(
+        val jsonKey: String,
+        val fieldName: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Resolved value '$jsonKey' is missing required field '$fieldName'."
+    }
+
+    data class UnsupportedResolvedValueKind(
+        val jsonKey: String,
+        val rawKind: String,
+        override val cause: Throwable,
+    ) : BuildTimeAccessError {
+        override fun message(): String =
+            "Resolved value '$jsonKey' has unsupported kind '$rawKind'."
+    }
+
+    data class InvalidResolvedValueEncoding(
+        val jsonKey: String,
+        val kind: ConfigValueKind,
+        val expectedShape: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Resolved value '$jsonKey' for kind '$kind' must be encoded as $expectedShape."
+    }
+
+    data class InvalidResolvedValueEntry(
+        val detail: String,
+    ) : BuildTimeAccessError {
+        override val cause: Throwable? = null
+
+        override fun message(): String = detail
+    }
+}

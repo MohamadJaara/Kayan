@@ -2,7 +2,8 @@
   "flavors": {
     "prod": {
       "brand_name": "Example App Custom",
-      "feature_search_enabled": true
+      "feature_search_enabled": true,
+      "theme_name": "aurora"
     }
   },
   "regional_support_links": {

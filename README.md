@@ -27,6 +27,7 @@ The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", 
 - Let the consuming app own the schema and generated property names.
 - Resolve layered defaults and overrides deterministically at build time.
 - Work in shared Kotlin across KMP, JVM, and Android modules.
+- Reuse resolved values inside Gradle itself with `buildValue("key")`.
 
 ## Quick start
 
@@ -98,11 +99,39 @@ val brandName = SampleConfig.BRAND_NAME
 Generated source lands in `build/generated/kayan/kotlin` and is wired into the appropriate source
 set automatically.
 
+> `buildValue()` is experimental.
+> Opt in with `@file:OptIn(io.kayan.gradle.ExperimentalKayanGradleApi::class)` when using
+> the Gradle build-time API from `build.gradle.kts`.
+
+## Build-time config access
+
+When Gradle logic needs the same resolved config, use `buildValue()` directly in
+`build.gradle.kts`:
+
+```kotlin
+@file:OptIn(io.kayan.gradle.ExperimentalKayanGradleApi::class)
+
+val isSearchEnabled =
+    kayan.buildValue("feature_search_enabled")
+        .asBoolean()
+
+dependencies {
+    if (isSearchEnabled) {
+        implementation("com.example:search-sdk:1.0.0")
+    }
+}
+```
+
+This is useful for conditional dependencies, task inputs, and other configuration-time
+decisions. Provider variants such as `asStringProvider()` are also available for lazy task
+wiring.
+
 ## Learn more
 
 - [Overview](https://mohamadjaara.github.io/Kayan/docs/overview/)
 - [Quick Start](https://mohamadjaara.github.io/Kayan/docs/quick-start/)
 - [Gradle Usage](https://mohamadjaara.github.io/Kayan/docs/gradle-usage/)
+- [Build-Time Config Access](https://mohamadjaara.github.io/Kayan/docs/build-time-config/)
 - [Resolution Order](https://mohamadjaara.github.io/Kayan/docs/resolution-order/)
 - [JSON Shape](https://mohamadjaara.github.io/Kayan/docs/json-shape/)
 - [Schema Types](https://mohamadjaara.github.io/Kayan/docs/schema-types/)

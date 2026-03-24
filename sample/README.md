@@ -10,6 +10,9 @@ It demonstrates:
 - resolving `default.json` plus `custom-overrides.json`
 - resolving a brand override from any file path passed into Gradle
 - declaring a consumer-owned schema in `build.gradle.kts`
+- reading resolved config directly in `build.gradle.kts` with `buildValue()`
+- selecting a Kotlin theme implementation from `theme_name`
+- configuring desktop packaging metadata from `bundle_id` and `brand_name`
 - defining a consumer-owned `SupportMatrix` custom type with a build-time adapter in `build-logic`
 - generating `sample.generated.SampleConfig`
 - using a consumer-owned `Customization.kt` to choose which generated values are shown on screen
@@ -51,6 +54,50 @@ Generate only the config source:
 ```bash
 ../gradlew -p sample generateKayanConfig
 ```
+
+Generate the branding metadata that Gradle packages for the app:
+
+```bash
+../gradlew -p sample generateBrandMetadata
+```
+
+Compile the app with the selected theme implementation:
+
+```bash
+../gradlew -p sample compileKotlinJvm
+```
+
+Try a different flavor:
+
+```bash
+../gradlew -p sample compileKotlinJvm -PkayanFlavor=dev
+```
+
+The sample now uses `buildValue()` for two realistic build-time decisions:
+
+- `bundle_id` and `brand_name` configure Compose Desktop native distribution metadata
+- `theme_name` selects which Kotlin file under `sample/themes/<name>/kotlin/` is copied into generated `commonMain` sources
+
+The default sample setup uses `custom-overrides.json`, so `prod` resolves to:
+
+- `brandName=Example App Custom`
+- `featureSearchEnabled=true`
+- `themeName=aurora`
+- generated theme source: `build/generated/theme-source/commonMain/kotlin/sample/SelectedThemePalette.kt`
+
+While `dev` resolves to:
+
+- `brandName=Example App`
+- `featureSearchEnabled=true`
+- `themeName=sunrise`
+- generated theme source: `build/generated/theme-source/commonMain/kotlin/sample/SelectedThemePalette.kt`
+
+The generated metadata file lands at:
+
+- `build/generated/branding/brand-metadata.json`
+
+This shows the difference between using Kayan from generated app code and using the same
+resolved values to drive packaging and compiled UI selection inside Gradle configuration.
 
 Generate config for a brand file that lives outside this repo:
 
