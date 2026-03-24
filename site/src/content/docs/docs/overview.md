@@ -11,7 +11,7 @@ instead of routing values through platform-specific build config.
 
 Kayan is designed for non-sensitive configuration. If a value should stay out
 of generated code or normal Gradle configuration, keep it out of Kayan. See
-[Security](./security.md) for the trust model and main boundaries.
+[Security](../security/) for the trust model and main boundaries.
 
 ## How it works
 

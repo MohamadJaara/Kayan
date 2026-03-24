@@ -39,7 +39,7 @@ dependencies {
 By design, this API is meant for non-sensitive build configuration. If a value is appropriate for
 Gradle to read during configuration, it is usually fine for `buildValue()`. Secrets such as API
 keys, passwords, and tokens should stay in dedicated secret-management or environment-specific
-secure storage instead. See [Security](./security.md) for the trust model behind
+secure storage instead. See [Security](../security/) for the trust model behind
 `buildValue()` and custom adapters.
 
 ## When to use it
