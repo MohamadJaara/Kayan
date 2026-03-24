@@ -3,6 +3,7 @@ package io.kayan.gradle
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
+import io.kayan.ConfigFormat
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -29,12 +30,16 @@ public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigVa
         public val flavor: Property<String>
 
         @get:Input
+        public val configFormat: Property<ConfigFormat>
+
+        @get:Input
         public val schemaEntries: ListProperty<String>
     }
 
     override fun obtain(): String =
         obtainEither().getOrElse { throw it.toGradleException() }
 
+    @OptIn(ExperimentalKayanGradleApi::class)
     private fun obtainEither(): Either<KayanGradleError, String> = either {
         val schema = requireSchemaEither(parameters.schemaEntries.get()).bind()
         val flavor = requireConfiguredEither(parameters.flavor.orNull, "flavor").bind()
@@ -42,7 +47,12 @@ public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigVa
         val customFile = parameters.customConfigFile.orNull?.asFile?.let { file ->
             requireExistingFileEither(file, "custom").bind()
         }
-        val resolved = resolveConfigEither(schema, baseFile, customFile).bind()
+        val resolved = resolveConfigEither(
+            schema = schema,
+            baseFile = baseFile,
+            customFile = customFile,
+            configFormat = parameters.configFormat.orNull ?: ConfigFormat.AUTO,
+        ).bind()
         val resolvedFlavor = requireResolvedFlavorEither(resolved, flavor).bind()
 
         serializeResolvedValues(resolvedFlavor)

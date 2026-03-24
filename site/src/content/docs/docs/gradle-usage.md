@@ -15,7 +15,7 @@ pluginManagement {
 ```
 
 Apply the Kayan plugin alongside any supported Kotlin plugin, then declare package, flavor,
-input files, and schema.
+input files, optional format selection, and schema.
 
 ```kotlin
 plugins {
@@ -34,6 +34,8 @@ kayan {
     customConfigFile.set(
         layout.projectDirectory.file("custom-overrides.json")
     )
+    // Optional when using .yaml or .yml inputs.
+    // configFormat.set(io.kayan.ConfigFormat.YAML)
     className.set("SampleConfig")
 
     schema {
@@ -50,3 +52,7 @@ kayan {
 
 Generated source is written under `build/generated/kayan/kotlin` and automatically wired
 into the appropriate source set (`commonMain` for KMP, `main` for JVM and Android).
+
+Use `.json` files with `ConfigFormat.JSON` and `.yaml` / `.yml` files with `ConfigFormat.YAML`.
+`ConfigFormat.AUTO` is available as an experimental opt-in when you want Kayan to infer the format
+from file extensions.

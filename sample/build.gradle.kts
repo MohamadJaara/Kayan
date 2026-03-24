@@ -117,15 +117,33 @@ compose.desktop {
     }
 }
 
-val customBrandConfigPath =
-    providers.gradleProperty("brandConfigPath")
-        .orElse(layout.projectDirectory.file("custom-overrides.json").asFile.absolutePath)
+val kayanConfigFormat =
+    providers.gradleProperty("kayanConfigFormat")
+        .map { io.kayan.ConfigFormat.valueOf(it.uppercase()) }
+        .orElse(io.kayan.ConfigFormat.JSON)
+val defaultBaseConfigPath = kayanConfigFormat.map { format: io.kayan.ConfigFormat ->
+    when (format) {
+        io.kayan.ConfigFormat.JSON -> layout.projectDirectory.file("default.json").asFile.absolutePath
+        io.kayan.ConfigFormat.YAML -> layout.projectDirectory.file("default.yml").asFile.absolutePath
+        io.kayan.ConfigFormat.AUTO -> error("The sample does not use AUTO config format by default.")
+    }
+}
+val defaultCustomBrandConfigPath = kayanConfigFormat.map { format: io.kayan.ConfigFormat ->
+    when (format) {
+        io.kayan.ConfigFormat.JSON -> layout.projectDirectory.file("custom-overrides.json").asFile.absolutePath
+        io.kayan.ConfigFormat.YAML -> layout.projectDirectory.file("custom-overrides.yml").asFile.absolutePath
+        io.kayan.ConfigFormat.AUTO -> error("The sample does not use AUTO config format by default.")
+    }
+}
+val baseConfigPath = providers.gradleProperty("baseConfigPath").orElse(defaultBaseConfigPath)
+val customBrandConfigPath = providers.gradleProperty("brandConfigPath").orElse(defaultCustomBrandConfigPath)
 
 kayan {
     packageName.set("sample.generated")
     flavor.set(providers.gradleProperty("kayanFlavor").orElse("prod"))
-    baseConfigFile.set(layout.projectDirectory.file("default.json"))
+    baseConfigFile.set(layout.file(baseConfigPath.map { file(it) }))
     customConfigFile.set(layout.file(customBrandConfigPath.map { file(it) }))
+    configFormat.set(kayanConfigFormat)
     className.set("SampleConfig")
     schema {
         string("brand_name", "BRAND_NAME")

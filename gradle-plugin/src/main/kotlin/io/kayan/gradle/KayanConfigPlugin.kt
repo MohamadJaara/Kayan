@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import io.kayan.ConfigFormat
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -9,6 +10,7 @@ public class KayanConfigPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("kayan", KayanExtension::class.java).apply {
             baseConfigFile.convention(project.layout.projectDirectory.file("default.json"))
+            configFormat.convention(ConfigFormat.JSON)
             className.convention("KayanConfig")
             jsonSchemaOutputFile.convention(
                 project.layout.buildDirectory.file("generated/kayan/schema/kayan.schema.json"),
@@ -37,6 +39,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             task.kotlinPluginApplied.convention(false)
             task.baseConfigFile.set(extension.baseConfigFile)
             task.customConfigFile.set(extension.customConfigFile)
+            task.configFormat.set(extension.configFormat)
             task.schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
             task.outputDir.set(project.layout.buildDirectory.dir("generated/kayan/kotlin"))
             project.buildscript.configurations.findByName("classpath")?.let { classpath ->

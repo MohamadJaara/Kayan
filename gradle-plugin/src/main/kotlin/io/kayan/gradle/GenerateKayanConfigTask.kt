@@ -6,6 +6,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import io.kayan.ConfigDefinition
+import io.kayan.ConfigFormat
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
@@ -49,6 +50,9 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     public abstract val customConfigFile: RegularFileProperty
 
+    @get:Input
+    public abstract val configFormat: Property<ConfigFormat>
+
     @get:OutputDirectory
     public abstract val outputDir: DirectoryProperty
 
@@ -72,7 +76,12 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
 
     private fun generateEither(): Either<KayanGradleError, Unit> = either {
         val inputs = loadGenerationInputsEither().bind()
-        val resolved = resolveConfigEither(inputs.schema, inputs.baseFile, inputs.customFile).bind()
+        val resolved = resolveConfigEither(
+            schema = inputs.schema,
+            baseFile = inputs.baseFile,
+            customFile = inputs.customFile,
+            configFormat = inputs.configFormat,
+        ).bind()
         val resolvedFlavor = requireResolvedFlavorEither(resolved, inputs.flavor).bind()
         writeGeneratedSourceEither(inputs, resolvedFlavor).bind()
     }
@@ -275,6 +284,7 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
         }
     }
 
+    @OptIn(ExperimentalKayanGradleApi::class)
     private fun loadGenerationInputsEither(): Either<KayanGradleError, GenerationInputs> = either {
         GenerationInputs(
             packageName = requireConfiguredEither(packageName.orNull, "packageName").bind(),
@@ -285,6 +295,7 @@ public abstract class GenerateKayanConfigTask : DefaultTask() {
             customFile = customConfigFile.asFile.orNull?.let { file ->
                 requireExistingFileEither(file, "custom").bind()
             },
+            configFormat = configFormat.orNull ?: ConfigFormat.AUTO,
         )
     }
 

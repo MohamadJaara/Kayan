@@ -1,6 +1,7 @@
 package io.kayan.gradle
 
 import io.kayan.ConfigDefinition
+import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.assertMessageContains
@@ -108,6 +109,140 @@ class GenerateKayanConfigSupportTest {
             "Unknown key 'brand_name_typo'",
         )
         assertTrue(error.cause is IllegalArgumentException)
+    }
+
+    @Test
+    fun resolveConfigSupportsYamlFilesThroughAutoDetection() {
+        val brandName = ConfigDefinition(
+            jsonKey = "brand_name",
+            propertyName = "BRAND_NAME",
+            kind = ConfigValueKind.STRING,
+        )
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = brandName.jsonKey,
+                    propertyName = brandName.propertyName,
+                    kind = brandName.kind,
+                    required = brandName.required,
+                    nullable = brandName.nullable,
+                ).serialize(),
+            ),
+        )
+        val resolved = resolveConfig(
+            schema = schema,
+            baseFile = createConfigFile(
+                """
+                    flavors:
+                      prod:
+                        bundle_id: com.example.prod
+                    brand_name: Example
+                """.trimIndent(),
+                fileName = "default.yaml",
+            ),
+            customFile = createConfigFile(
+                """
+                    flavors: {}
+                    brand_name: Custom Example
+                """.trimIndent(),
+                fileName = "custom-overrides.yml",
+            ),
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("Custom Example"),
+            resolved.flavors.getValue("prod").values.getValue(brandName),
+        )
+    }
+
+    @Test
+    fun resolveConfigRejectsMixedFormatsWhenAutoDetecting() {
+        val schema = requireSchema(listOf(bundleIdEntry().serialize()))
+
+        val error = assertFailsWith<GradleException> {
+            resolveConfig(
+                schema = schema,
+                baseFile = createConfigFile(
+                    """
+                        flavors:
+                          prod:
+                            bundle_id: com.example.prod
+                    """.trimIndent(),
+                    fileName = "default.yaml",
+                ),
+                customFile = createConfigFile(
+                    """
+                        {
+                          "flavors": {}
+                        }
+                    """.trimIndent(),
+                    fileName = "custom-overrides.json",
+                ),
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "uses YAML, but custom config source",
+            "uses JSON",
+            "configFormat is AUTO",
+        )
+    }
+
+    @Test
+    fun resolveConfigSupportsExplicitYamlFormatOverride() {
+        val schema = requireSchema(listOf(bundleIdEntry().serialize()))
+        val resolved = resolveConfig(
+            schema = schema,
+            baseFile = createConfigFile(
+                """
+                    flavors:
+                      prod:
+                        bundle_id: com.example.prod
+                """.trimIndent(),
+                fileName = "default.yaml",
+            ),
+            customFile = null,
+            configFormat = ConfigFormat.YAML,
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("com.example.prod"),
+            resolved.flavors.getValue("prod").values.values.single(),
+        )
+    }
+
+    @Test
+    fun resolveConfigRejectsJsonFilesWhenExplicitYamlFormatIsConfigured() {
+        val schema = requireSchema(listOf(bundleIdEntry().serialize()))
+
+        val error = assertFailsWith<GradleException> {
+            resolveConfig(
+                schema = schema,
+                baseFile = createConfigFile(
+                    """
+                        {
+                          "flavors": {
+                            "prod": {
+                              "bundle_id": "com.example.prod"
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                    fileName = "default.json",
+                ),
+                customFile = null,
+                configFormat = ConfigFormat.YAML,
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "Configured configFormat is YAML",
+            "source '",
+            "uses JSON",
+        )
     }
 
     @Test
@@ -262,9 +397,12 @@ class GenerateKayanConfigSupportTest {
         nullable = bundleId.nullable,
     )
 
-    private fun createConfigFile(contents: String): File {
+    private fun createConfigFile(
+        contents: String,
+        fileName: String = "default.json",
+    ): File {
         val tempDir = createTempDirectory(prefix = "kayan-support-test").toFile()
-        return File(tempDir, "default.json").apply { writeText(contents) }
+        return File(tempDir, fileName).apply { writeText(contents) }
     }
 
     private fun assertHasCauseMessage(

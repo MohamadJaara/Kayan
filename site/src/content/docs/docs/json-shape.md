@@ -6,6 +6,8 @@ description: Expected structure of Kayan config files.
 Kayan expects a root object with a required `flavors` object. Top-level keys outside
 `flavors` act as defaults for every flavor.
 
+This page shows the JSON form of the shape. YAML uses the same structure and resolution rules.
+
 ```json
 {
   "flavors": {

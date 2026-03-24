@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.arrow.core)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.snakeyaml)
 
     testImplementation(gradleTestKit())
     testImplementation(libs.kotlin.test)
@@ -68,7 +69,7 @@ gradlePlugin {
             id = "io.github.mohamadjaara.kayan"
             implementationClass = "io.kayan.gradle.KayanConfigPlugin"
             displayName = "Kayan Config Plugin"
-            description = "Generates a typed BuildConfig-like Kotlin object from Kayan JSON config files."
+            description = "Generates a typed BuildConfig-like Kotlin object from Kayan JSON and YAML config files."
         }
     }
 }
@@ -79,7 +80,7 @@ mavenPublishing {
 
     pom {
         name = "Kayan Gradle Plugin"
-        description = "Gradle plugin for generating typed Kayan configuration objects from JSON."
+        description = "Gradle plugin for generating typed Kayan configuration objects from JSON and YAML."
         inceptionYear = "2026"
         url = "https://github.com/MohamadJaara/Kayan"
 

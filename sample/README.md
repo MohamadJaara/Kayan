@@ -8,6 +8,7 @@ It demonstrates:
 - applying `io.github.mohamadjaara.kayan`
 - applying Compose Multiplatform with shared UI in `commonMain`
 - resolving `default.json` plus `custom-overrides.json`
+- switching the same sample app between `.json` and `.yml` config pairs
 - resolving a brand override from any file path passed into Gradle
 - declaring a consumer-owned schema in `build.gradle.kts`
 - reading resolved config directly in `build.gradle.kts` with `buildValue()`
@@ -85,6 +86,17 @@ The default sample setup uses `custom-overrides.json`, so `prod` resolves to:
 - `themeName=aurora`
 - generated theme source: `build/generated/theme-source/commonMain/kotlin/sample/SelectedThemePalette.kt`
 
+To exercise YAML with the smallest possible change, the sample keeps the same app and schema and
+switches to the checked-in `default.yml` plus `custom-overrides.yml` pair:
+
+```bash
+../gradlew -p sample generateKayanConfig \
+  -PkayanConfigFormat=YAML
+```
+
+That still avoids maintaining a second sample app. The build script just changes which config files
+it points at based on `kayanConfigFormat`.
+
 While `dev` resolves to:
 
 - `brandName=Example App`
@@ -118,7 +130,10 @@ curl -o /tmp/wafflewizard-brand.json https://example.com/mobile-branding/wafflew
 
 How the sample is wired:
 
-- Kayan only receives a file path through `-PbrandConfigPath`
+- `-PkayanConfigFormat=JSON` uses `default.json` and `custom-overrides.json`
+- `-PkayanConfigFormat=YAML` uses `default.yml` and `custom-overrides.yml`
+- `-PbaseConfigPath` and `-PbrandConfigPath` can still override either path explicitly
+- Kayan can receive override file paths through `-PbrandConfigPath` and `-PbaseConfigPath`
 - that path can point to a file inside this repo or anywhere else on disk
 - CI or a wrapper script can fetch the file first from another repo, storage bucket, or internal service
 - the app repo stays unchanged while another system decides which brand file to inject

@@ -3,6 +3,7 @@ package io.kayan
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
+import io.kayan.gradle.ExperimentalKayanGradleApi
 
 @Suppress("TooManyFunctions")
 public class DefaultConfigResolver : ConfigResolver {
@@ -10,6 +11,14 @@ public class DefaultConfigResolver : ConfigResolver {
 
     public constructor() {
         parser = JsonConfigFormatParser()
+    }
+
+    @OptIn(ExperimentalKayanGradleApi::class)
+    public constructor(configFormat: ConfigFormat) {
+        require(configFormat != ConfigFormat.AUTO) {
+            "DefaultConfigResolver requires JSON or YAML when constructed with an explicit ConfigFormat."
+        }
+        parser = parserFor(configFormat)
     }
 
     internal constructor(parser: ConfigFormatParser) {

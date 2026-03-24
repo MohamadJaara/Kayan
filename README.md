@@ -4,7 +4,7 @@
 
 <h1 align="center">Kayan</h1>
 
-<p align="center">Typed layered JSON config for Kotlin Multiplatform, JVM, and Android.</p>
+<p align="center">Typed layered JSON and YAML config for Kotlin Multiplatform, JVM, and Android.</p>
 
 <p align="center">
   <a href="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml"><img src="https://github.com/MohamadJaara/Kayan/actions/workflows/gradle.yml/badge.svg" alt="CI"></a>
@@ -15,15 +15,16 @@
   <a href="https://mohamadjaara.github.io/Kayan/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs"></a>
 </p>
 
-Kayan is a Kotlin Gradle plugin that generates a typed Kotlin object from layered JSON config files.
+Kayan is a Kotlin Gradle plugin that generates a typed Kotlin object from layered JSON and YAML config files.
 It works with Kotlin Multiplatform, Kotlin/JVM, and Kotlin Android projects, so shared code can read
 config directly without platform-specific `BuildConfig` wiring.
 
 The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", "structure", or "being".
+JSON is valid YAML, but Kayan still makes the format choice explicit so your builds do not develop a split personality.
 
 ## Why Kayan
 
-- Keep config in JSON while exposing a typed Kotlin API.
+- Keep config in JSON or YAML while exposing a typed Kotlin API.
 - Let the consuming app own the schema and generated property names.
 - Resolve layered defaults and overrides deterministically at build time.
 - Work in shared Kotlin across KMP, JVM, and Android modules.
@@ -58,6 +59,19 @@ Add a config file:
   },
   "brand_name": "Example App"
 }
+```
+
+YAML works too:
+
+```yaml
+flavors:
+  prod:
+    api_base_url: https://api.example.com
+    feature_search_enabled: false
+  dev:
+    api_base_url: https://dev.example.com
+    feature_search_enabled: true
+brand_name: Example App
 ```
 
 Apply the plugin and declare your schema:

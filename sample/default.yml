@@ -1,0 +1,22 @@
+flavors:
+  prod:
+    bundle_id: com.example.app
+    feature_search_enabled: false
+  dev:
+    bundle_id: com.example.app.dev
+    feature_search_enabled: true
+brand_name: Example App
+onboarding_enabled: true
+api_base_url: https://api.example.com
+theme_name: sunrise
+regional_support_links:
+  global:
+    - https://example.com/help
+    - https://example.com/status
+  emea:
+    - https://eu.example.com/help
+  us:
+    - https://us.example.com/help
+    - https://us.example.com/emergency
+support_links:
+  - https://example.com/help

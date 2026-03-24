@@ -120,6 +120,60 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun generatesConfigFromYamlFiles() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    baseConfigFile.set(layout.projectDirectory.file("default.yaml"))
+                    customConfigFile.set(layout.projectDirectory.file("custom-overrides.yaml"))
+                    configFormat.set(io.kayan.ConfigFormat.YAML)
+                """.trimIndent(),
+            ),
+            baseJson = """
+                flavors:
+                  prod:
+                    bundle_id: com.example.prod
+                brand_name: Base
+                support_links:
+                  - https://example.com/help
+            """.trimIndent(),
+            customJson = """
+                flavors:
+                  prod:
+                    brand_name: Custom Flavor
+                support_links:
+                  - https://custom.example.com/help
+            """.trimIndent(),
+            commonSource = """
+                package sample
+
+                import sample.config.KayanConfig
+
+                val bundleId: String = KayanConfig.BUNDLE_ID
+                val brandName: String? = KayanConfig.BRAND_NAME
+                val links = KayanConfig.SUPPORT_LINKS
+            """.trimIndent(),
+            baseFileName = "default.yaml",
+            customFileName = "custom-overrides.yaml",
+        )
+
+        val result = gradleRunner(projectDir, "compileKotlinJvm").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
+        val generatedText = generatedFile.readText()
+        assertTrue(generatedText.contains("public const val BUNDLE_ID: String = \"com.example.prod\""))
+        assertTrue(generatedText.contains("public val BRAND_NAME: String = \"Custom Flavor\""))
+        assertTrue(
+            generatedText.contains(
+                "public val SUPPORT_LINKS: List<String> = listOf(\"https://custom.example.com/help\")",
+            ),
+        )
+    }
+
+    @Test
     fun rewritesExistingGeneratedFileWithoutCleaningOutputDirectory() {
         val projectDir = createProject(
             buildScript = buildScript(
@@ -666,6 +720,8 @@ class KayanConfigPluginFunctionalTest {
         commonSource: String,
         customJson: String? = null,
         sourceDir: String = "src/commonMain/kotlin",
+        baseFileName: String = "default.json",
+        customFileName: String = "custom-overrides.json",
     ): File {
         val projectDir = createTempDirectory(prefix = "kayan-plugin-test").toFile()
         File(projectDir, "settings.gradle.kts").writeText(
@@ -689,8 +745,8 @@ class KayanConfigPluginFunctionalTest {
             """.trimIndent()
         )
         File(projectDir, "build.gradle.kts").writeText(buildScript)
-        File(projectDir, "default.json").writeText(baseJson)
-        customJson?.let { File(projectDir, "custom-overrides.json").writeText(it) }
+        File(projectDir, baseFileName).writeText(baseJson)
+        customJson?.let { File(projectDir, customFileName).writeText(it) }
 
         val sourceFile = File(projectDir, "$sourceDir/sample/UseConfig.kt")
         sourceFile.parentFile.mkdirs()

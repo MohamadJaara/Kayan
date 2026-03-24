@@ -10,6 +10,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toNonEmptyListOrNull
 import io.kayan.closeKeyMatches
+import io.kayan.ConfigFormat
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValueKind
@@ -40,6 +41,7 @@ public abstract class KayanExtension {
     public abstract val flavor: Property<String>
     public abstract val baseConfigFile: RegularFileProperty
     public abstract val customConfigFile: RegularFileProperty
+    public abstract val configFormat: Property<ConfigFormat>
     public abstract val className: Property<String>
     public abstract val jsonSchemaOutputFile: RegularFileProperty
     public abstract val markdownSchemaOutputFile: RegularFileProperty
@@ -71,6 +73,7 @@ public abstract class KayanExtension {
         resolvedBuildValuesProvider ?: providers.of(KayanConfigValueSource::class.java) { spec ->
             spec.parameters.baseConfigFile.set(baseConfigFile)
             spec.parameters.customConfigFile.set(customConfigFile)
+            spec.parameters.configFormat.set(configFormat)
             spec.parameters.flavor.set(flavor)
             spec.parameters.schemaEntries.set(serializedSchemaEntries())
         }.map { serialized ->

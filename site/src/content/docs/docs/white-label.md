@@ -18,6 +18,9 @@ config/
 build.gradle.kts
 ```
 
+You can use `default.yml` instead if the project standardizes on YAML. The important part is that
+base and override files use the same configured format.
+
 ## Gradle configuration
 
 ```kotlin
@@ -40,6 +43,8 @@ kayan {
     customConfigFile.set(
         layout.file(brandConfigPath.map { file(it) })
     )
+    // Optional for YAML inputs:
+    // configFormat.set(io.kayan.ConfigFormat.YAML)
 }
 ```
 

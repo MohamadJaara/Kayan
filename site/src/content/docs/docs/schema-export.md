@@ -28,5 +28,5 @@ kayan {
 ./gradlew exportKayanSchema
 ```
 
-The export validates raw JSON types, required keys, the required `flavors` object, and
+The export validates raw config types, required keys, the required `flavors` object, and
 unknown keys at both the top level and inside each flavor.

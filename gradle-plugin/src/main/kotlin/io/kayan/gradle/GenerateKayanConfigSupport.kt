@@ -8,11 +8,14 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 import io.kayan.ConfigDefinition
+import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.DefaultConfigResolver
 import io.kayan.ResolvedConfigsByFlavor
 import io.kayan.ResolvedFlavorConfig
+import io.kayan.parserFor
+import io.kayan.resolveConfigFormatEither
 import org.gradle.api.GradleException
 import java.io.File
 import java.lang.reflect.Method
@@ -24,6 +27,7 @@ internal data class GenerationInputs(
     val schema: io.kayan.ConfigSchema,
     val baseFile: File,
     val customFile: File?,
+    val configFormat: ConfigFormat,
 )
 
 internal data class LoadedCustomAdapter(
@@ -141,14 +145,26 @@ internal fun requireExistingFileEither(
 internal fun requireExistingFile(file: File, label: String): File =
     requireExistingFileEither(file, label).getOrElse { throw it.toGradleException() }
 
+@OptIn(ExperimentalKayanGradleApi::class)
 internal fun resolveConfigEither(
     schema: io.kayan.ConfigSchema,
     baseFile: File,
     customFile: File?,
+    configFormat: ConfigFormat = ConfigFormat.AUTO,
 ): Either<GenerationError, ResolvedConfigsByFlavor> = either {
     val baseText = readFileEither(baseFile).bind()
     val customText = customFile?.let { readFileEither(it).bind() }
-    val resolved = DefaultConfigResolver().resolveEither(
+    val resolvedFormat = when (
+        val result = resolveConfigFormatEither(
+            baseSourceName = baseFile.absolutePath,
+            customSourceName = customFile?.absolutePath,
+            configuredFormat = configFormat,
+        )
+    ) {
+        is Either.Left -> raise(GenerationError.ConfigResolutionFailure(result.value))
+        is Either.Right -> result.value
+    }
+    val resolved = DefaultConfigResolver(parserFor(resolvedFormat)).resolveEither(
         defaultConfigJson = baseText,
         schema = schema,
         customConfigJson = customText,
@@ -162,12 +178,14 @@ internal fun resolveConfigEither(
     }
 }
 
+@OptIn(ExperimentalKayanGradleApi::class)
 internal fun resolveConfig(
     schema: io.kayan.ConfigSchema,
     baseFile: File,
     customFile: File?,
+    configFormat: ConfigFormat = ConfigFormat.AUTO,
 ): ResolvedConfigsByFlavor =
-    resolveConfigEither(schema, baseFile, customFile).getOrElse { throw it.toGradleException() }
+    resolveConfigEither(schema, baseFile, customFile, configFormat).getOrElse { throw it.toGradleException() }
 
 internal fun requireResolvedFlavorEither(
     resolved: ResolvedConfigsByFlavor,

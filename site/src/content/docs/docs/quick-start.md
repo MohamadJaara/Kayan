@@ -3,7 +3,7 @@ title: Quick Start
 description: Four steps to typed config with Kayan.
 ---
 
-## 1. Add your JSON config
+## 1. Add your config
 
 ```json
 {
@@ -19,6 +19,19 @@ description: Four steps to typed config with Kayan.
   },
   "brand_name": "Example App"
 }
+```
+
+YAML works with the same shape:
+
+```yaml
+flavors:
+  prod:
+    api_base_url: https://api.example.com
+    feature_search_enabled: false
+  dev:
+    api_base_url: https://dev.example.com
+    feature_search_enabled: true
+brand_name: Example App
 ```
 
 ## 2. Apply the plugin and declare schema

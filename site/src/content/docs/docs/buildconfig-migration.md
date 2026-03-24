@@ -8,7 +8,7 @@ Kayan works well as a gradual replacement for Android-only `BuildConfig`.
 ## Migration steps
 
 1. Inventory the constants that shared code actually reads
-2. Move shared values into `default.json`
+2. Move shared values into `default.json` or `default.yml`
 3. Move flavor-specific values into `flavors`
 4. Declare matching schema entries in `kayan { schema { ... } }`
 5. Keep generated property names aligned with existing constant names first

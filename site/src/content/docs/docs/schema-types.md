@@ -20,7 +20,7 @@ The following types are available in the `kayan { schema { ... } }` DSL:
 
 ## Modifiers
 
-Use `nullable = true` to allow explicit `null` in JSON. Use `required = true` when
+Use `nullable = true` to allow explicit `null` in config files. Use `required = true` when
 the final resolved value must always exist.
 
 ## Custom types
@@ -37,4 +37,4 @@ custom(
 )
 ```
 
-The adapter class must implement the conversion from the raw JSON value kind to your target type.
+The adapter class must implement the conversion from the raw config value kind to your target type.

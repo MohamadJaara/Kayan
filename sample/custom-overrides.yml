@@ -1,0 +1,17 @@
+flavors:
+  prod:
+    brand_name: Example App Custom
+    feature_search_enabled: true
+    theme_name: aurora
+regional_support_links:
+  global:
+    - https://custom.example.com/help
+  emea:
+    - https://custom.example.com/eu/help
+    - https://custom.example.com/eu/vip
+  us:
+    - https://custom.example.com/us/help
+  apac:
+    - https://custom.example.com/apac/help
+support_links:
+  - https://custom.example.com/help

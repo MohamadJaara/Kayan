@@ -206,6 +206,45 @@ class KayanBuildValueFunctionalTest {
     }
 
     @Test
+    fun readsResolvedBuildValueFromYmlConfig() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                """
+                    abstract class PrintBuildValueTask : DefaultTask() {
+                        @get:Input
+                        abstract val value: Property<String>
+
+                        @TaskAction
+                        fun printValue() {
+                            println("brand=${'$'}{value.get()}")
+                        }
+                    }
+
+                    tasks.register<PrintBuildValueTask>("printBuildValue") {
+                        value.set(kayan.buildValue("brand_name").asStringProvider())
+                    }
+                """.trimIndent(),
+                """
+                    baseConfigFile.set(layout.projectDirectory.file("default.yml"))
+                    configFormat.set(io.kayan.ConfigFormat.YAML)
+                """.trimIndent(),
+            ),
+            baseJson = """
+                flavors:
+                  prod:
+                    bundle_id: com.example.prod
+                brand_name: Example
+            """.trimIndent(),
+            baseFileName = "default.yml",
+        )
+
+        val result = gradleRunner(projectDir, "printBuildValue").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printBuildValue")?.outcome)
+        assertTrue(result.output.contains("brand=Example"))
+    }
+
+    @Test
     fun reusesConfigurationCacheAndInvalidatesWhenConfigChanges() {
         val projectDir = createProject(
             buildScript = buildScript(
@@ -264,6 +303,8 @@ class KayanBuildValueFunctionalTest {
         buildScript: String,
         baseJson: String,
         customJson: String? = null,
+        baseFileName: String = "default.json",
+        customFileName: String = "custom-overrides.json",
     ): File {
         val projectDir = createTempDirectory(prefix = "kayan-build-value-functional-test").toFile()
         File(projectDir, "settings.gradle.kts").writeText(
@@ -287,8 +328,8 @@ class KayanBuildValueFunctionalTest {
             """.trimIndent(),
         )
         File(projectDir, "build.gradle.kts").writeText(buildScript)
-        File(projectDir, "default.json").writeText(baseJson)
-        customJson?.let { File(projectDir, "custom-overrides.json").writeText(it) }
+        File(projectDir, baseFileName).writeText(baseJson)
+        customJson?.let { File(projectDir, customFileName).writeText(it) }
 
         return projectDir
     }

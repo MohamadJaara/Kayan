@@ -143,6 +143,37 @@ internal sealed interface ConfigError : KayanError {
         )
     }
 
+    data class UnsupportedConfigFormat(
+        val sourceName: String,
+    ) : ConfigError {
+        override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
+            "Unsupported config format for source '$sourceName'. Supported extensions are .json, .yaml, and .yml.",
+        )
+    }
+
+    data class MixedConfigFormats(
+        val baseSourceName: String,
+        val baseFormat: ConfigFormat,
+        val customSourceName: String,
+        val customFormat: ConfigFormat,
+    ) : ConfigError {
+        override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
+            "Base config source '$baseSourceName' uses $baseFormat, but custom config source " +
+                "'$customSourceName' uses $customFormat. When configFormat is AUTO, both files must use " +
+                "the same format.",
+        )
+    }
+
+    data class ConfigFormatMismatch(
+        val sourceName: String,
+        val configuredFormat: ConfigFormat,
+        val actualFormat: ConfigFormat,
+    ) : ConfigError {
+        override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
+            "Configured configFormat is $configuredFormat, but source '$sourceName' uses $actualFormat.",
+        )
+    }
+
     data class MissingRequiredFlavorsObject(
         val context: DiagnosticContext,
     ) : ConfigError {

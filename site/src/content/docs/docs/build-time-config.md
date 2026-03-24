@@ -4,7 +4,7 @@ description: Use resolved Kayan values directly in build.gradle.kts for conditio
 ---
 
 Kayan can expose resolved config values during Gradle configuration, not just in generated
-Kotlin source. This lets build logic use the same validated JSON config that shared code
+Kotlin source. This lets build logic use the same validated config that shared code
 reads later.
 
 Use `buildValue("json_key")` when Gradle decisions need to depend on config:
@@ -141,6 +141,6 @@ That last point is intentional: Gradle build logic usually needs `Boolean`, `Str
 
 ## Configuration cache
 
-`buildValue()` is backed by a Gradle `ValueSource`, so file changes to the configured JSON
+`buildValue()` is backed by a Gradle `ValueSource`, so file changes to the configured
 inputs invalidate resolution while configuration-cache-friendly builds can still reuse the
 result between runs.
