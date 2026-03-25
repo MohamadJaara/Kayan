@@ -6,6 +6,8 @@ import arrow.core.raise.either
 import arrow.core.right
 import java.util.Locale
 
+private val taskNameSegmentSeparator: Regex = Regex("[^A-Za-z0-9]+")
+
 internal data class AndroidFlavorSourceGeneration(
     val flavorName: String,
     val taskName: String,
@@ -96,7 +98,7 @@ private fun Any.invokeNoArg(methodName: String): Any? =
     }.getOrNull()
 
 private fun String.asTaskNameSegment(): String =
-    split(Regex("[^A-Za-z0-9]+"))
+    split(taskNameSegmentSeparator)
         .filter(String::isNotBlank)
         .joinToString(separator = "") { segment ->
             segment.replaceFirstChar { character ->
