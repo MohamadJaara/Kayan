@@ -9,7 +9,7 @@ android-compileSdk = "36"
 vanniktechMavenPublish = "0.36.0"
 detekt = "1.23.8"
 arrow = "2.2.2.1"
-snakeyaml = "2.3"
+snakeyaml = "2.6"
 
 [libraries]
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
