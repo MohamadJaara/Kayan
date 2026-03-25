@@ -77,6 +77,18 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "'$flavorName'. $availableMessage"
         }
     }
+
+    data class UnsupportedAndroidFlavorDimensions(
+        val dimensions: List<String>,
+        val configuredFlavors: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan experimental android flavor source generation currently supports flavors from a single " +
+                "Android flavor dimension. Configured flavors ${configuredFlavors.joinToString { "'$it'" }} " +
+                "span multiple dimensions: ${dimensions.joinToString { "'$it'" }}."
+    }
 }
 
 internal sealed interface GenerationError : KayanGradleError {

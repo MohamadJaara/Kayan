@@ -57,4 +57,66 @@ class AndroidFlavorSourceGenerationSupportTest {
             "Available source sets: 'main', 'prod'.",
         )
     }
+
+    @Test
+    fun rejectsConfiguredFlavorsAcrossMultipleAndroidDimensions() {
+        val generations = androidFlavorSourceGenerationsEither(
+            listOf("prod", "fdroid"),
+        ).getOrElse { throw it.toGradleException() }
+
+        val error = assertFailsWith<GradleException> {
+            validateAndroidFlavorDimensionsEither(
+                androidExtension = FakeAndroidExtension(
+                    productFlavors = listOf(
+                        FakeProductFlavor(name = "prod", dimension = "environment"),
+                        FakeProductFlavor(name = "dev", dimension = "environment"),
+                        FakeProductFlavor(name = "fdroid", dimension = "distribution"),
+                    ),
+                ),
+                configuredFlavors = generations,
+            ).getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(
+            error,
+            "supports flavors from a single Android flavor dimension",
+            "'prod'",
+            "'fdroid'",
+            "'distribution'",
+            "'environment'",
+        )
+    }
+
+    @Test
+    fun allowsConfiguredFlavorsFromSingleAndroidDimension() {
+        val generations = androidFlavorSourceGenerationsEither(
+            listOf("prod", "dev"),
+        ).getOrElse { throw it.toGradleException() }
+
+        validateAndroidFlavorDimensionsEither(
+            androidExtension = FakeAndroidExtension(
+                productFlavors = listOf(
+                    FakeProductFlavor(name = "prod", dimension = "environment"),
+                    FakeProductFlavor(name = "dev", dimension = "environment"),
+                    FakeProductFlavor(name = "fdroid", dimension = "distribution"),
+                ),
+            ),
+            configuredFlavors = generations,
+        ).getOrElse { throw it.toGradleException() }
+    }
+
+    private class FakeAndroidExtension(
+        private val productFlavors: List<FakeProductFlavor>,
+    ) {
+        fun getProductFlavors(): List<FakeProductFlavor> = productFlavors
+    }
+
+    private class FakeProductFlavor(
+        private val name: String,
+        private val dimension: String?,
+    ) {
+        fun getName(): String = name
+
+        fun getDimension(): String? = dimension
+    }
 }

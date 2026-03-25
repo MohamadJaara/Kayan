@@ -48,6 +48,53 @@ internal fun validateAndroidFlavorSourceSetsEither(
     ).left()
 }
 
+internal fun validateAndroidFlavorDimensionsEither(
+    androidExtension: Any?,
+    configuredFlavors: List<AndroidFlavorSourceGeneration>,
+): Either<PluginConfigurationError, Unit> {
+    val dimensionsByFlavor = androidExtension
+        ?.androidProductFlavorDimensions()
+        .orEmpty()
+
+    val configuredDimensions = configuredFlavors.asSequence()
+        .mapNotNull { generation ->
+            dimensionsByFlavor[generation.flavorName]?.takeIf(String::isNotBlank)
+        }
+        .distinct()
+        .sorted()
+        .toList()
+
+    return if (configuredDimensions.size > 1) {
+        PluginConfigurationError.UnsupportedAndroidFlavorDimensions(
+            dimensions = configuredDimensions,
+            configuredFlavors = configuredFlavors.map(AndroidFlavorSourceGeneration::flavorName),
+        ).left()
+    } else {
+        Unit.right()
+    }
+}
+
+private fun Any.androidProductFlavorDimensions(): Map<String, String?> {
+    val productFlavors = invokeNoArg("getProductFlavors") as? Iterable<*> ?: return emptyMap()
+
+    return buildMap {
+        productFlavors.forEach { productFlavor ->
+            val name = productFlavor?.readStringProperty("getName")?.takeIf(String::isNotBlank) ?: return@forEach
+            val dimension = productFlavor.readStringProperty("getDimension")
+                ?: productFlavor.readStringProperty("getFlavorDimension")
+            put(name, dimension)
+        }
+    }
+}
+
+private fun Any.readStringProperty(getterName: String): String? =
+    invokeNoArg(getterName) as? String
+
+private fun Any.invokeNoArg(methodName: String): Any? =
+    runCatching {
+        javaClass.getMethod(methodName).invoke(this)
+    }.getOrNull()
+
 private fun String.asTaskNameSegment(): String =
     split(Regex("[^A-Za-z0-9]+"))
         .filter(String::isNotBlank)
