@@ -8,6 +8,11 @@ import kotlin.test.assertTrue
 
 class DefaultConfigResolverTest {
     private val resolver = DefaultConfigResolver()
+    private val emptyValue = ConfigDefinition(
+        jsonKey = "empty_value",
+        propertyName = "EMPTY_VALUE",
+        kind = ConfigValueKind.STRING,
+    )
     private val bundleId = ConfigDefinition(
         jsonKey = "bundle_id",
         propertyName = "BUNDLE_ID",
@@ -34,6 +39,11 @@ class DefaultConfigResolverTest {
         propertyName = "MAX_WORKSPACE_COUNT",
         kind = ConfigValueKind.INT,
     )
+    private val quotedNumericString = ConfigDefinition(
+        jsonKey = "quoted_numeric_string",
+        propertyName = "QUOTED_NUMERIC_STRING",
+        kind = ConfigValueKind.STRING,
+    )
     private val supportLinks = ConfigDefinition(
         jsonKey = "support_links",
         propertyName = "SUPPORT_LINKS",
@@ -48,6 +58,11 @@ class DefaultConfigResolverTest {
         jsonKey = "rollout_ratio",
         propertyName = "ROLLOUT_RATIO",
         kind = ConfigValueKind.DOUBLE,
+    )
+    private val plainString = ConfigDefinition(
+        jsonKey = "plain_string",
+        propertyName = "PLAIN_STRING",
+        kind = ConfigValueKind.STRING,
     )
     private val supportLabels = ConfigDefinition(
         jsonKey = "support_labels",
@@ -73,13 +88,16 @@ class DefaultConfigResolverTest {
     )
     private val schema = ConfigSchema(
         listOf(
+            emptyValue,
             bundleId,
             brandName,
             searchEnabled,
             onboardingEnabled,
             maxWorkspaceCount,
+            quotedNumericString,
             maxCacheBytes,
             rolloutRatio,
+            plainString,
             supportLinks,
             supportLabels,
             regionalSupportLinks,
@@ -108,6 +126,32 @@ class DefaultConfigResolverTest {
             ConfigValue.BooleanValue(true),
             resolved.flavors.getValue("prod")[onboardingEnabled]
         )
+    }
+
+    @Test
+    fun preservesQuotedJsonValuesAsStrings() {
+        val resolved = resolver.resolve(
+            defaultConfigJson = """
+                {
+                  "flavors": {
+                    "dev": {
+                      "bundle_id": "com.example.dev",
+                      "empty_value": "",
+                      "quoted_numeric_string": "123",
+                      "plain_string": "abc",
+                      "max_workspace_count": 123
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+        )
+
+        val flavor = resolved.flavors.getValue("dev")
+        assertEquals(ConfigValue.StringValue(""), flavor[emptyValue])
+        assertEquals(ConfigValue.StringValue("123"), flavor[quotedNumericString])
+        assertEquals(ConfigValue.StringValue("abc"), flavor[plainString])
+        assertEquals(ConfigValue.IntValue(123), flavor[maxWorkspaceCount])
     }
 
     @Test

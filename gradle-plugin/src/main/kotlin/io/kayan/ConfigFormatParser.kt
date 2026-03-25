@@ -69,10 +69,14 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
 
         is JsonNull -> ConfigNode.NullNode
 
-        is JsonPrimitive -> element.booleanOrNull?.let { ConfigNode.BooleanNode(it) }
-            ?: element.intOrNull?.let { ConfigNode.IntNode(it) }
-            ?: element.longOrNull?.let { ConfigNode.LongNode(it) }
-            ?: element.doubleOrNull?.let { ConfigNode.DoubleNode(it) }
-            ?: ConfigNode.StringNode(requireNotNull(element.contentOrNull))
+        is JsonPrimitive -> if (element.isString) {
+            ConfigNode.StringNode(requireNotNull(element.contentOrNull))
+        } else {
+            element.booleanOrNull?.let { ConfigNode.BooleanNode(it) }
+                ?: element.intOrNull?.let { ConfigNode.IntNode(it) }
+                ?: element.longOrNull?.let { ConfigNode.LongNode(it) }
+                ?: element.doubleOrNull?.let { ConfigNode.DoubleNode(it) }
+                ?: ConfigNode.StringNode(requireNotNull(element.contentOrNull))
+        }
     }
 }
