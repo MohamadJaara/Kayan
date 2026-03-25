@@ -1,30 +1,176 @@
 name: Publish
 on:
-  release:
-    types: [released, prereleased]
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     uses: ./.github/workflows/gradle.yml
     secrets: inherit
 
   publish:
-    name: Release build and publish
+    name: Release build, publish, and create GitHub release
     needs: verify
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Verify release tag is on main
+        run: |
+          set -euo pipefail
+
+          git fetch origin main --depth=1
+          main_ref="$(git rev-parse FETCH_HEAD)"
+
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "$main_ref"; then
+            echo "Release tags must reference a commit reachable from origin/main." >&2
+            exit 1
+          fi
+      - name: Derive release metadata
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin
+
+          version="${RELEASE_TAG#v}"
+          base_version="${version%%-*}"
+          prerelease=false
+
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
+          fi
+
+          latest_before() {
+            local anchor="$1"
+            shift
+
+            if [[ "$#" -eq 0 ]]; then
+              return 1
+            fi
+
+            local previous=""
+
+            while IFS= read -r candidate; do
+              if [[ "$candidate" == "$anchor" ]]; then
+                if [[ -n "$previous" ]]; then
+                  printf '%s\n' "$previous"
+                  return 0
+                fi
+
+                return 1
+              fi
+
+              previous="$candidate"
+            done < <(printf '%s\n' "$@" "$anchor" | sort -uV)
+
+            return 1
+          }
+
+          mapfile -t prod_tags < <(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+
+          previous_prod_tag=""
+          if [[ "${#prod_tags[@]}" -gt 0 ]]; then
+            previous_prod_tag="$(latest_before "$RELEASE_TAG" "${prod_tags[@]}" || true)"
+          fi
+
+          previous_tag="$previous_prod_tag"
+
+          if [[ "$prerelease" == "true" ]]; then
+            mapfile -t same_base_prerelease_tags < <(git tag --list "v${base_version}-*" || true)
+
+            previous_same_base_prerelease=""
+            if [[ "${#same_base_prerelease_tags[@]}" -gt 0 ]]; then
+              previous_same_base_prerelease="$(latest_before "$RELEASE_TAG" "${same_base_prerelease_tags[@]}" || true)"
+            fi
+
+            if [[ -n "$previous_same_base_prerelease" ]]; then
+              previous_tag="$previous_same_base_prerelease"
+            fi
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
       - name: Publish to MavenCentral
-        run: ./gradlew publishToMavenCentral --no-configuration-cache -PPUBLISH_VERSION="${RELEASE_VERSION#v}"
+        run: ./gradlew publishToMavenCentral --no-configuration-cache -PPUBLISH_VERSION="${RELEASE_VERSION}"
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+      - name: Generate GitHub release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ steps.release.outputs.previous_tag }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          release_notes_args=(
+            --method POST
+            -H "Accept: application/vnd.github+json"
+            -H "X-GitHub-Api-Version: 2022-11-28"
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes"
+            -f tag_name="$RELEASE_TAG"
+          )
+
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            release_notes_args+=(-f previous_tag_name="$PREVIOUS_TAG")
+          fi
+
+          gh api "${release_notes_args[@]}" > release-notes.json
+
+          jq -r --arg release_tag "$RELEASE_TAG" '.name // $release_tag' release-notes.json > release-title.txt
+          jq -r '.body // ""' release-notes.json > release-notes.md
+      - name: Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PRERELEASE: ${{ steps.release.outputs.prerelease }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          release_flags=()
+
+          if [[ "$RELEASE_PRERELEASE" == "true" ]]; then
+            release_flags+=(--prerelease)
+          fi
+
+          release_title="$(cat release-title.txt)"
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" \
+              --title "$release_title" \
+              --notes-file release-notes.md \
+              "${release_flags[@]}"
+          else
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --title "$release_title" \
+              --notes-file release-notes.md \
+              "${release_flags[@]}"
+          fi
