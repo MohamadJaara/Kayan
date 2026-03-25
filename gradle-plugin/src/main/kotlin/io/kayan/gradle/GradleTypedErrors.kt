@@ -49,6 +49,34 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "`org.jetbrains.kotlin.jvm`, or " +
                 "`org.jetbrains.kotlin.android`."
     }
+
+    data class BlankAndroidFlavorName(
+        val index: Int,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan android flavor source generation requires non-blank flavor names. " +
+                "Invalid entry at index $index."
+    }
+
+    data class MissingAndroidFlavorSourceSet(
+        val flavorName: String,
+        val availableSourceSets: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String {
+            val availableMessage = if (availableSourceSets.isEmpty()) {
+                "No Kotlin Android source sets were found."
+            } else {
+                "Available source sets: ${availableSourceSets.joinToString { "'$it'" }}."
+            }
+
+            return "Kayan android flavor source generation could not find a Kotlin source set named " +
+                "'$flavorName'. $availableMessage"
+        }
+    }
 }
 
 internal sealed interface GenerationError : KayanGradleError {

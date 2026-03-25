@@ -25,6 +25,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.SerializationException
 import org.gradle.api.Action
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -35,7 +36,17 @@ public abstract class KayanExtension {
     private val resolvedBuildValueProviders: MutableMap<String, Provider<ResolvedBuildValue>> = mutableMapOf()
 
     @get:Inject
+    internal abstract val objects: ObjectFactory
+
+    @get:Inject
     internal abstract val providers: ProviderFactory
+
+    @OptIn(ExperimentalKayanGenerationApi::class)
+    private val androidFlavorSourceSetSpec: KayanAndroidFlavorSourceSetSpec by lazy {
+        objects.newInstance(KayanAndroidFlavorSourceSetSpec::class.java).apply {
+            flavors.convention(emptyList())
+        }
+    }
 
     public abstract val packageName: Property<String>
     public abstract val flavor: Property<String>
@@ -54,6 +65,16 @@ public abstract class KayanExtension {
         schemaBuilder.action()
     }
 
+    @ExperimentalKayanGenerationApi
+    public fun androidFlavorSourceSets(action: Action<in KayanAndroidFlavorSourceSetSpec>) {
+        action.execute(androidFlavorSourceSetSpec)
+    }
+
+    @ExperimentalKayanGenerationApi
+    public fun androidFlavorSourceSets(action: KayanAndroidFlavorSourceSetSpec.() -> Unit) {
+        androidFlavorSourceSetSpec.action()
+    }
+
     @ExperimentalKayanGradleApi
     public fun buildValue(jsonKey: String): KayanBuildValue {
         val schema = requireSchema(serializedSchemaEntries())
@@ -65,6 +86,11 @@ public abstract class KayanExtension {
     }
 
     internal fun serializedSchemaEntries(): List<String> = schemaBuilder.entries.map(KayanSchemaEntrySpec::serialize)
+
+    @OptIn(ExperimentalKayanGenerationApi::class)
+    internal fun androidFlavorSourceSetFlavors(): List<String> = androidFlavorSourceSetSpec.flavors.getOrElse(
+        emptyList(),
+    )
 
     private fun resolvedBuildValueProvider(jsonKey: String): Provider<ResolvedBuildValue> =
         resolvedBuildValueProviders.getOrPut(jsonKey) {
