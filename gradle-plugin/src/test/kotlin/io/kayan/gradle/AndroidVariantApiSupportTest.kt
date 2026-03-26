@@ -1,6 +1,7 @@
 package io.kayan.gradle
 
 import arrow.core.getOrElse
+import arrow.core.left
 import io.kayan.assertMessageContains
 import org.gradle.api.Action
 import org.gradle.api.GradleException
@@ -86,6 +87,29 @@ class AndroidVariantApiSupportTest {
         }
 
         assertMessageContains(error, "Failed to register generated Kotlin sources with onVariants")
+    }
+
+    @Test
+    fun surfacesGenerationResolverErrorsFromVariantCallbacks() {
+        val error = assertFailsWith<GradleException> {
+            registerAndroidGeneratedSourcesEither(
+                androidComponentsExtension = FakeAndroidComponentsExtension(
+                    variants = listOf(FakeVariant("prodDebug", listOf(FakeVariantFlavor("environment", "prod")))),
+                ),
+                generationResolver = AndroidVariantGenerationResolver {
+                    PluginConfigurationError.MissingAndroidProductFlavor(
+                        flavorName = "prod",
+                        availableFlavors = listOf("dev"),
+                    ).left()
+                },
+            ).getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(
+            error,
+            "could not find an Android product flavor named 'prod'",
+            "Available product flavors: 'dev'.",
+        )
     }
 
     @Test
