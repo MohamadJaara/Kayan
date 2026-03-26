@@ -6,10 +6,53 @@ import io.kayan.SchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class KayanSchemaEntrySpecTypedTest {
+    @Test
+    fun deserializeDefaultsPreventOverrideToFalseWhenFieldIsMissing() {
+        val spec = KayanSchemaEntrySpec.deserialize(
+            """
+                {
+                  "jsonKey": "bundle_id",
+                  "propertyName": "BUNDLE_ID",
+                  "kind": "${ConfigValueKind.STRING.name}",
+                  "required": false,
+                  "nullable": false
+                }
+            """.trimIndent(),
+        )
+
+        assertFalse(spec.preventOverride)
+    }
+
+    @Test
+    fun deserializeAndToSchemaPreservePreventOverrideAndOptionalFields() {
+        val serialized = KayanSchemaEntrySpec(
+            jsonKey = "release_stage",
+            propertyName = "RELEASE_STAGE",
+            kind = ConfigValueKind.ENUM,
+            required = true,
+            nullable = false,
+            enumTypeName = "sample.ReleaseStage",
+            adapterClassName = "sample.ReleaseStageAdapter",
+            preventOverride = true,
+        ).serialize()
+
+        val spec = KayanSchemaEntrySpec.deserialize(serialized)
+        val schema = KayanSchemaEntrySpec.toSchema(listOf(serialized))
+        val definition = schema.definitionFor("release_stage")
+
+        assertEquals("sample.ReleaseStage", spec.enumTypeName)
+        assertEquals("sample.ReleaseStageAdapter", spec.adapterClassName)
+        assertTrue(spec.preventOverride)
+        assertEquals(true, definition?.preventOverride)
+        assertEquals("sample.ReleaseStageAdapter", definition?.adapterClassName)
+        assertEquals("sample.ReleaseStage", definition?.enumTypeName)
+    }
+
     @Test
     fun deserializeEitherReturnsStructuredInvalidRootError() {
         when (val result = KayanSchemaEntrySpec.deserializeEither("[]", 0)) {
