@@ -85,18 +85,27 @@ public class KayanConfigPlugin : Plugin<Project> {
         exportSchemaTask: TaskProvider<out Task>,
         defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>,
     ) {
-        project.pluginManager.withPlugin(KOTLIN_ANDROID_PLUGIN_ID) {
-            defaultGenerateTask.configure { task ->
-                task.kotlinPluginApplied.set(true)
-            }
+        var androidPluginApplied = false
 
-            project.afterEvaluate {
-                configureEvaluatedAndroidSourceGeneration(
-                    project = project,
-                    extension = extension,
-                    exportSchemaTask = exportSchemaTask,
-                    defaultGenerateTask = defaultGenerateTask,
-                )
+        listOf(ANDROID_APPLICATION_PLUGIN_ID, ANDROID_LIBRARY_PLUGIN_ID).forEach { pluginId ->
+            project.pluginManager.withPlugin(pluginId) {
+                if (androidPluginApplied) {
+                    return@withPlugin
+                }
+                androidPluginApplied = true
+
+                defaultGenerateTask.configure { task ->
+                    task.kotlinPluginApplied.set(true)
+                }
+
+                project.afterEvaluate {
+                    configureEvaluatedAndroidSourceGeneration(
+                        project = project,
+                        extension = extension,
+                        exportSchemaTask = exportSchemaTask,
+                        defaultGenerateTask = defaultGenerateTask,
+                    )
+                }
             }
         }
     }
@@ -112,7 +121,12 @@ public class KayanConfigPlugin : Plugin<Project> {
         ).getOrThrowGradle()
 
         if (configuredGenerations.isEmpty()) {
-            wireAndroidSourceSet(project, "main", defaultGenerateTask)
+            registerAndroidGeneratedSourcesEither(
+                androidComponentsExtension = project.extensions.findByName(ANDROID_COMPONENTS_EXTENSION_NAME),
+                defaultGenerateTask = defaultGenerateTask,
+                configuredGenerations = emptyList(),
+                generationTasksByFlavor = emptyMap(),
+            ).getOrThrowGradle()
             return
         }
 
@@ -129,15 +143,14 @@ public class KayanConfigPlugin : Plugin<Project> {
         project: Project,
         configuredGenerations: List<AndroidFlavorSourceGeneration>,
     ) {
-        validateAndroidFlavorDimensionsEither(
+        validateAndroidConfiguredFlavorsEither(
             androidExtension = project.extensions.findByName(ANDROID_EXTENSION_NAME),
             configuredFlavors = configuredGenerations,
         ).getOrThrowGradle()
 
-        val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
-        validateAndroidFlavorSourceSetsEither(
+        validateAndroidFlavorDimensionsEither(
+            androidExtension = project.extensions.findByName(ANDROID_EXTENSION_NAME),
             configuredFlavors = configuredGenerations,
-            availableSourceSetNames = kotlinExtension.sourceSets.names,
         ).getOrThrowGradle()
     }
 
@@ -152,6 +165,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             task.description = "Generates typed Kayan config objects for configured Android flavor source sets."
             task.dependsOn(exportSchemaTask)
         }
+        val generationTasksByFlavor = linkedMapOf<String, TaskProvider<GenerateKayanConfigTask>>()
 
         configuredGenerations.forEach { generation ->
             val flavorTask = registerAndroidFlavorGenerationTask(
@@ -161,11 +175,18 @@ public class KayanConfigPlugin : Plugin<Project> {
                 generation = generation,
             )
 
+            generationTasksByFlavor[generation.flavorName] = flavorTask
             aggregateTask.configure { task ->
                 task.dependsOn(flavorTask)
             }
-            wireAndroidSourceSet(project, generation.flavorName, flavorTask)
         }
+
+        registerAndroidGeneratedSourcesEither(
+            androidComponentsExtension = project.extensions.findByName(ANDROID_COMPONENTS_EXTENSION_NAME),
+            defaultGenerateTask = null,
+            configuredGenerations = configuredGenerations,
+            generationTasksByFlavor = generationTasksByFlavor,
+        ).getOrThrowGradle()
     }
 
     private fun registerAndroidFlavorGenerationTask(
@@ -200,24 +221,13 @@ public class KayanConfigPlugin : Plugin<Project> {
             task.dependsOn(exportSchemaTask)
         }
 
-    private fun wireAndroidSourceSet(
-        project: Project,
-        sourceSetName: String,
-        generateTask: TaskProvider<GenerateKayanConfigTask>,
-    ) {
-        val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
-        kotlinExtension.sourceSets.matching { sourceSet ->
-            sourceSet.name == sourceSetName
-        }.configureEach { sourceSet ->
-            sourceSet.kotlin.srcDir(generateTask.flatMap { it.outputDir })
-        }
-    }
-
     internal companion object {
         internal const val ANDROID_EXTENSION_NAME: String = "android"
+        internal const val ANDROID_COMPONENTS_EXTENSION_NAME: String = "androidComponents"
+        internal const val ANDROID_APPLICATION_PLUGIN_ID: String = "com.android.application"
+        internal const val ANDROID_LIBRARY_PLUGIN_ID: String = "com.android.library"
         internal const val KOTLIN_MULTIPLATFORM_PLUGIN_ID: String = "org.jetbrains.kotlin.multiplatform"
         internal const val KOTLIN_JVM_PLUGIN_ID: String = "org.jetbrains.kotlin.jvm"
-        internal const val KOTLIN_ANDROID_PLUGIN_ID: String = "org.jetbrains.kotlin.android"
     }
 }
 

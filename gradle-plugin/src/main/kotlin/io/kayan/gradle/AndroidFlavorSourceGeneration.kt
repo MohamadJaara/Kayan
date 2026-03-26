@@ -36,20 +36,6 @@ internal fun androidFlavorSourceGenerationsEither(
     }
 }
 
-internal fun validateAndroidFlavorSourceSetsEither(
-    configuredFlavors: List<AndroidFlavorSourceGeneration>,
-    availableSourceSetNames: Set<String>,
-): Either<PluginConfigurationError, Unit> {
-    val missingFlavor = configuredFlavors.firstOrNull { generation ->
-        generation.flavorName !in availableSourceSetNames
-    } ?: return Unit.right()
-
-    return PluginConfigurationError.MissingAndroidFlavorSourceSet(
-        flavorName = missingFlavor.flavorName,
-        availableSourceSets = availableSourceSetNames.toList().sorted(),
-    ).left()
-}
-
 internal fun validateAndroidFlavorDimensionsEither(
     androidExtension: Any?,
     configuredFlavors: List<AndroidFlavorSourceGeneration>,
@@ -76,6 +62,26 @@ internal fun validateAndroidFlavorDimensionsEither(
     }
 }
 
+internal fun validateAndroidConfiguredFlavorsEither(
+    androidExtension: Any?,
+    configuredFlavors: List<AndroidFlavorSourceGeneration>,
+): Either<PluginConfigurationError, Unit> {
+    val availableFlavorNames = androidExtension
+        ?.androidProductFlavorDimensions()
+        .orEmpty()
+        .keys
+        .sorted()
+
+    val missingFlavor = configuredFlavors.firstOrNull { generation ->
+        generation.flavorName !in availableFlavorNames
+    } ?: return Unit.right()
+
+    return PluginConfigurationError.MissingAndroidProductFlavor(
+        flavorName = missingFlavor.flavorName,
+        availableFlavors = availableFlavorNames,
+    ).left()
+}
+
 private fun Any.androidProductFlavorDimensions(): Map<String, String?> {
     val productFlavors = invokeNoArg("getProductFlavors") as? Iterable<*> ?: return emptyMap()
 
@@ -90,12 +96,10 @@ private fun Any.androidProductFlavorDimensions(): Map<String, String?> {
 }
 
 private fun Any.readStringProperty(getterName: String): String? =
-    invokeNoArg(getterName) as? String
+    readStringPropertyOrNull(getterName)
 
 private fun Any.invokeNoArg(methodName: String): Any? =
-    runCatching {
-        javaClass.getMethod(methodName).invoke(this)
-    }.getOrNull()
+    invokeNoArgOrNull(methodName)
 
 private fun String.asTaskNameSegment(): String =
     split(taskNameSegmentSeparator)
