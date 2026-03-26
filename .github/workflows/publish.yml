@@ -111,8 +111,11 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: 21
+          cache: gradle
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
       - name: Publish to MavenCentral
         run: ./gradlew publishToMavenCentral --no-configuration-cache -PPUBLISH_VERSION="${RELEASE_VERSION}"
         env:

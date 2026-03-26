@@ -31,8 +31,11 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-disabled: true
     - name: Run detekt
       run: ./gradlew detekt
 
@@ -58,8 +61,11 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-disabled: true
     - name: Build with Gradle
       run: ./gradlew ${{ matrix.target }}
     - name: Upload coverage to Codecov
