@@ -21,6 +21,7 @@ class KayanGeneratorGoldenTest {
         jsonKey = "brand_name",
         propertyName = "BRAND_NAME",
         kind = ConfigValueKind.STRING,
+        preventOverride = true,
     )
     private val searchEnabled = ConfigDefinition(
         jsonKey = "feature_search_enabled",

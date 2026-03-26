@@ -162,4 +162,60 @@ class DefaultConfigResolverTypedErrorsTest {
             is Either.Right -> fail("Expected a typed config error.")
         }
     }
+
+    @Test
+    fun resolveEitherReturnsStructuredPreventedCustomOverrideError() {
+        val protectedSchema = ConfigSchema(
+            listOf(
+                ConfigDefinition(
+                    jsonKey = "bundle_id",
+                    propertyName = "BUNDLE_ID",
+                    kind = ConfigValueKind.STRING,
+                    required = true,
+                ),
+                ConfigDefinition(
+                    jsonKey = "api_secret",
+                    propertyName = "API_SECRET",
+                    kind = ConfigValueKind.STRING,
+                    preventOverride = true,
+                ),
+            ),
+        )
+
+        when (
+            val result = resolver.resolveEither(
+                defaultConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = protectedSchema,
+                customConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "api_secret": "secret"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                defaultConfigSourceName = "base.json",
+                customConfigSourceName = "custom.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.PreventedCustomOverride>(result.value)
+                assertEquals("api_secret", error.definition.jsonKey)
+                assertEquals("base.json", error.defaultConfigSourceName)
+                assertEquals("$.flavors.prod.api_secret", error.customContext.path)
+                assertEquals("custom.json", error.customContext.sourceName)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
 }

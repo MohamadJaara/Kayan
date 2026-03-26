@@ -170,6 +170,13 @@ public class DefaultConfigResolver : ConfigResolver {
                 )
             }
         }
+        customConfig?.let {
+            validateProtectedCustomOverridesEither(
+                customConfig = it,
+                customConfigSourceName = customConfigSourceName,
+                defaultConfigSourceName = defaultConfigSourceName,
+            ).bind()
+        }
 
         val resolvedFlavors = buildMap<String, ResolvedFlavorConfig> {
             for ((flavorName, defaultFlavorValues) in defaultConfig.flavors) {
@@ -521,6 +528,40 @@ public class DefaultConfigResolver : ConfigResolver {
         }
 
         return null
+    }
+
+    private fun validateProtectedCustomOverridesEither(
+        customConfig: AppConfigFile,
+        customConfigSourceName: String,
+        defaultConfigSourceName: String,
+    ): Either<ConfigError, Unit> = either {
+        customConfig.defaults.values.keys.forEach { definition ->
+            if (definition.preventOverride) {
+                raise(
+                    ConfigError.PreventedCustomOverride(
+                        definition = definition,
+                        customContext = DiagnosticContext(customConfigSourceName).atKey(definition.jsonKey),
+                        defaultConfigSourceName = defaultConfigSourceName,
+                    ),
+                )
+            }
+        }
+
+        customConfig.flavors.forEach { (flavorName, section) ->
+            section.values.keys.forEach { definition ->
+                if (definition.preventOverride) {
+                    raise(
+                        ConfigError.PreventedCustomOverride(
+                            definition = definition,
+                            customContext = DiagnosticContext(customConfigSourceName)
+                                .atFlavor(flavorName)
+                                .atKey(definition.jsonKey),
+                            defaultConfigSourceName = defaultConfigSourceName,
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     private fun normalizeEnumConstantEither(

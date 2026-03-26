@@ -298,6 +298,44 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun failsWhenCustomConfigOverridesProtectedKey() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    customConfigFile.set(layout.projectDirectory.file("custom-overrides.json"))
+                """.trimIndent(),
+                schemaBlock = """
+                    string("api_secret", "API_SECRET", preventOverride = true)
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "api_secret": "base-secret"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            customJson = """
+                {
+                  "flavors": {},
+                  "api_secret": "custom-secret"
+                }
+            """.trimIndent(),
+            commonSource = "package sample",
+        )
+
+        val result = gradleRunner(projectDir, "generateKayanConfig").buildAndFail()
+
+        assertTrue(result.output.contains("Key 'api_secret'"))
+        assertTrue(result.output.contains("preventOverride"))
+    }
+
+    @Test
     fun failsWhenPackageNameIsMissing() {
         val projectDir = createProject(
             buildScript = buildScript(

@@ -29,6 +29,12 @@ class DefaultConfigResolverTest {
         propertyName = "FEATURE_SEARCH_ENABLED",
         kind = ConfigValueKind.BOOLEAN,
     )
+    private val apiSecret = ConfigDefinition(
+        jsonKey = "api_secret",
+        propertyName = "API_SECRET",
+        kind = ConfigValueKind.STRING,
+        preventOverride = true,
+    )
     private val onboardingEnabled = ConfigDefinition(
         jsonKey = "onboarding_enabled",
         propertyName = "ONBOARDING_ENABLED",
@@ -92,6 +98,7 @@ class DefaultConfigResolverTest {
             bundleId,
             brandName,
             searchEnabled,
+            apiSecret,
             onboardingEnabled,
             maxWorkspaceCount,
             quotedNumericString,
@@ -291,6 +298,68 @@ class DefaultConfigResolverTest {
         val flavor = resolved.flavors.getValue("prod")
         assertEquals(ConfigValue.StringValue("Custom Flavor"), flavor[brandName])
         assertEquals(ConfigValue.BooleanValue(false), flavor[searchEnabled])
+    }
+
+    @Test
+    fun allowsProtectedKeysToVaryAcrossBaseFlavors() {
+        val resolved = resolver.resolve(
+            defaultConfigJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "api_secret": "prod-secret"
+                    }
+                  },
+                  "api_secret": "shared-secret"
+                }
+            """.trimIndent(),
+            schema = schema,
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("prod-secret"),
+            resolved.flavors.getValue("prod")[apiSecret],
+        )
+    }
+
+    @Test
+    fun rejectsProtectedKeyInCustomConfig() {
+        val error = assertFailsWith<ConfigValidationException> {
+            resolver.resolve(
+                defaultConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "api_secret": "prod-secret"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                customConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "api_secret": "custom-secret"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                defaultConfigSourceName = "base.json",
+                customConfigSourceName = "custom.json",
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "Key 'api_secret'",
+            "source 'custom.json'",
+            "path '$.flavors.prod.api_secret'",
+            "preventOverride",
+            "source 'base.json'",
+        )
     }
 
     @Test

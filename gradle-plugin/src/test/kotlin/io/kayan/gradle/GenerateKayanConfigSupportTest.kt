@@ -157,6 +157,57 @@ class GenerateKayanConfigSupportTest {
     }
 
     @Test
+    fun resolveConfigRejectsProtectedCustomOverrides() {
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = "api_secret",
+                    propertyName = "API_SECRET",
+                    kind = ConfigValueKind.STRING,
+                    required = false,
+                    nullable = false,
+                    preventOverride = true,
+                ).serialize(),
+            ),
+        )
+
+        val error = assertFailsWith<GradleException> {
+            resolveConfig(
+                schema = schema,
+                baseFile = createConfigFile(
+                    """
+                        {
+                          "flavors": {
+                            "prod": {
+                              "bundle_id": "com.example.prod",
+                              "api_secret": "base-secret"
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                customFile = createConfigFile(
+                    """
+                        {
+                          "flavors": {},
+                          "api_secret": "custom-secret"
+                        }
+                    """.trimIndent(),
+                    fileName = "custom-overrides.json",
+                ),
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "Failed to resolve Kayan config",
+            "Key 'api_secret'",
+            "preventOverride",
+        )
+    }
+
+    @Test
     fun resolveConfigRejectsMixedFormatsWhenAutoDetecting() {
         val schema = requireSchema(listOf(bundleIdEntry().serialize()))
 

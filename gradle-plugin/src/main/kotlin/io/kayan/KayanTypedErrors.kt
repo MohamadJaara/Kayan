@@ -222,6 +222,18 @@ internal sealed interface ConfigError : KayanError {
         )
     }
 
+    data class PreventedCustomOverride(
+        val definition: ConfigDefinition,
+        val customContext: DiagnosticContext,
+        val defaultConfigSourceName: String,
+    ) : ConfigError {
+        override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
+            "Key '${definition.jsonKey}' in ${customContext.describe()} cannot be set from a custom config " +
+                "because the schema marks it as preventOverride. Define it only in source " +
+                "'$defaultConfigSourceName', either at the top level or inside its flavors."
+        )
+    }
+
     data class MissingRequiredResolvedKey(
         val flavorName: String,
         val definition: ConfigDefinition,

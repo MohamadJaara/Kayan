@@ -64,6 +64,7 @@ public data class ConfigDefinition(
     val nullable: Boolean = false,
     val enumTypeName: String? = null,
     val adapterClassName: String? = null,
+    val preventOverride: Boolean = false,
 ) {
     init {
         require(jsonKey.isNotBlank()) { "Config definition jsonKey must not be blank." }
