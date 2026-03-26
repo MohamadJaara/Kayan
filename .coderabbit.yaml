@@ -1,0 +1,27 @@
+language: en-US
+
+reviews:
+  path_instructions:
+    - path: "gradle-plugin/src/main/kotlin/**/*.kt"
+      instructions: |
+        Apply the repository error-handling policy from AGENTS.md strictly when reviewing production Kotlin code.
+
+        Prefer the existing typed error hierarchy for recoverable failures instead of introducing new ad-hoc exceptions. In this codebase that usually means `SchemaError`, `ConfigError`, `PluginConfigurationError`, `GenerationError`, or another existing `KayanGradleError` type.
+
+        Prefer Arrow `Either` and `either {}` for fallible internal flows such as parsing, resolution, validation, reflection, and file I/O helpers. Flag internal helpers that throw directly when they should return or raise typed errors.
+
+        Throws are expected only at API and Gradle boundaries. When a boundary must throw, prefer converting existing typed errors with `toConfigValidationException()` or `toGradleException()` instead of creating a new unchecked exception.
+
+        `require`, `requireNotNull`, `check`, and `checkNotNull` are appropriate only for programmer invariants and schema/model invariants. Flag their use for user input, config validation, reflection failures, or file system failures where typed errors should be returned instead.
+
+        Error messages should preserve diagnostic context. Prefer feedback that asks for source names, flavor names, config keys or paths, adapter class names, file paths, and operation names to be included when relevant.
+
+        Low-level causes such as `SerializationException`, reflection failures, and file I/O failures should be wrapped in the appropriate typed error with the original cause attached instead of being leaked raw.
+
+        Flag code paths that swallow failures silently, log and continue without surfacing a typed error, or discard useful context from the original failure.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "**/AGENTS.md"
