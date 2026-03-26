@@ -13,5 +13,8 @@
     "@astrojs/starlight": "^0.38.2",
     "astro": "^6.0.1",
     "sharp": "^0.34.2"
+  },
+  "overrides": {
+    "i18next": "24.1.2"
   }
 }
