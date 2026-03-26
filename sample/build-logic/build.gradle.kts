@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.20"
+    alias(libs.plugins.kotlinJvm)
 }
 
 group = "sample"
