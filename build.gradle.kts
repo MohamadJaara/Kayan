@@ -31,6 +31,10 @@ extra["publishedGroup"] = publishedGroup
 extra["publishedVersion"] = publishedVersion
 
 subprojects {
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
         apply(plugin = "io.gitlab.arturbosch.detekt")
 

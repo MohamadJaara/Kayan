@@ -59,6 +59,10 @@ abstract class GenerateBrandMetadataTask : DefaultTask() {
 }
 
 buildscript {
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+
     dependencies {
         classpath("sample:sample-build-logic:0.0.1")
     }
@@ -74,6 +78,10 @@ plugins {
 repositories {
     google()
     mavenCentral()
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 kotlin {

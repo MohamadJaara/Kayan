@@ -1,0 +1,43 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+io.arrow-kt:arrow-annotations-jvm:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-annotations:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-atomic-jvm:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-atomic:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-core-jvm:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-core:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-exception-utils-jvm:2.2.2.1=compileClasspath
+io.arrow-kt:arrow-exception-utils:2.2.2.1=compileClasspath
+org.jetbrains.kotlin:fus-statistics-gradle-plugin:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-build-tools-api:2.3.20=compileClasspath,kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-build-tools-compat:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-build-tools-cri-impl:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-build-tools-impl:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-compiler-runner:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-daemon-client:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-daemon-embeddable:2.3.20=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-gradle-plugin-annotations:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-gradle-plugins-bom:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-native-utils:2.3.20=compileClasspath
+org.jetbrains.kotlin:kotlin-reflect:1.6.10=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-script-runtime:2.3.20=kotlinBuildToolsApiClasspath,kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-scripting-common:2.3.20=kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:2.3.20=kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable:2.3.20=kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-scripting-jvm:2.3.20=kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-stdlib:2.3.20=compileClasspath,kotlinBuildToolsApiClasspath,kotlinCompilerPluginClasspathMain
+org.jetbrains.kotlin:kotlin-tooling-core:2.3.20=compileClasspath,kotlinBuildToolsApiClasspath
+org.jetbrains.kotlin:kotlin-util-io:2.3.20=compileClasspath
+org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0=kotlinBuildToolsApiClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-bom:1.10.0=compileClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.10.0=compileClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-core:1.10.0=compileClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.10.0=compileClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0=compileClasspath
+org.jetbrains:annotations:13.0=compileClasspath,kotlinBuildToolsApiClasspath,kotlinCompilerPluginClasspathMain
+org.yaml:snakeyaml:2.6=compileClasspath
+empty=annotationProcessor,kotlinScriptDefExtensions

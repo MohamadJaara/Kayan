@@ -10,6 +10,10 @@ repositories {
     mavenCentral()
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 kotlin {
     jvmToolchain(11)
 }
