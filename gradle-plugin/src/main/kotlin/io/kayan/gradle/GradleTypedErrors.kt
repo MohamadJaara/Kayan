@@ -47,7 +47,8 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
             "The `io.github.mohamadjaara.kayan` plugin requires one of: " +
                 "`org.jetbrains.kotlin.multiplatform`, " +
                 "`org.jetbrains.kotlin.jvm`, or " +
-                "`org.jetbrains.kotlin.android`."
+                "an Android plugin with Kotlin compilation support " +
+                "(`com.android.application` or `com.android.library`)."
     }
 
     data class BlankAndroidFlavorName(
@@ -60,20 +61,20 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "Invalid entry at index $index."
     }
 
-    data class MissingAndroidFlavorSourceSet(
+    data class MissingAndroidProductFlavor(
         val flavorName: String,
-        val availableSourceSets: List<String>,
+        val availableFlavors: List<String>,
     ) : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String {
-            val availableMessage = if (availableSourceSets.isEmpty()) {
-                "No Kotlin Android source sets were found."
+            val availableMessage = if (availableFlavors.isEmpty()) {
+                "No Android product flavors were found."
             } else {
-                "Available source sets: ${availableSourceSets.joinToString { "'$it'" }}."
+                "Available product flavors: ${availableFlavors.joinToString { "'$it'" }}."
             }
 
-            return "Kayan android flavor source generation could not find a Kotlin source set named " +
+            return "Kayan android flavor source generation could not find an Android product flavor named " +
                 "'$flavorName'. $availableMessage"
         }
     }
@@ -88,6 +89,14 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
             "Kayan experimental android flavor source generation currently supports flavors from a single " +
                 "Android flavor dimension. Configured flavors ${configuredFlavors.joinToString { "'$it'" }} " +
                 "span multiple dimensions: ${dimensions.joinToString { "'$it'" }}."
+    }
+
+    data class UnsupportedAndroidVariantApi(
+        val detail: String,
+        override val cause: Throwable? = null,
+    ) : PluginConfigurationError {
+        override fun message(): String =
+            "Kayan could not register Android generated sources through the Android Variant API. $detail"
     }
 }
 

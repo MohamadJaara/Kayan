@@ -39,22 +39,26 @@ class AndroidFlavorSourceGenerationSupportTest {
     }
 
     @Test
-    fun validatesConfiguredFlavorSourceSets() {
+    fun validatesConfiguredAndroidProductFlavors() {
         val generations = androidFlavorSourceGenerationsEither(
             listOf("prod", "dev"),
         ).getOrElse { throw it.toGradleException() }
 
         val error = assertFailsWith<GradleException> {
-            validateAndroidFlavorSourceSetsEither(
+            validateAndroidConfiguredFlavorsEither(
+                androidExtension = FakeAndroidExtension(
+                    productFlavors = listOf(
+                        FakeProductFlavor(name = "prod", dimension = "environment"),
+                    ),
+                ),
                 configuredFlavors = generations,
-                availableSourceSetNames = setOf("main", "prod"),
             ).getOrElse { throw it.toGradleException() }
         }
 
         assertMessageContains(
             error,
-            "could not find a Kotlin source set named 'dev'",
-            "Available source sets: 'main', 'prod'.",
+            "could not find an Android product flavor named 'dev'",
+            "Available product flavors: 'prod'.",
         )
     }
 
