@@ -1,22 +1,39 @@
 package io.kayan.gradle
 
 import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.TaskProvider
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.UndeclaredThrowableException
 import kotlin.Function1
 
 private val outputDirectoryAccessor: Function1<GenerateKayanConfigTask, DirectoryProperty> =
     { task: GenerateKayanConfigTask -> task.outputDir }
 
-@Suppress("ReturnCount")
 internal fun registerAndroidGeneratedSourcesEither(
     androidComponentsExtension: Any?,
     defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>?,
     configuredGenerations: List<AndroidFlavorSourceGeneration>,
     generationTasksByFlavor: Map<String, TaskProvider<GenerateKayanConfigTask>>,
+): Either<PluginConfigurationError, Unit> =
+    registerAndroidGeneratedSourcesEither(
+        androidComponentsExtension = androidComponentsExtension,
+        generationResolver = FixedAndroidVariantGenerationResolver(
+            defaultGenerateTask = defaultGenerateTask,
+            configuredGenerations = configuredGenerations,
+            generationTasksByFlavor = generationTasksByFlavor,
+        ),
+    )
+
+@Suppress("ReturnCount")
+internal fun registerAndroidGeneratedSourcesEither(
+    androidComponentsExtension: Any?,
+    generationResolver: AndroidVariantGenerationResolver,
 ): Either<PluginConfigurationError, Unit> {
     if (androidComponentsExtension == null) {
         return PluginConfigurationError.UnsupportedAndroidVariantApi(
@@ -40,59 +57,41 @@ internal fun registerAndroidGeneratedSourcesEither(
         detail = "The Android `androidComponents` extension does not expose onVariants(selector, action).",
     ).left()
 
-    var registrationError: PluginConfigurationError? = null
     val variantAction = Action<Any> { variant ->
-        if (registrationError != null) {
-            return@Action
+        val generateTask = generationResolver.generationTaskForVariantEither(variant).getOrElse { error ->
+            throw AndroidGeneratedSourceRegistrationException(error)
         }
 
-        registrationError = when (
-            val result = registerVariantGeneratedSourcesEither(
+        generateTask?.let { taskProvider ->
+            registerVariantGeneratedSourcesEither(
                 variant = variant,
-                defaultGenerateTask = defaultGenerateTask,
-                configuredGenerations = configuredGenerations,
-                generationTasksByFlavor = generationTasksByFlavor,
-            )
-        ) {
-            is Either.Left -> result.value
-            is Either.Right -> null
+                generateTask = taskProvider,
+            ).getOrElse { error ->
+                throw AndroidGeneratedSourceRegistrationException(error)
+            }
         }
     }
 
     return runCatching {
         onVariantsMethod.invoke(androidComponentsExtension, allSelector, variantAction)
     }.fold(
-        onSuccess = {
-            registrationError?.left() ?: Unit.right()
-        },
+        onSuccess = { Unit.right() },
         onFailure = { cause ->
-            PluginConfigurationError.UnsupportedAndroidVariantApi(
-                detail = "Failed to register generated Kotlin sources with onVariants(selector, action).",
-                cause = cause,
-            ).left()
+            val rootCause = cause.unwrapReflectionFailure()
+            (rootCause as? AndroidGeneratedSourceRegistrationException)?.error?.left()
+                ?: PluginConfigurationError.UnsupportedAndroidVariantApi(
+                    detail = "Failed to register generated Kotlin sources with onVariants(selector, action).",
+                    cause = rootCause,
+                ).left()
         },
     )
 }
 
 private fun registerVariantGeneratedSourcesEither(
     variant: Any,
-    defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>?,
-    configuredGenerations: List<AndroidFlavorSourceGeneration>,
-    generationTasksByFlavor: Map<String, TaskProvider<GenerateKayanConfigTask>>,
-): Either<PluginConfigurationError, Unit> {
-    val taskProvider = if (configuredGenerations.isEmpty()) {
-        defaultGenerateTask
-    } else {
-        val flavorNames = variant.androidVariantFlavorNames()
-        configuredGenerations.firstOrNull { generation ->
-            generation.flavorName in flavorNames
-        }?.let { generation ->
-            generationTasksByFlavor[generation.flavorName]
-        }
-    } ?: return Unit.right()
-
-    return variant.registerGeneratedKotlinSourceDirectoryEither(taskProvider)
-}
+    generateTask: TaskProvider<GenerateKayanConfigTask>,
+): Either<PluginConfigurationError, Unit> =
+    variant.registerGeneratedKotlinSourceDirectoryEither(generateTask)
 
 @Suppress("ReturnCount")
 private fun Any.registerGeneratedKotlinSourceDirectoryEither(
@@ -128,7 +127,7 @@ private fun Any.registerGeneratedKotlinSourceDirectoryEither(
     )
 }
 
-private fun Any.androidVariantFlavorNames(): Set<String> {
+internal fun Any.androidVariantFlavorNames(): Set<String> {
     val productFlavors = invokeNoArgOrNull("getProductFlavors") as? Iterable<*> ?: return emptySet()
 
     return productFlavors.mapNotNullTo(linkedSetOf()) { productFlavor ->
@@ -140,3 +139,33 @@ private fun Any.androidVariantFlavorNames(): Set<String> {
 
 private fun Any.variantName(): String =
     readStringPropertyOrNull("getName").orEmpty().ifBlank { "<unknown>" }
+
+private class FixedAndroidVariantGenerationResolver(
+    private val defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>?,
+    private val configuredGenerations: List<AndroidFlavorSourceGeneration>,
+    private val generationTasksByFlavor: Map<String, TaskProvider<GenerateKayanConfigTask>>,
+) : AndroidVariantGenerationResolver {
+    override fun generationTaskForVariantEither(
+        variant: Any,
+    ): Either<PluginConfigurationError, TaskProvider<GenerateKayanConfigTask>?> =
+        if (configuredGenerations.isEmpty()) {
+            defaultGenerateTask.right()
+        } else {
+            val flavorNames = variant.androidVariantFlavorNames()
+            configuredGenerations.firstOrNull { generation ->
+                generation.flavorName in flavorNames
+            }?.let { generation ->
+                generationTasksByFlavor[generation.flavorName]
+            }.right()
+        }
+}
+
+private class AndroidGeneratedSourceRegistrationException(
+    val error: PluginConfigurationError,
+) : GradleException(error.message(), error.cause)
+
+private fun Throwable.unwrapReflectionFailure(): Throwable = when (this) {
+    is InvocationTargetException -> targetException ?: this
+    is UndeclaredThrowableException -> undeclaredThrowable ?: this
+    else -> this
+}
