@@ -85,6 +85,10 @@ internal object KayanSchemaExportGenerator {
             "- Keys marked `required` must appear either at the top level or inside every " +
                 "flavor to resolve for all variants.",
         )
+        appendLine(
+            "- Keys marked `preventOverride` can only be defined in the main config file. " +
+                "Custom config files cannot set them.",
+        )
         appendLine()
         appendLine("## Entries")
         appendLine()
@@ -166,6 +170,9 @@ internal object KayanSchemaExportGenerator {
         }
         if (definition.nullable) {
             put("x-kayan-nullable", JsonPrimitive(true))
+        }
+        if (definition.preventOverride) {
+            put("x-kayan-preventOverride", JsonPrimitive(true))
         }
         definition.adapterClassName?.let { adapterClassName ->
             put("x-kayan-adapter", JsonPrimitive(adapterClassName))
@@ -267,6 +274,9 @@ internal object KayanSchemaExportGenerator {
         }
         if (definition.nullable) {
             notes += "Allows explicit null values."
+        }
+        if (definition.preventOverride) {
+            notes += "Cannot be set in custom config files; only the main config file may define it."
         }
         definition.enumTypeName?.let { enumTypeName ->
             notes += "Generates Kotlin enum values of `$enumTypeName` from normalized string input."

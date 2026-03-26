@@ -61,6 +61,56 @@ class GenerateKayanConfigSupportTypedTest {
     }
 
     @Test
+    fun resolveConfigEitherWrapsPreventedCustomOverrideErrors() {
+        val tempDir = createTempDirectory(prefix = "kayan-support-typed").toFile()
+        val baseFile = File(tempDir, "default.json").apply {
+            writeText(
+                """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent()
+            )
+        }
+        val customFile = File(tempDir, "custom-overrides.json").apply {
+            writeText(
+                """
+                    {
+                      "flavors": {},
+                      "api_secret": "secret"
+                    }
+                """.trimIndent()
+            )
+        }
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = "api_secret",
+                    propertyName = "API_SECRET",
+                    kind = ConfigValueKind.STRING,
+                    required = false,
+                    nullable = false,
+                    preventOverride = true,
+                ).serialize(),
+            ),
+        )
+
+        when (val result = resolveConfigEither(schema, baseFile, customFile)) {
+            is Either.Left -> {
+                val error = assertIs<GenerationError.ConfigResolutionFailure>(result.value)
+                assertIs<ConfigError.PreventedCustomOverride>(error.error)
+            }
+
+            is Either.Right -> fail("Expected a typed generation error.")
+        }
+    }
+
+    @Test
     fun invokeAdapterMethodEitherReturnsTypedInvocationError() {
         val method = ThrowingAdapter::class.java.getMethod("parse", Any::class.java)
         val adapter = ThrowingAdapter()

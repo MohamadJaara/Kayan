@@ -122,6 +122,15 @@ class KayanBuildValueTest {
     }
 
     @Test
+    fun buildValueResolvesConfiguredExtensionValue() {
+        val extension = createExtension()
+
+        val value = extension.buildValue("brand_name").asString()
+
+        assertEquals("Example", value)
+    }
+
+    @Test
     fun nullableAccessorReturnsNullWhenValueIsNull() {
         assertNull(buildValue("support_email", ConfigValueKind.STRING, null).asStringOrNull())
         assertNull(buildValue("feature_search_enabled", ConfigValueKind.BOOLEAN, null).asBooleanOrNull())

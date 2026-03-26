@@ -25,8 +25,9 @@
     "brand_name": {
       "type": "string",
       "title": "BRAND_NAME",
-      "description": "Built-in Kayan type.",
-      "x-kayan-propertyName": "BRAND_NAME"
+      "description": "Cannot be set in custom config files; only the main config file may define it.",
+      "x-kayan-propertyName": "BRAND_NAME",
+      "x-kayan-preventOverride": true
     },
     "feature_search_enabled": {
       "type": "boolean",
@@ -126,8 +127,9 @@
         "brand_name": {
           "type": "string",
           "title": "BRAND_NAME",
-          "description": "Built-in Kayan type.",
-          "x-kayan-propertyName": "BRAND_NAME"
+          "description": "Cannot be set in custom config files; only the main config file may define it.",
+          "x-kayan-propertyName": "BRAND_NAME",
+          "x-kayan-preventOverride": true
         },
         "feature_search_enabled": {
           "type": "boolean",

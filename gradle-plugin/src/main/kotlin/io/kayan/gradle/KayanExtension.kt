@@ -128,6 +128,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -135,6 +136,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.STRING,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -143,6 +145,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -150,6 +153,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.BOOLEAN,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -158,6 +162,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -165,6 +170,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.INT,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -173,6 +179,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -180,6 +187,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.LONG,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -188,6 +196,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -195,6 +204,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.DOUBLE,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -203,6 +213,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -210,6 +221,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.STRING_MAP,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -218,6 +230,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -225,6 +238,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.STRING_LIST,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -233,6 +247,7 @@ public class KayanSchemaBuilder internal constructor() {
         propertyName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -240,6 +255,7 @@ public class KayanSchemaBuilder internal constructor() {
             kind = ConfigValueKind.STRING_LIST_MAP,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -249,6 +265,7 @@ public class KayanSchemaBuilder internal constructor() {
         enumTypeName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -257,6 +274,7 @@ public class KayanSchemaBuilder internal constructor() {
             required = required,
             nullable = nullable,
             enumTypeName = enumTypeName,
+            preventOverride = preventOverride,
         )
     }
 
@@ -266,6 +284,7 @@ public class KayanSchemaBuilder internal constructor() {
         enumTypeName: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         enumValue(
             jsonKey = jsonKey,
@@ -273,6 +292,7 @@ public class KayanSchemaBuilder internal constructor() {
             enumTypeName = enumTypeName,
             required = required,
             nullable = nullable,
+            preventOverride = preventOverride,
         )
     }
 
@@ -283,6 +303,7 @@ public class KayanSchemaBuilder internal constructor() {
         adapter: String,
         required: Boolean = false,
         nullable: Boolean = false,
+        preventOverride: Boolean = false,
     ) {
         add(
             jsonKey = jsonKey,
@@ -291,6 +312,7 @@ public class KayanSchemaBuilder internal constructor() {
             required = required,
             nullable = nullable,
             adapterClassName = adapter,
+            preventOverride = preventOverride,
         )
     }
 
@@ -303,6 +325,7 @@ public class KayanSchemaBuilder internal constructor() {
         nullable: Boolean,
         enumTypeName: String? = null,
         adapterClassName: String? = null,
+        preventOverride: Boolean = false,
     ) {
         entries += KayanSchemaEntrySpec(
             jsonKey = jsonKey,
@@ -312,6 +335,7 @@ public class KayanSchemaBuilder internal constructor() {
             nullable = nullable,
             enumTypeName = enumTypeName,
             adapterClassName = adapterClassName,
+            preventOverride = preventOverride,
         )
     }
 }
@@ -324,6 +348,7 @@ internal data class KayanSchemaEntrySpec(
     val nullable: Boolean,
     val enumTypeName: String? = null,
     val adapterClassName: String? = null,
+    val preventOverride: Boolean = false,
 ) {
     fun serialize(): String = json.encodeToString(
         JsonElement.serializer(),
@@ -335,6 +360,7 @@ internal data class KayanSchemaEntrySpec(
             put("nullable", JsonPrimitive(nullable))
             enumTypeName?.let { put("enumTypeName", JsonPrimitive(it)) }
             adapterClassName?.let { put("adapterClassName", JsonPrimitive(it)) }
+            put("preventOverride", JsonPrimitive(preventOverride))
         },
     )
 
@@ -346,6 +372,7 @@ internal data class KayanSchemaEntrySpec(
         nullable = nullable,
         enumTypeName = enumTypeName,
         adapterClassName = adapterClassName,
+        preventOverride = preventOverride,
     )
 
     companion object {
@@ -397,6 +424,7 @@ internal data class KayanSchemaEntrySpec(
                 nullable = jsonObject.requireBoolean("nullable", entryIndex).bind(),
                 enumTypeName = jsonObject.optionalString("enumTypeName"),
                 adapterClassName = jsonObject.optionalString("adapterClassName"),
+                preventOverride = jsonObject.optionalBoolean("preventOverride") ?: false,
             )
         }
 
@@ -507,6 +535,8 @@ internal data class KayanSchemaEntrySpec(
                 ?: SchemaError.MissingRequiredField(entryIndex, key).left()
 
         private fun JsonObject.optionalString(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull
+
+        private fun JsonObject.optionalBoolean(key: String): Boolean? = (get(key) as? JsonPrimitive)?.booleanOrNull
 
         private fun JsonObject.requireBoolean(
             key: String,
