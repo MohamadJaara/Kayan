@@ -595,6 +595,56 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun exportsPreventOverrideMetadataInSchemaArtifacts() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                """.trimIndent(),
+                schemaBlock = """
+                    string("api_secret", "API_SECRET", preventOverride = true)
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  },
+                  "api_secret": "base-secret"
+                }
+            """.trimIndent(),
+            commonSource = "package sample",
+        )
+
+        val result = gradleRunner(projectDir, "exportKayanSchema").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":exportKayanSchema")?.outcome)
+
+        val jsonSchemaFile = File(projectDir, "build/generated/kayan/schema/kayan.schema.json")
+        val markdownSchemaFile = File(projectDir, "build/generated/kayan/schema/SCHEMA.md")
+
+        assertTrue(jsonSchemaFile.readText().contains("\"x-kayan-preventOverride\": true"))
+        assertTrue(
+            jsonSchemaFile.readText().contains(
+                "\"description\": \"Cannot be set in custom config files; only the main config file may define it.\"",
+            ),
+        )
+        assertTrue(
+            markdownSchemaFile.readText().contains(
+                "Keys marked `preventOverride` can only be defined in the main config file.",
+            ),
+        )
+        assertTrue(
+            markdownSchemaFile.readText().contains(
+                "| `api_secret` | `API_SECRET` | `string` | No | " +
+                    "Cannot be set in custom config files; only the main config file may define it. |",
+            ),
+        )
+    }
+
+    @Test
     fun exportsSchemaToCustomOutputFiles() {
         val projectDir = createProject(
             buildScript = buildScript(

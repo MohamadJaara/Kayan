@@ -51,6 +51,88 @@ class KayanAndroidConfigPluginFunctionalTest {
     }
 
     @Test
+    fun activatesAndroidFlavorGenerationFromAndroidLibraryPluginIdWithoutLegacyKotlinAndroidPlugin() {
+        val projectDir = createTempDirectory(prefix = "kayan-android-library-functional-test").toFile()
+
+        writeFakeAndroidBuildSrc(projectDir)
+        writeSettingsGradle(projectDir)
+        writeDefaultJson(projectDir)
+        File(projectDir, "build.gradle.kts").writeText(
+            """
+                @file:OptIn(io.kayan.gradle.ExperimentalKayanGenerationApi::class)
+
+                plugins {
+                    id("com.android.library")
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayan {
+                    schema {
+                        string("bundle_id", "BUNDLE_ID", required = true)
+                    }
+
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+
+                    androidFlavorSourceSets {
+                        flavors.set(listOf("prod"))
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "assertGeneratedKayanSources", "generateKayanProdConfig").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":assertGeneratedKayanSources")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanProdConfig")?.outcome)
+    }
+
+    @Test
+    fun registersDefaultAndroidGeneratedSourcesWhenFlavorSpecificGenerationIsNotConfigured() {
+        val projectDir = createTempDirectory(prefix = "kayan-android-default-functional-test").toFile()
+
+        writeFakeAndroidBuildSrc(projectDir)
+        writeSettingsGradle(projectDir)
+        writeDefaultJson(projectDir)
+        File(projectDir, "build.gradle.kts").writeText(
+            """
+                plugins {
+                    id("com.android.application")
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayan {
+                    schema {
+                        string("bundle_id", "BUNDLE_ID", required = true)
+                    }
+
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(
+            projectDir,
+            "assertDefaultGeneratedKayanSources",
+            "generateKayanConfig",
+        ).build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":assertDefaultGeneratedKayanSources")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+    }
+
+    @Test
     fun registersFlavorAwareAndroidGeneratedSourcesBeforeVariantCallbacksClose() {
         val projectDir = createTempDirectory(prefix = "kayan-android-multiflavor-functional-test").toFile()
 
@@ -164,6 +246,10 @@ class KayanAndroidConfigPluginFunctionalTest {
                                 id = "com.android.application"
                                 implementationClass = "fake.android.FakeAndroidApplicationPlugin"
                             }
+                            create("fakeAndroidLibrary") {
+                                id = "com.android.library"
+                                implementationClass = "fake.android.FakeAndroidLibraryPlugin"
+                            }
                         }
                     }
                 """.trimIndent(),
@@ -236,11 +322,23 @@ class KayanAndroidConfigPluginFunctionalTest {
                                 androidComponents.set(androidComponentsExtension)
                             }
                             project.tasks.register(
+                                "assertDefaultGeneratedKayanSources",
+                                AssertDefaultGeneratedKayanSourcesTask::class.java,
+                            ) {
+                                androidComponents.set(androidComponentsExtension)
+                            }
+                            project.tasks.register(
                                 "assertMultiFlavorGeneratedKayanSources",
                                 AssertMultiFlavorGeneratedKayanSourcesTask::class.java,
                             ) {
                                 androidComponents.set(androidComponentsExtension)
                             }
+                        }
+                    }
+
+                    class FakeAndroidLibraryPlugin : Plugin<Project> {
+                        override fun apply(project: Project) {
+                            FakeAndroidApplicationPlugin().apply(project)
                         }
                     }
 
@@ -256,6 +354,43 @@ class KayanAndroidConfigPluginFunctionalTest {
                             if ("generateKayanProdConfig" !in registeredTaskNames) {
                                 throw GradleException(
                                     "Expected generateKayanProdConfig to be registered through the fake Android Variant API.",
+                                )
+                            }
+                        }
+                    }
+
+                    abstract class AssertDefaultGeneratedKayanSourcesTask : DefaultTask() {
+                        @get:Internal
+                        abstract val androidComponents: Property<FakeAndroidComponentsExtension>
+
+                        @TaskAction
+                        fun assertRegisteredSources() {
+                            val variantsByName = androidComponents.get().variants.associateBy(FakeVariant::name)
+
+                            assertVariantTasks(variantsByName, "prodPlayDebug", listOf("generateKayanConfig"))
+                            assertVariantTasks(variantsByName, "devPlayDebug", listOf("generateKayanConfig"))
+                            assertVariantTasks(variantsByName, "fdroidRelease", listOf("generateKayanConfig"))
+                            assertVariantTasks(variantsByName, "playOnlyDebug", listOf("generateKayanConfig"))
+                        }
+
+                        private fun assertVariantTasks(
+                            variantsByName: Map<String, FakeVariant>,
+                            variantName: String,
+                            expectedTaskNames: List<String>,
+                        ) {
+                            val variant = variantsByName[variantName]
+                                ?: throw GradleException(
+                                    "Missing fake Android variant '" + variantName + "'.",
+                                )
+                            val actualTaskNames = variant.sources.kotlin.registeredTaskNames
+
+                            if (actualTaskNames != expectedTaskNames) {
+                                throw GradleException(
+                                    "Expected variant '" + variantName + "' to register " +
+                                        expectedTaskNames +
+                                        ", but found " +
+                                        actualTaskNames +
+                                        ".",
                                 )
                             }
                         }
