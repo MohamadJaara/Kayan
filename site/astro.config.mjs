@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 const isProd = process.env.NODE_ENV === 'production';
+const apiReferenceLink = isProd ? '/Kayan/api/gradle-plugin/' : '/api/gradle-plugin/';
 
 // https://astro.build/config
 export default defineConfig({
@@ -55,6 +56,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Validation', slug: 'docs/validation' },
 						{ label: 'Commands', slug: 'docs/commands' },
+						{ label: 'API Reference', link: apiReferenceLink },
 					],
 				},
 			],

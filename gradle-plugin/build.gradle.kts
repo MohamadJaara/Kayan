@@ -4,6 +4,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
+    alias(libs.plugins.dokka)
     alias(libs.plugins.kotlinJvm)
     id("java-gradle-plugin")
     jacoco
@@ -27,6 +28,7 @@ dependencies {
 
 kotlin {
     jvmToolchain(11)
+    explicitApi()
 }
 
 tasks.named<Jar>("jar") {
@@ -36,6 +38,12 @@ tasks.named<Jar>("jar") {
 
 tasks.named("test") {
     finalizedBy(tasks.named("jacocoTestReport"))
+}
+
+tasks.register("checkPublicApiDocs") {
+    group = "verification"
+    description = "Generates Dokka documentation for the published public API surface."
+    dependsOn(tasks.named("dokkaGeneratePublicationHtml"))
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
