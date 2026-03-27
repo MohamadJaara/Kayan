@@ -255,7 +255,16 @@ public data class ResolvedFlavorConfig(
     val flavorName: String,
     val values: Map<ConfigDefinition, ConfigValue?>,
 ) {
-    /** Returns the resolved value for [definition], or `null` when it is absent or nullable. */
+    /**
+     * Returns the resolved value for [definition].
+     *
+     * Kotlin `null` means the key was never resolved into [values] at all, which matches the
+     * missing-key path in `resolvedValue` and the required-key check in
+     * `requireResolvedRequiredKeysEither`.
+     *
+     * An explicit config `null` is represented as [ConfigValue.NullValue], meaning the key is
+     * present in [values] with a null value rather than absent from the map.
+     */
     public operator fun get(definition: ConfigDefinition): ConfigValue? = values[definition]
 }
 

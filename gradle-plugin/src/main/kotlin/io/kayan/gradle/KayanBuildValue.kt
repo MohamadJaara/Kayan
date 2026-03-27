@@ -194,7 +194,10 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.STRING_MAP),
     )
 
-    /** Returns a `Provider<Map<String, List<String>>>` for lazy Gradle wiring instead of resolving the value immediately. */
+    /**
+     * Returns a `Provider<Map<String, List<String>>>`
+     * for lazy Gradle wiring instead of resolving the value immediately.
+     */
     public fun asStringListMapProvider(): Provider<Map<String, List<String>>> = mapValue(
         requestedType = "Map<String, List<String>>",
         nullAccessorHint = "asStringListMapOrNull()",
@@ -281,6 +284,7 @@ public class KayanBuildValue internal constructor(
         val typedValue = when (kind) {
             ConfigValueKind.STRING,
             ConfigValueKind.ENUM -> value as? String
+
             ConfigValueKind.BOOLEAN -> value as? Boolean
             ConfigValueKind.INT -> value as? Int
             ConfigValueKind.LONG -> value as? Long
@@ -288,14 +292,16 @@ public class KayanBuildValue internal constructor(
             ConfigValueKind.STRING_LIST -> (value as? List<*>)?.takeIf { entries ->
                 entries.all { it is String }
             }
+
             ConfigValueKind.STRING_MAP -> (value as? Map<*, *>)?.takeIf { entries ->
                 entries.keys.all { it is String } && entries.values.all { it is String }
             }
+
             ConfigValueKind.STRING_LIST_MAP -> (value as? Map<*, *>)?.takeIf { entries ->
                 entries.keys.all { it is String } &&
-                    entries.values.all { entryValue ->
-                        (entryValue as? List<*>)?.all { it is String } == true
-                    }
+                        entries.values.all { entryValue ->
+                            (entryValue as? List<*>)?.all { it is String } == true
+                        }
             }
         }
 
