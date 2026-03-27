@@ -31,6 +31,13 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import javax.inject.Inject
 
+/**
+ * Top-level DSL exposed as `kayan { ... }`.
+ *
+ * This extension defines the schema, input files, generated type name, schema
+ * export locations, and optional Android-specific generation behavior used by
+ * Kayan's Gradle tasks.
+ */
 public abstract class KayanExtension {
     internal val schemaBuilder: KayanSchemaBuilder = KayanSchemaBuilder()
     private val resolvedBuildValueProviders: MutableMap<String, Provider<ResolvedBuildValue>> = mutableMapOf()
@@ -48,33 +55,58 @@ public abstract class KayanExtension {
         }
     }
 
+    /** Package name for the generated Kotlin type and related schema metadata. */
     public abstract val packageName: Property<String>
+
+    /** Flavor name to resolve for non-Android source generation. */
     public abstract val flavor: Property<String>
+
+    /** Base config file that declares defaults and per-flavor values. */
     public abstract val baseConfigFile: RegularFileProperty
+
+    /** Optional override config file layered on top of the base config. */
     public abstract val customConfigFile: RegularFileProperty
+
+    /** Config source format, or `AUTO` to infer it from file extensions. */
     public abstract val configFormat: Property<ConfigFormat>
+
+    /** Name of the generated Kotlin object or type. */
     public abstract val className: Property<String>
+
+    /** Output location for the generated JSON Schema file. */
     public abstract val jsonSchemaOutputFile: RegularFileProperty
+
+    /** Output location for the generated Markdown schema reference. */
     public abstract val markdownSchemaOutputFile: RegularFileProperty
 
+    /** Configures the schema that drives validation, generation, and schema export using a Gradle [Action]. */
     public fun schema(action: Action<in KayanSchemaBuilder>) {
         action.execute(schemaBuilder)
     }
 
+    /** Configures the schema that drives validation, generation, and schema export using the Kotlin DSL. */
     public fun schema(action: KayanSchemaBuilder.() -> Unit) {
         schemaBuilder.action()
     }
 
+    /** Configures Android flavor-specific generation using a Gradle [Action]. */
     @ExperimentalKayanGenerationApi
     public fun androidFlavorSourceSets(action: Action<in KayanAndroidFlavorSourceSetSpec>) {
         action.execute(androidFlavorSourceSetSpec)
     }
 
+    /** Configures Android flavor-specific generation using the Kotlin DSL. */
     @ExperimentalKayanGenerationApi
     public fun androidFlavorSourceSets(action: KayanAndroidFlavorSourceSetSpec.() -> Unit) {
         androidFlavorSourceSetSpec.action()
     }
 
+    /**
+     * Exposes a schema entry to Gradle build logic through typed accessors.
+     *
+     * The key must already exist in the configured schema. Type validation is
+     * deferred to the accessor calls on [KayanBuildValue].
+     */
     @ExperimentalKayanGradleApi
     public fun buildValue(jsonKey: String): KayanBuildValue {
         val schema = requireSchema(serializedSchemaEntries())
@@ -120,9 +152,19 @@ public abstract class KayanExtension {
     }
 }
 
+/**
+ * Builder used inside `kayan { schema { ... } }` to declare config entries.
+ *
+ * Each function maps a source key to a generated Kotlin property. The shared
+ * flags behave the same across entry types: `required` forces every final
+ * flavor result to contain a value, `nullable` allows explicit `null`, and
+ * `preventOverride` blocks the custom override file from replacing the base
+ * value.
+ */
 public class KayanSchemaBuilder internal constructor() {
     internal val entries: MutableList<KayanSchemaEntrySpec> = mutableListOf()
 
+    /** Adds a string schema entry. */
     public fun string(
         jsonKey: String,
         propertyName: String,
@@ -140,6 +182,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a boolean schema entry. */
     public fun boolean(
         jsonKey: String,
         propertyName: String,
@@ -157,6 +200,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds an integer schema entry. */
     public fun int(
         jsonKey: String,
         propertyName: String,
@@ -174,6 +218,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a long schema entry. */
     public fun long(
         jsonKey: String,
         propertyName: String,
@@ -191,6 +236,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a double schema entry. */
     public fun double(
         jsonKey: String,
         propertyName: String,
@@ -208,6 +254,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a string-to-string map schema entry. */
     public fun stringMap(
         jsonKey: String,
         propertyName: String,
@@ -225,6 +272,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a string list schema entry. */
     public fun stringList(
         jsonKey: String,
         propertyName: String,
@@ -242,6 +290,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a string-to-string-list map schema entry. */
     public fun stringListMap(
         jsonKey: String,
         propertyName: String,
@@ -259,6 +308,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds an enum-backed schema entry using [enumTypeName] as the generated enum type name. */
     public fun enumValue(
         jsonKey: String,
         propertyName: String,
@@ -278,6 +328,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Alias for [enumValue] for DSL ergonomics. */
     public fun enum(
         jsonKey: String,
         propertyName: String,
@@ -296,6 +347,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
+    /** Adds a custom schema entry rendered through the adapter identified by [adapter]. */
     public fun custom(
         jsonKey: String,
         propertyName: String,

@@ -2,6 +2,7 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
 
 plugins {
     alias(libs.plugins.dokka)
@@ -29,6 +30,25 @@ dependencies {
 kotlin {
     jvmToolchain(11)
     explicitApi()
+}
+
+dokka {
+    dokkaPublications.html {
+        failOnWarning.set(true)
+    }
+
+    dokkaSourceSets.configureEach {
+        documentedVisibilities.set(setOf(VisibilityModifier.Public))
+        reportUndocumented.set(true)
+        skipEmptyPackages.set(true)
+        suppressGeneratedFiles.set(true)
+        jdkVersion.set(11)
+
+        perPackageOption {
+            matchingRegex.set("io\\.kayan\\.theme(\\..*)?")
+            suppress.set(true)
+        }
+    }
 }
 
 tasks.named<Jar>("jar") {

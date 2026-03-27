@@ -65,7 +65,8 @@ value at compile time or runtime.
 
 ### Eager accessors
 
-These resolve immediately and are useful inside `if` and `when`:
+These resolve immediately and return plain Kotlin values. Use them when the
+build script needs the answer right now, for example inside `if` and `when`:
 
 ```kotlin
 kayan.buildValue("brand_name").asString()
@@ -90,7 +91,19 @@ val supportEmail =
 
 ### Provider accessors
 
-For task inputs and other lazy Gradle wiring, use the provider variants:
+These do the same type checks, but return a Gradle `Provider<T>` instead of the
+plain value. Use them for task inputs and other lazy Gradle wiring:
+
+```kotlin
+val brandName = kayan.buildValue("brand_name").asString()
+val brandNameProvider = kayan.buildValue("brand_name").asStringProvider()
+```
+
+- `asString()` resolves immediately during configuration
+- `asStringProvider()` defers resolution until Gradle needs the value
+
+That difference matters most when assigning into `Property<T>`, `ListProperty<T>`,
+or other provider-based Gradle APIs:
 
 ```kotlin
 @file:OptIn(io.kayan.gradle.ExperimentalKayanGradleApi::class)

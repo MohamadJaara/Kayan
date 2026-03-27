@@ -13,7 +13,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
-public abstract class ExportKayanSchemaTask : DefaultTask() {
+internal abstract class ExportKayanSchemaTask : DefaultTask() {
     @get:Input
     public abstract val schemaEntries: ListProperty<String>
 
