@@ -495,6 +495,65 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun generatesNullableCustomTypedPropertiesWhenAdapterValueIsMissing() {
+        val adapterClasspathEntry = File(
+            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI()
+        ).absolutePath.replace("\\", "\\\\")
+        val projectDir = createProject(
+            buildScript = buildScript(
+                buildscriptBlock = """
+                    dependencies {
+                        classpath(files("$adapterClasspathEntry"))
+                    }
+                """.trimIndent(),
+                schemaBlock = """
+                    custom(
+                        jsonKey = "release_stage",
+                        propertyName = "RELEASE_STAGE",
+                        rawKind = io.kayan.ConfigValueKind.STRING,
+                        adapter = "io.kayan.gradle.ReleaseStageAdapter",
+                        nullable = true,
+                    )
+                """.trimIndent(),
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                """.trimIndent()
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            commonSource = """
+                package sample
+
+                enum class ReleaseStage {
+                    BETA,
+                    PROD,
+                }
+
+                val releaseStage: ReleaseStage? = sample.config.KayanConfig.RELEASE_STAGE
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "compileKotlinJvm").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":compileKotlinJvm")?.outcome)
+
+        val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
+        assertTrue(generatedFile.exists())
+        assertTrue(
+            generatedFile.readText().contains("public val RELEASE_STAGE: sample.ReleaseStage? = null"),
+        )
+    }
+
+    @Test
     fun reusesConfigurationCacheWhenCustomAdapterComesFromBuildscriptClasspath() {
         val adapterClasspathEntry = File(
             ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI()
