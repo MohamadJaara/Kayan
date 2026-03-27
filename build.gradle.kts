@@ -3,6 +3,7 @@ import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 
 plugins {
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.dokka) apply false
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
 }

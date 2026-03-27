@@ -50,6 +50,9 @@ jobs:
           - target: :gradle-plugin:validatePlugins
             kind: test
             os: ubuntu-latest
+          - target: :gradle-plugin:checkPublicApiDocs
+            kind: docs
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -67,7 +70,12 @@ jobs:
       with:
         cache-disabled: true
     - name: Build with Gradle
-      run: ./gradlew ${{ matrix.target }}
+      run: |
+        if [ "${{ matrix.target }}" = ":gradle-plugin:checkPublicApiDocs" ]; then
+          ./gradlew ${{ matrix.target }} --no-configuration-cache
+        else
+          ./gradlew ${{ matrix.target }}
+        fi
     - name: Upload coverage to Codecov
       if: matrix.target == ':gradle-plugin:test'
       uses: codecov/codecov-action@v5

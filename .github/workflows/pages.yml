@@ -23,6 +23,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-disabled: true
+
+      - name: Generate API reference
+        run: ./gradlew :gradle-plugin:dokkaGeneratePublicationHtml --no-configuration-cache
+
+      - name: Copy API reference into site
+        run: |
+          mkdir -p site/public/api/gradle-plugin
+          cp -R gradle-plugin/build/dokka/html/. site/public/api/gradle-plugin
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:

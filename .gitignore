@@ -16,3 +16,4 @@ xcuserdata
 site/node_modules
 site/dist
 site/.astro
+site/public/api
