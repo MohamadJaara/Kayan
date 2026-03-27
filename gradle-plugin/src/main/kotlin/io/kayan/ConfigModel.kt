@@ -126,7 +126,7 @@ public sealed interface ConfigValue {
     }
 
     /**
-     * An enum config value represented by its generated enum constant name.
+     * An enum config value represented by its normalized constant name.
      *
      * @property value The decoded enum constant name.
      */
@@ -159,7 +159,7 @@ public sealed interface ConfigValue {
  * @property kind The raw value kind expected for this entry.
  * @property required Whether every final flavor result must contain a value.
  * @property nullable Whether the entry may be explicitly set to `null`.
- * @property enumTypeName The generated enum type name used for enum-backed values.
+ * @property enumTypeName The generated enum type name used for values exposed as normalized constant names.
  * @property adapterClassName The adapter class used to convert custom build-time values.
  * @property preventOverride Whether the custom override file may replace the base value.
  */

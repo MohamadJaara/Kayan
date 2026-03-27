@@ -21,14 +21,14 @@ import org.gradle.api.provider.Provider
  *
  * Non-null accessors fail for nullable results, `OrNull` accessors preserve
  * nullable results, and provider accessors defer the same checks until the
- * provider is queried. Enum accessors return the generated enum constant name
+ * provider is queried. Enum accessors return the resolved normalized constant name
  * rather than an enum instance.
  */
 @ExperimentalKayanGradleApi
 public class KayanBuildValue internal constructor(
     private val valueProvider: Provider<ResolvedBuildValue>,
 ) {
-    /** Returns the resolved value as a non-null string. */
+    /** Returns the resolved value as a non-null string, including enum normalized constant names. */
     public fun asString(): String = readValue(
         requestedType = "String",
         nullAccessorHint = "asStringOrNull()",
@@ -95,7 +95,7 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.ENUM),
     )
 
-    /** Returns the resolved value as a nullable string. */
+    /** Returns the resolved value as a nullable string, including enum normalized constant names. */
     public fun asStringOrNull(): String? = readNullableValue(
         requestedType = "String",
         allowedKinds = setOf(ConfigValueKind.STRING, ConfigValueKind.ENUM),
@@ -154,7 +154,11 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.ENUM),
     )
 
-    /** Returns a `Provider<String>` for lazy Gradle wiring instead of resolving the value immediately. */
+    /**
+     * Returns a `Provider<String>` for lazy Gradle wiring instead of resolving the value immediately.
+     *
+     * String providers also expose enum normalized constant names.
+     */
     public fun asStringProvider(): Provider<String> = mapValue(
         requestedType = "String",
         nullAccessorHint = "asStringOrNull()",

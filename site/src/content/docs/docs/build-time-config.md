@@ -138,7 +138,7 @@ when (kayan.buildValue("release_stage").asEnumName()) {
 }
 ```
 
-`asString()` also works for enum-backed values.
+`asString()` also works for enum values and returns their normalized constant names.
 
 ## Error behavior
 
