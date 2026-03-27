@@ -84,7 +84,11 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.STRING_LIST_MAP),
     )
 
-    /** Returns the resolved enum-backed value as its generated enum constant name. */
+    /**
+     * Returns the resolved normalized constant name for this enum value.
+     *
+     * @return The resolved enum constant name.
+     */
     public fun asEnumName(): String = readValue(
         requestedType = "enum name",
         nullAccessorHint = "asEnumNameOrNull()",
@@ -139,7 +143,12 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.STRING_LIST_MAP),
     )
 
-    /** Returns the resolved enum-backed value name, or `null` if the schema entry resolves to null. */
+    /**
+     * Returns the resolved normalized constant name for this enum value, or
+     * `null` when the schema entry resolves to null.
+     *
+     * @return The resolved enum constant name, or `null` when the resolved value is null.
+     */
     public fun asEnumNameOrNull(): String? = readNullableValue(
         requestedType = "enum name",
         allowedKinds = setOf(ConfigValueKind.ENUM),
@@ -204,7 +213,11 @@ public class KayanBuildValue internal constructor(
         allowedKinds = setOf(ConfigValueKind.STRING_LIST_MAP),
     )
 
-    /** Returns a `Provider<String>` for lazy Gradle wiring of an enum-backed value's normalized constant name. */
+    /**
+     * Returns a `Provider<String>` for lazy Gradle wiring of this enum value's normalized constant name.
+     *
+     * @return A provider that yields the resolved enum constant name.
+     */
     public fun asEnumNameProvider(): Provider<String> = mapValue(
         requestedType = "enum name",
         nullAccessorHint = "asEnumNameOrNull()",
