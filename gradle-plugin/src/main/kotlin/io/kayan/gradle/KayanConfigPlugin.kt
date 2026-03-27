@@ -8,6 +8,7 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
+/** @suppress */
 public class KayanConfigPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("kayan", KayanExtension::class.java).apply {

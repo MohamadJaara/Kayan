@@ -28,7 +28,7 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.net.URLClassLoader
 
-public abstract class GenerateKayanConfigTask : DefaultTask() {
+internal abstract class GenerateKayanConfigTask : DefaultTask() {
     @get:Input
     public abstract val packageName: Property<String>
 

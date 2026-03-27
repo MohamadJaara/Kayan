@@ -6,13 +6,28 @@ import arrow.core.raise.either
 import io.kayan.gradle.ExperimentalKayanGradleApi
 
 @Suppress("TooManyFunctions")
+/**
+ * Default JVM implementation of [ConfigResolver].
+ *
+ * It is useful for tooling, tests, or non-Gradle integrations that want the
+ * same parsing and layering behavior as the Gradle plugin. The no-arg
+ * constructor assumes JSON input; the format-aware constructor is intended for
+ * callers that already know whether the source is JSON or YAML.
+ */
 public class DefaultConfigResolver : ConfigResolver {
     private val parser: ConfigFormatParser
 
+    /** Creates a resolver that parses JSON input. */
     public constructor() {
         parser = JsonConfigFormatParser()
     }
 
+    /**
+     * Creates a resolver for an explicit non-`AUTO` [configFormat].
+     *
+     * `AUTO` is not accepted here because there is no source file name available
+     * to infer the format from.
+     */
     @OptIn(ExperimentalKayanGradleApi::class)
     public constructor(configFormat: ConfigFormat) {
         require(configFormat != ConfigFormat.AUTO) {
@@ -34,6 +49,12 @@ public class DefaultConfigResolver : ConfigResolver {
         sourceName = DEFAULT_PARSE_SOURCE_NAME,
     ).getOrElse { throw it.toConfigValidationException() }
 
+    /**
+     * Parses [configJson] and reports diagnostics against the supplied [sourceName].
+     *
+     * Use this overload when error messages should mention a real file name or a
+     * domain-specific label instead of the default placeholder source name.
+     */
     public fun parse(
         configJson: String,
         schema: ConfigSchema,
@@ -56,6 +77,12 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigSourceName = DEFAULT_CUSTOM_SOURCE_NAME,
     ).getOrElse { throw it.toConfigValidationException() }
 
+    /**
+     * Resolves [defaultConfigJson] and [customConfigJson] while preserving custom source names in diagnostics.
+     *
+     * Use this overload when validation errors should point back to real file
+     * names or human-readable source labels.
+     */
     public fun resolve(
         defaultConfigJson: String,
         schema: ConfigSchema,

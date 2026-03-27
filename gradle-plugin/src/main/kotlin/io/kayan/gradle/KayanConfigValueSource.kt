@@ -15,8 +15,8 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 
-public abstract class KayanConfigValueSource : ValueSource<String, KayanConfigValueSource.Parameters> {
-    public interface Parameters : ValueSourceParameters {
+internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfigValueSource.Parameters> {
+    internal interface Parameters : ValueSourceParameters {
         @get:InputFile
         @get:PathSensitive(PathSensitivity.RELATIVE)
         public val baseConfigFile: RegularFileProperty
