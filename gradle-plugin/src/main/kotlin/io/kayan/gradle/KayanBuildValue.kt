@@ -299,9 +299,9 @@ public class KayanBuildValue internal constructor(
 
             ConfigValueKind.STRING_LIST_MAP -> (value as? Map<*, *>)?.takeIf { entries ->
                 entries.keys.all { it is String } &&
-                        entries.values.all { entryValue ->
-                            (entryValue as? List<*>)?.all { it is String } == true
-                        }
+                    entries.values.all { entryValue ->
+                        (entryValue as? List<*>)?.all { it is String } == true
+                    }
             }
         }
 
