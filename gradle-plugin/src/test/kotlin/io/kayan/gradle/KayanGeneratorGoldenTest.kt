@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
@@ -214,7 +215,7 @@ class KayanGeneratorGoldenTest {
         resolvedFlavorConfig = resolvedFlavorConfig,
         renderedCustomProperties = mapOf(
             environment to RenderedCustomProperty(
-                typeName = "sample.Environment",
+                typeName = bestGuessTypeName("sample.Environment"),
                 expression = "sample.Environment.PROD",
             )
         ),
@@ -231,4 +232,6 @@ class KayanGeneratorGoldenTest {
     }
 
     private fun normalize(value: String): String = value.replace("\r\n", "\n").trimEnd('\n')
+
+    private fun bestGuessTypeName(canonicalName: String): TypeName = KayanTypeNames.bestGuess(canonicalName)
 }

@@ -7,6 +7,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
@@ -32,7 +33,7 @@ internal data class GenerationInputs(
 
 internal data class LoadedCustomAdapter(
     val rawKind: ConfigValueKind?,
-    val kotlinType: String,
+    val kotlinType: TypeName,
     val parse: (ConfigDefinition, Any) -> Either<GenerationError, Any>,
     val renderKotlin: (ConfigDefinition, Any) -> Either<GenerationError, String>,
 )
@@ -57,7 +58,7 @@ internal fun loadedReflectiveAdapter(
     className: String,
     instance: Any,
     rawKind: ConfigValueKind?,
-    kotlinType: String,
+    kotlinType: TypeName,
     parseMethod: Method,
     renderMethod: Method,
 ): LoadedCustomAdapter =

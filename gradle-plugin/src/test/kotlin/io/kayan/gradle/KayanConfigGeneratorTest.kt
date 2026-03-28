@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
@@ -54,7 +55,7 @@ class KayanConfigGeneratorTest {
             ),
             renderedCustomProperties = mapOf(
                 environment to RenderedCustomProperty(
-                    typeName = "sample.Environment",
+                    typeName = bestGuessTypeName("sample.Environment"),
                     expression = "sample.Environment.PROD",
                 )
             ),
@@ -101,7 +102,7 @@ class KayanConfigGeneratorTest {
             ),
             renderedCustomProperties = mapOf(
                 environment to RenderedCustomProperty(
-                    typeName = "sample.Environment",
+                    typeName = bestGuessTypeName("sample.Environment"),
                     expression = null,
                 )
             ),
@@ -132,7 +133,10 @@ class KayanConfigGeneratorTest {
             ),
             renderedCustomProperties = mapOf(
                 environmentMatrix to RenderedCustomProperty(
-                    typeName = "sample.Box<sample.Environment>",
+                    typeName = KayanTypeNames.parameterized(
+                        KayanTypeNames.bestGuess("sample.Box"),
+                        bestGuessTypeName("sample.Environment"),
+                    ),
                     expression = "sample.Box(sample.Environment.PROD)",
                 )
             ),
@@ -274,6 +278,8 @@ class KayanConfigGeneratorTest {
             "Expected <$actual> to match <$expectedPattern>.",
         )
     }
+
+    private fun bestGuessTypeName(canonicalName: String): TypeName = KayanTypeNames.bestGuess(canonicalName)
 
     private fun stringDefinition(
         jsonKey: String,

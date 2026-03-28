@@ -1,12 +1,12 @@
 package io.kayan.gradle
 
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
@@ -15,7 +15,7 @@ import io.kayan.ConfigValueKind
 import io.kayan.ResolvedFlavorConfig
 
 internal data class RenderedCustomProperty(
-    val typeName: String,
+    val typeName: TypeName,
     val expression: String?,
 )
 
@@ -72,7 +72,7 @@ internal object KayanConfigGenerator {
         definition: ConfigDefinition,
         renderedCustomProperty: RenderedCustomProperty,
     ): PropertySpec {
-        val typeName = parseKotlinTypeName(renderedCustomProperty.typeName)
+        val typeName = renderedCustomProperty.typeName
         return if (renderedCustomProperty.expression == null) {
             buildNullableProperty(
                 definition = definition,
@@ -193,27 +193,23 @@ internal object KayanConfigGenerator {
         ConfigValueKind.INT -> Int::class.asTypeName()
         ConfigValueKind.LONG -> Long::class.asTypeName()
         ConfigValueKind.DOUBLE -> Double::class.asTypeName()
-        ConfigValueKind.STRING_MAP -> KotlinPoetInterop.parameterizedTypeName(
-            KOTLIN_MAP,
-            listOf(
-                String::class.asTypeName(),
-                String::class.asTypeName(),
-            ),
+        ConfigValueKind.STRING_MAP -> KayanTypeNames.parameterized(
+            Map::class.asClassName(),
+            String::class.asTypeName(),
+            String::class.asTypeName(),
         )
 
-        ConfigValueKind.STRING_LIST -> KotlinPoetInterop.parameterizedTypeName(
-            KOTLIN_LIST,
-            listOf(String::class.asTypeName()),
+        ConfigValueKind.STRING_LIST -> KayanTypeNames.parameterized(
+            List::class.asClassName(),
+            String::class.asTypeName(),
         )
 
-        ConfigValueKind.STRING_LIST_MAP -> KotlinPoetInterop.parameterizedTypeName(
-            KOTLIN_MAP,
-            listOf(
+        ConfigValueKind.STRING_LIST_MAP -> KayanTypeNames.parameterized(
+            Map::class.asClassName(),
+            String::class.asTypeName(),
+            KayanTypeNames.parameterized(
+                List::class.asClassName(),
                 String::class.asTypeName(),
-                KotlinPoetInterop.parameterizedTypeName(
-                    KOTLIN_LIST,
-                    listOf(String::class.asTypeName()),
-                ),
             ),
         )
 
@@ -221,7 +217,7 @@ internal object KayanConfigGenerator {
     }
 
     private fun enumTypeName(definition: ConfigDefinition): TypeName =
-        parseKotlinTypeName(requireNotNull(definition.enumTypeName))
+        KayanTypeNames.bestGuess(requireNotNull(definition.enumTypeName))
 
     private fun renderStringMap(values: Map<String, String>): CodeBlock =
         values.entries
@@ -250,9 +246,6 @@ internal object KayanConfigGenerator {
                 }
                 builder.add("%S to %L", key, renderStringList(entries))
             }
-
-    private val KOTLIN_LIST = ClassName("kotlin.collections", "List")
-    private val KOTLIN_MAP = ClassName("kotlin.collections", "Map")
 }
 
 private fun <T> Iterable<T>.toCodeBlock(
