@@ -126,7 +126,14 @@ public abstract class KayanExtension {
         targetSourceSetContainer.targets(*targetNames)
     }
 
-    /** Configures target-specific KMP source generation using the Kotlin DSL. */
+    /**
+     * Configures target-specific KMP source generation using the Kotlin DSL.
+     *
+     * This is an ergonomic alias for [targetSourceSets] that keeps the DSL
+     * focused on target-oriented mappings such as `targets { ios(); jvm() }`.
+     *
+     * @see targetSourceSets
+     */
     @ExperimentalKayanGenerationApi
     public fun targets(action: KayanTargetSourceSetContainer.() -> Unit) {
         targetSourceSetContainer.action()
