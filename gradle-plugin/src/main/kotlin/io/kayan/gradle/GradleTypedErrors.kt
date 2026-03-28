@@ -235,16 +235,6 @@ internal sealed interface GenerationError : KayanGradleError {
                 "'$actualKind', but the schema expects '${definition.kind}'."
     }
 
-    data class BlankAdapterKotlinType(
-        val definition: ConfigDefinition,
-    ) : GenerationError {
-        override val cause: Throwable? = null
-
-        override fun message(): String =
-            "Custom adapter '${definition.adapterClassName}' for key '${definition.jsonKey}' " +
-                "returned a blank kotlinType."
-    }
-
     data class AdapterRenderReturnWrongType(
         val className: String,
     ) : GenerationError {

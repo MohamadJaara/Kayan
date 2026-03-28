@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigValueKind
 
 /**
@@ -12,8 +13,8 @@ public interface BuildTimeConfigAdapter<T : Any> {
     /** The raw schema kind the adapter expects before conversion. */
     public val rawKind: ConfigValueKind
 
-    /** The Kotlin type name emitted into generated source, usually fully qualified. */
-    public val kotlinType: String
+    /** The Kotlin type emitted into generated source. */
+    public val kotlinType: TypeName
 
     /** Converts the decoded raw value into the adapter's domain type. */
     public fun parse(rawValue: Any): T

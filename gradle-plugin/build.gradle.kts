@@ -20,6 +20,7 @@ dependencies {
     implementation(localGroovy())
     implementation(libs.arrow.core)
     implementation(libs.kotlin.gradle.plugin)
+    implementation(libs.kotlinpoet)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.snakeyaml)
 

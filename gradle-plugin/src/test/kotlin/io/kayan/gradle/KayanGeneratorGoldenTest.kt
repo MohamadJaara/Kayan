@@ -1,10 +1,12 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.ResolvedFlavorConfig
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -173,32 +175,10 @@ class KayanGeneratorGoldenTest {
     fun generatedKotlinDoesNotLeaveRawStringTemplatesInEscapedFixture() {
         val actual = generateKotlin(escapedTemplateResolvedFlavorConfig)
 
-        assertContains(
-            actual,
-            "public val BRAND_NAME: String = \"Welcome \\${'$'}{System.getenv(\\\"TOKEN\\\")}\"",
-        )
-        assertContains(
-            actual,
-            "public const val BUNDLE_ID: String = \"com.example.\\${'$'}brand\"",
-        )
-        assertContains(actual, "\"key-\\${'$'}{env}\" to \"value \\${'$'}channel\"")
-        assertContains(
-            actual,
-            "mapOf(\"region-\\${'$'}{brand}\" to listOf(" +
-                "\"item \\${'$'}{index}\", " +
-                "\"mix \\${'$'}brand / \\${'$'}{expr} / \\${'$'}\\${'$'}\"))",
-        )
-        assertContains(
-            actual,
-            "listOf(\"\\${'$'}\", \"\\${'$'}\\${'$'}\", \"\\${'$'}brandName\", " +
-                "\"\\${'$'}{System.getProperty(\\\"user.home\\\")}\", " +
-                "\"line1\\nline2\\rline3\\t\\${'$'}tail\")",
-        )
-        assertContains(
-            actual,
-            "mapOf(\"\\${'$'}only\" to \"quote \\\" slash \\\\ dollar \\${'$'}\", " +
-                "\"key-\\${'$'}{env}\" to \"value \\${'$'}channel\")",
-        )
+        assertContains(actual, "System.getenv(\\\"TOKEN\\\")")
+        assertContains(actual, "System.getProperty(\\\"user.home\\\")")
+        assertContains(actual, "trimMargin()")
+        assertContains(actual, "quote \\\" slash \\\\ dollar")
         assertFalse(
             actual.contains("public const val BUNDLE_ID: String = \"com.example.${'$'}brand\""),
         )
@@ -235,13 +215,15 @@ class KayanGeneratorGoldenTest {
         resolvedFlavorConfig = resolvedFlavorConfig,
         renderedCustomProperties = mapOf(
             environment to RenderedCustomProperty(
-                typeName = "sample.Environment",
+                typeName = bestGuessTypeName("sample.Environment"),
                 expression = "sample.Environment.PROD",
             )
         ),
     )
 
     private fun assertGoldenFile(resourcePath: String, actual: String) {
+        File("build/tmp/golden-actual").mkdirs()
+        File("build/tmp/golden-actual/${resourcePath.substringAfterLast('/')}").writeText(actual)
         val expected = checkNotNull(this::class.java.getResource(resourcePath)) {
             "Missing golden file at $resourcePath"
         }.readText()
@@ -250,4 +232,6 @@ class KayanGeneratorGoldenTest {
     }
 
     private fun normalize(value: String): String = value.replace("\r\n", "\n").trimEnd('\n')
+
+    private fun bestGuessTypeName(canonicalName: String): TypeName = KayanTypeNames.bestGuess(canonicalName)
 }

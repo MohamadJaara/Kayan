@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
@@ -54,7 +55,7 @@ class KayanConfigGeneratorTest {
             ),
             renderedCustomProperties = mapOf(
                 environment to RenderedCustomProperty(
-                    typeName = "sample.Environment",
+                    typeName = bestGuessTypeName("sample.Environment"),
                     expression = "sample.Environment.PROD",
                 )
             ),
@@ -101,7 +102,7 @@ class KayanConfigGeneratorTest {
             ),
             renderedCustomProperties = mapOf(
                 environment to RenderedCustomProperty(
-                    typeName = "sample.Environment",
+                    typeName = bestGuessTypeName("sample.Environment"),
                     expression = null,
                 )
             ),
@@ -115,6 +116,34 @@ class KayanConfigGeneratorTest {
             actual = propertyLine(actual, "ENVIRONMENT"),
             expectedPattern = """public val ENVIRONMENT: (sample\.)?Environment\? = null""",
         )
+    }
+
+    @Test
+    fun rendersParameterizedCustomPropertyTypes() {
+        val environmentMatrix = stringDefinition(
+            jsonKey = "environment_matrix",
+            propertyName = "ENVIRONMENT_MATRIX",
+            adapterClassName = "sample.EnvironmentMatrixAdapter",
+        )
+
+        val actual = generateSource(
+            schema = ConfigSchema(listOf(environmentMatrix)),
+            resolvedValues = mapOf(
+                environmentMatrix to ConfigValue.StringValue("prod"),
+            ),
+            renderedCustomProperties = mapOf(
+                environmentMatrix to RenderedCustomProperty(
+                    typeName = KayanTypeNames.parameterized(
+                        KayanTypeNames.bestGuess("sample.Box"),
+                        bestGuessTypeName("sample.Environment"),
+                    ),
+                    expression = "sample.Box(sample.Environment.PROD)",
+                )
+            ),
+        )
+
+        assertContains(propertyLine(actual, "ENVIRONMENT_MATRIX"), "public val ENVIRONMENT_MATRIX:")
+        assertContains(propertyLine(actual, "ENVIRONMENT_MATRIX"), "= sample.Box(sample.Environment.PROD)")
     }
 
     @Test
@@ -218,14 +247,26 @@ class KayanConfigGeneratorTest {
         propertyName: String,
     ): String {
         val propertyPattern = Regex("""\b${Regex.escape(propertyName)}\s*:""")
+        val lines = source.lineSequence().toList()
+        val propertyIndex = lines.indexOfFirst { propertyPattern.containsMatchIn(it) }
 
-        return source.lineSequence()
-            .map(String::trim)
-            .firstOrNull { propertyPattern.containsMatchIn(it) }
-            ?: error(
+        if (propertyIndex == -1) {
+            error(
                 "Expected generated source to contain a declaration for '$propertyName', " +
                     "but it was missing.\n$source",
             )
+        }
+
+        val declarationLines = mutableListOf<String>()
+        for (index in propertyIndex until lines.size) {
+            val line = lines[index]
+            if (declarationLines.isNotEmpty() && (line.isBlank() || line.trim() == "}")) {
+                break
+            }
+            declarationLines += line.trim()
+        }
+
+        return declarationLines.joinToString(separator = " ")
     }
 
     private fun assertMatchesDeclaration(
@@ -237,6 +278,8 @@ class KayanConfigGeneratorTest {
             "Expected <$actual> to match <$expectedPattern>.",
         )
     }
+
+    private fun bestGuessTypeName(canonicalName: String): TypeName = KayanTypeNames.bestGuess(canonicalName)
 
     private fun stringDefinition(
         jsonKey: String,

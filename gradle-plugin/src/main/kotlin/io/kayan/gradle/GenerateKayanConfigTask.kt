@@ -5,6 +5,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
 import io.kayan.ConfigSchema
@@ -151,7 +152,6 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
             GenerationError.AdapterRawKindMismatch(definition, adapter.rawKind).left()
         }
 
-        adapter.kotlinType.isBlank() -> GenerationError.BlankAdapterKotlinType(definition).left()
         else -> Unit.right()
     }
 
@@ -214,7 +214,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         }
 
         val adapterClass = instance.javaClass
-        val kotlinType = reflectiveStringPropertyEither(adapterClass, instance, "kotlinType", className).bind()
+        val kotlinType = reflectiveTypeNamePropertyEither(adapterClass, instance, "kotlinType", className).bind()
         val rawKind = reflectiveRawKindProperty(adapterClass, instance)
         val parseMethod = reflectiveSingleArgumentMethodEither(adapterClass, "parse", className).bind()
         val renderMethod = reflectiveSingleArgumentMethodEither(
@@ -233,12 +233,12 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         )
     }
 
-    private fun reflectiveStringPropertyEither(
+    private fun reflectiveTypeNamePropertyEither(
         adapterClass: Class<*>,
         instance: Any,
         propertyName: String,
         className: String,
-    ): Either<GenerationError, String> {
+    ): Either<GenerationError, TypeName> {
         val getterValue = Either.catch {
             adapterClass.getMethod(getterName(propertyName)).invoke(instance)
         }
@@ -261,8 +261,8 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
             is Either.Right -> getterValue.value
         }
 
-        return (value as? String)?.right()
-            ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "String").left()
+        return (value as? TypeName)?.right()
+            ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "TypeName").left()
     }
 
     private fun reflectiveRawKindProperty(

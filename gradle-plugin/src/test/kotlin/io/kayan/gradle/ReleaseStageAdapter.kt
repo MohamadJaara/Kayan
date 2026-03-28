@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigValueKind
 
 internal enum class TestReleaseStage {
@@ -9,7 +10,7 @@ internal enum class TestReleaseStage {
 
 internal object ReleaseStageAdapter : BuildTimeConfigAdapter<TestReleaseStage> {
     override val rawKind: ConfigValueKind = ConfigValueKind.STRING
-    override val kotlinType: String = "sample.ReleaseStage"
+    override val kotlinType: TypeName = KayanTypeNames.bestGuess("sample.ReleaseStage")
 
     override fun parse(rawValue: Any): TestReleaseStage = TestReleaseStage.valueOf((rawValue as String).uppercase())
 
