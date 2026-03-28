@@ -223,12 +223,15 @@ public class ConfigSchema(
  * A single parsed section from a config document, either defaults or one flavor block.
  *
  * The map is keyed by [ConfigDefinition] instead of raw strings so callers can
- * keep working with normalized schema metadata after parsing.
+ * keep working with normalized schema metadata after parsing. Sections may also
+ * contain target-specific overrides keyed by target name.
  *
  * @property values The parsed values keyed by schema definition.
+ * @property targets Target-specific overrides nested under this section.
  */
 public data class ConfigSection(
     val values: Map<ConfigDefinition, ConfigValue>,
+    val targets: Map<String, ConfigSection> = emptyMap(),
 ) {
     /** Returns the value stored for [definition], or `null` if it is absent. */
     public operator fun get(definition: ConfigDefinition): ConfigValue? = values[definition]
@@ -246,13 +249,16 @@ public data class AppConfigFile(
 )
 
 /**
- * Final values for one flavor after defaults and optional overrides have been layered.
+ * Final values for one flavor after defaults, optional overrides, and optional
+ * target-specific overlays have been layered.
  *
  * @property flavorName The resolved flavor name.
+ * @property targetName The resolved target name when target overlays were applied.
  * @property values The resolved values for each schema definition. Nullable entries may contain `null`.
  */
 public data class ResolvedFlavorConfig(
     val flavorName: String,
+    val targetName: String? = null,
     val values: Map<ConfigDefinition, ConfigValue?>,
 ) {
     /**

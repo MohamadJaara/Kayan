@@ -162,6 +162,94 @@ class DefaultConfigResolverTest {
     }
 
     @Test
+    fun parsePreservesTopLevelAndFlavorTargetSections() {
+        val parsed = resolver.parse(
+            configJson = """
+                {
+                  "brand_name": "Base",
+                  "targets": {
+                    "ios": {
+                      "brand_name": "Base iOS"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "targets": {
+                        "ios": {
+                          "brand_name": "Prod iOS"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+            sourceName = "base.json",
+        )
+
+        assertEquals(ConfigValue.StringValue("Base iOS"), parsed.defaults.targets.getValue("ios")[brandName])
+        assertEquals(
+            ConfigValue.StringValue("Prod iOS"),
+            parsed.flavors.getValue("prod").targets.getValue("ios")[brandName],
+        )
+    }
+
+    @Test
+    fun resolvesTargetSpecificValuesWithExpectedPrecedence() {
+        val resolved = resolver.resolve(
+            defaultConfigJson = """
+                {
+                  "brand_name": "Base",
+                  "targets": {
+                    "jvm": {
+                      "brand_name": "Base JVM"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "brand_name": "Prod",
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Prod JVM"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+            customConfigJson = """
+                {
+                  "targets": {
+                    "jvm": {
+                      "brand_name": "Custom JVM"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Custom Prod JVM"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            targetName = "jvm",
+            defaultConfigSourceName = "base.json",
+            customConfigSourceName = "custom.json",
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("Custom Prod JVM"),
+            resolved.flavors.getValue("prod")[brandName],
+        )
+    }
+
+    @Test
     fun parseRejectsInvalidJsonWithSourceName() {
         val error = assertFailsWith<ConfigValidationException> {
             resolver.parse(
