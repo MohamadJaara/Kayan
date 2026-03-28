@@ -64,13 +64,15 @@ public abstract class KayanTargetSourceSetContainer {
      */
     public fun target(targetName: String) {
         val trimmedTargetName = targetName.trim()
+        val sourceSetName = conventionalSourceSets[trimmedTargetName] ?: throw
+            PluginConfigurationError.UnsupportedConventionalTarget(
+                targetName = trimmedTargetName,
+                supportedTargets = conventionalSourceSets.keys.toList(),
+            ).toGradleException()
+
         sourceSet(
-            sourceSetName = requireNotNull(conventionalSourceSets[trimmedTargetName]) {
-                "Unsupported Kayan target '$targetName'. Use one of: " +
-                    conventionalSourceSets.keys.joinToString { "'$it'" } +
-                    ", or configure an explicit mapping with sourceSet(\"<sourceSet>\", \"$targetName\")."
-            },
-            targetName = targetName,
+            sourceSetName = sourceSetName,
+            targetName = trimmedTargetName,
         )
     }
 

@@ -51,6 +51,18 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "(`com.android.application` or `com.android.library`)."
     }
 
+    data class UnsupportedConventionalTarget(
+        val targetName: String,
+        val supportedTargets: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Unsupported Kayan target '$targetName'. Use one of: " +
+                supportedTargets.joinToString { "'$it'" } +
+                ", or configure an explicit mapping with sourceSet(\"<sourceSet>\", \"$targetName\")."
+    }
+
     data class BlankAndroidFlavorName(
         val index: Int,
     ) : PluginConfigurationError {

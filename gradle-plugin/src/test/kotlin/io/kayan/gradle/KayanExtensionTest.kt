@@ -3,6 +3,7 @@ package io.kayan.gradle
 import io.kayan.ConfigValueKind
 import io.kayan.assertMessageContains
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -184,6 +185,40 @@ class KayanExtensionTest {
                 KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
             ),
             extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargNormalizesWhitespaceInConventionalTargetNames() {
+        val extension = createExtension()
+
+        extension.targets(" jvm ")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargRejectsUnsupportedConventionalTargetAsGradleException() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<GradleException> {
+            extension.targets("desktop")
+        }
+
+        assertMessageContains(
+            error,
+            "Unsupported Kayan target 'desktop'.",
+            "'android'",
+            "'ios'",
+            "'jvm'",
+            "'js'",
+            "'wasmJs'",
+            "sourceSet(\"<sourceSet>\", \"desktop\")",
         )
     }
 
