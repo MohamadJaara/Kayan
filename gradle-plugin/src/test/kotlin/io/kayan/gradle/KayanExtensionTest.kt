@@ -105,6 +105,60 @@ class KayanExtensionTest {
         assertEquals(listOf("prod", "beta"), extension.androidFlavorSourceSetFlavors())
     }
 
+    @Test
+    fun targetSourceSetsStoreConfiguredMappings() {
+        val extension = createExtension()
+
+        extension.targetSourceSets {
+            sourceSet("iosMain", "ios")
+            sourceSet("jvmMain", "jvm")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargStoresConventionalMappings() {
+        val extension = createExtension()
+
+        extension.targets("android", "ios", "jvm")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsDslStoresConvenienceAndExplicitMappings() {
+        val extension = createExtension()
+
+        extension.targets {
+            ios()
+            jvm("desktop")
+            sourceSet("appleMain", "ios-shared")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+                KayanTargetSourceSetMapping(sourceSetName = "appleMain", targetName = "ios-shared"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
     private fun createExtension(): KayanExtension {
         val project = ProjectBuilder.builder().build()
         return project.extensions.create("kayan", KayanExtension::class.java)

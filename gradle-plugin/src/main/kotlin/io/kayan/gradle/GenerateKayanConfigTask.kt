@@ -47,7 +47,6 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     @get:Input
     public abstract val kotlinPluginApplied: Property<Boolean>
 
-    @get:Optional
     @get:Input
     public abstract val declarationMode: Property<KayanDeclarationMode>
 

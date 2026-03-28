@@ -1,28 +1,26 @@
-@file:Suppress("ImportOrdering")
-
 package io.kayan.gradle
 
 import arrow.core.Either
+import arrow.core.NonEmptyList
 import arrow.core.getOrElse
 import arrow.core.left
-import arrow.core.NonEmptyList
 import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.toNonEmptyListOrNull
-import io.kayan.closeKeyMatches
-import io.kayan.ConfigFormat
 import io.kayan.ConfigDefinition
+import io.kayan.ConfigFormat
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValueKind
 import io.kayan.SchemaError
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
+import io.kayan.closeKeyMatches
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import org.gradle.api.Action
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
@@ -53,6 +51,11 @@ public abstract class KayanExtension {
         objects.newInstance(KayanAndroidFlavorSourceSetSpec::class.java).apply {
             flavors.convention(emptyList())
         }
+    }
+
+    @OptIn(ExperimentalKayanGenerationApi::class)
+    private val targetSourceSetContainer: KayanTargetSourceSetContainer by lazy {
+        objects.newInstance(KayanTargetSourceSetContainer::class.java)
     }
 
     /** Package name for the generated Kotlin type and related schema metadata. */
@@ -101,6 +104,34 @@ public abstract class KayanExtension {
         androidFlavorSourceSetSpec.action()
     }
 
+    /** Configures target-specific KMP source generation using a Gradle [Action]. */
+    @ExperimentalKayanGenerationApi
+    public fun targetSourceSets(action: Action<in KayanTargetSourceSetContainer>) {
+        action.execute(targetSourceSetContainer)
+    }
+
+    /** Configures target-specific KMP source generation using the Kotlin DSL. */
+    @ExperimentalKayanGenerationApi
+    public fun targetSourceSets(action: KayanTargetSourceSetContainer.() -> Unit) {
+        targetSourceSetContainer.action()
+    }
+
+    /**
+     * Configures conventional target-specific KMP source generation.
+     *
+     * Supported values are `android`, `ios`, `jvm`, `js`, and `wasmJs`.
+     */
+    @ExperimentalKayanGenerationApi
+    public fun targets(vararg targetNames: String) {
+        targetSourceSetContainer.targets(*targetNames)
+    }
+
+    /** Configures target-specific KMP source generation using the Kotlin DSL. */
+    @ExperimentalKayanGenerationApi
+    public fun targets(action: KayanTargetSourceSetContainer.() -> Unit) {
+        targetSourceSetContainer.action()
+    }
+
     /**
      * Exposes a schema entry to Gradle build logic through typed accessors.
      *
@@ -123,6 +154,15 @@ public abstract class KayanExtension {
     internal fun androidFlavorSourceSetFlavors(): List<String> = androidFlavorSourceSetSpec.flavors.getOrElse(
         emptyList(),
     )
+
+    @OptIn(ExperimentalKayanGenerationApi::class)
+    internal fun targetSourceSetMappings(): List<KayanTargetSourceSetMapping> =
+        targetSourceSetContainer.entries.map { entry ->
+            KayanTargetSourceSetMapping(
+                sourceSetName = entry.sourceSetName.orNull.orEmpty(),
+                targetName = entry.targetName.orNull.orEmpty(),
+            )
+        }
 
     private fun resolvedBuildValueProvider(jsonKey: String): Provider<ResolvedBuildValue> =
         resolvedBuildValueProviders.getOrPut(jsonKey) {
