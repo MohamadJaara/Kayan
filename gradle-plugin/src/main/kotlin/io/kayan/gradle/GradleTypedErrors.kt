@@ -51,6 +51,18 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "(`com.android.application` or `com.android.library`)."
     }
 
+    data class UnsupportedConventionalTarget(
+        val targetName: String,
+        val supportedTargets: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Unsupported Kayan target '$targetName'. Use one of: " +
+                supportedTargets.joinToString { "'$it'" } +
+                ", or configure an explicit mapping with sourceSet(\"<sourceSet>\", \"$targetName\")."
+    }
+
     data class BlankAndroidFlavorName(
         val index: Int,
     ) : PluginConfigurationError {
@@ -59,6 +71,53 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         override fun message(): String =
             "Kayan android flavor source generation requires non-blank flavor names. " +
                 "Invalid entry at index $index."
+    }
+
+    data class BlankTargetSourceSetName(
+        val index: Int,
+        val fieldName: String,
+        val configuredValue: String,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan target source generation requires non-blank Kotlin source set names. " +
+                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
+    }
+
+    data class BlankTargetName(
+        val index: Int,
+        val fieldName: String,
+        val configuredValue: String,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan target source generation requires non-blank target names. " +
+                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
+    }
+
+    data class DuplicateTargetSourceSet(
+        val sourceSetName: String,
+        val firstTargetName: String,
+        val duplicateTargetName: String,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan target source generation maps source set '$sourceSetName' more than once: " +
+                "'$firstTargetName' and '$duplicateTargetName'. A source set can only resolve one target."
+    }
+
+    data class MissingKotlinSourceSet(
+        val sourceSetName: String,
+        val availableSourceSets: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan target source generation could not find Kotlin source set '$sourceSetName'. " +
+                "Available source sets: ${availableSourceSets.joinToString { "'$it'" }}."
     }
 
     data class MissingAndroidProductFlavor(

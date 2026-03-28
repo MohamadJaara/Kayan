@@ -1,10 +1,13 @@
 package io.kayan.gradle
 
 import io.kayan.ConfigValueKind
+import io.kayan.assertMessageContains
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -103,6 +106,140 @@ class KayanExtensionTest {
         }
 
         assertEquals(listOf("prod", "beta"), extension.androidFlavorSourceSetFlavors())
+    }
+
+    @Test
+    fun targetSourceSetsStoreConfiguredMappings() {
+        val extension = createExtension()
+
+        extension.targetSourceSets {
+            sourceSet("iosMain", "ios")
+            sourceSet("jvmMain", "jvm")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsDslRejectsMissingSourceSetNameImmediately() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            extension.targetSourceSets {
+                sourceSet(
+                    Action { spec ->
+                        spec.targetName.set("ios")
+                    },
+                )
+            }
+        }
+
+        assertMessageContains(
+            error,
+            "Invalid Kayan target source set mapping:",
+            "sourceSetName=<unset>",
+            "targetName='ios'",
+        )
+    }
+
+    @Test
+    fun targetSourceSetsDslRejectsBlankTargetNameImmediately() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            extension.targetSourceSets {
+                sourceSet(
+                    Action { spec ->
+                        spec.sourceSetName.set("iosMain")
+                        spec.targetName.set("   ")
+                    },
+                )
+            }
+        }
+
+        assertMessageContains(
+            error,
+            "Invalid Kayan target source set mapping:",
+            "sourceSetName='iosMain'",
+            "targetName='   '",
+            "Both sourceSetName and targetName must be configured with non-blank values.",
+        )
+    }
+
+    @Test
+    fun targetsVarargStoresConventionalMappings() {
+        val extension = createExtension()
+
+        extension.targets("android", "ios", "jvm")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargNormalizesWhitespaceInConventionalTargetNames() {
+        val extension = createExtension()
+
+        extension.targets(" jvm ")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargRejectsUnsupportedConventionalTargetAsGradleException() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<GradleException> {
+            extension.targets("desktop")
+        }
+
+        assertMessageContains(
+            error,
+            "Unsupported Kayan target 'desktop'.",
+            "'android'",
+            "'ios'",
+            "'jvm'",
+            "'js'",
+            "'wasmJs'",
+            "sourceSet(\"<sourceSet>\", \"desktop\")",
+        )
+    }
+
+    @Test
+    fun targetsDslStoresConvenienceAndExplicitMappings() {
+        val extension = createExtension()
+
+        extension.targets {
+            ios()
+            jvm("desktop")
+            sourceSet("appleMain", "ios-shared")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+                KayanTargetSourceSetMapping(sourceSetName = "appleMain", targetName = "ios-shared"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
     }
 
     private fun createExtension(): KayanExtension {

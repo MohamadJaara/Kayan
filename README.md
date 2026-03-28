@@ -113,6 +113,47 @@ val brandName = SampleConfig.BRAND_NAME
 Generated source lands in `build/generated/kayan/kotlin` and is wired into the appropriate source
 set automatically.
 
+## Target-specific overrides
+
+For Kotlin Multiplatform projects that need one config API in shared code but different values per
+target, add `targets` in the config file and configure Kayan targets:
+
+```yaml
+brand_name: Example App
+
+flavors:
+  prod:
+    targets:
+      android:
+        bundle_id: com.example.android
+      ios:
+        bundle_id: com.example.ios
+```
+
+```kotlin
+kayan {
+    packageName.set("sample.generated")
+    flavor.set("prod")
+
+    targets("android", "ios")
+}
+```
+
+Kayan generates an `expect object` into `commonMain` and matching `actual object` declarations into
+the configured target source sets.
+
+For non-standard source set names or custom target labels, use the DSL form:
+
+```kotlin
+kayan {
+    targets {
+        ios()
+        jvm("desktop")
+        sourceSet("appleMain", "ios-shared")
+    }
+}
+```
+
 By design, Kayan is a fit for non-sensitive build and app configuration. Values declared in the
 schema can be generated into source or consumed by Gradle during the build, so secrets such as API
 keys, passwords, and tokens should stay in dedicated secret-management or environment-specific

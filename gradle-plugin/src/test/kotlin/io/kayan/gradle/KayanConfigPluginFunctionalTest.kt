@@ -171,6 +171,53 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun generatesExpectInCommonMainAndActualForConfiguredConvenienceTarget() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    targets("jvm")
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "targets": {
+                        "jvm": {
+                          "bundle_id": "com.example.jvm"
+                        }
+                      }
+                    }
+                  },
+                  "brand_name": "Example"
+                }
+            """.trimIndent(),
+            commonSource = """
+                package sample
+
+                import sample.config.KayanConfig
+
+                val bundleId: String = KayanConfig.BUNDLE_ID
+                val brandName: String? = KayanConfig.BRAND_NAME
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "compileKotlinJvm").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanJvmMainConfig")?.outcome)
+        val expectFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
+        val actualFile = File(projectDir, "build/generated/kayan-targets/kotlin/jvmMain/sample/config/KayanConfig.kt")
+        assertTrue(expectFile.exists())
+        assertTrue(actualFile.exists())
+        assertTrue(expectFile.readText().contains("public expect object KayanConfig"))
+        assertTrue(actualFile.readText().contains("public actual object KayanConfig"))
+        assertTrue(actualFile.readText().contains("public actual val BUNDLE_ID: String = \"com.example.jvm\""))
+    }
+
+    @Test
     fun rewritesExistingGeneratedFileWithoutCleaningOutputDirectory() {
         val projectDir = createProject(
             buildScript = buildScript(

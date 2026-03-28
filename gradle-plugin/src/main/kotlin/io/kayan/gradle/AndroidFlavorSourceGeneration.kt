@@ -11,7 +11,6 @@ private val taskNameSegmentSeparator: Regex = Regex("[^A-Za-z0-9]+")
 internal data class AndroidFlavorSourceGeneration(
     val flavorName: String,
     val taskName: String,
-    val outputDirectorySegment: String,
 )
 
 internal fun androidFlavorSourceGenerationsEither(
@@ -31,7 +30,6 @@ internal fun androidFlavorSourceGenerationsEither(
         AndroidFlavorSourceGeneration(
             flavorName = flavorName,
             taskName = "generateKayan${flavorName.asTaskNameSegment()}Config",
-            outputDirectorySegment = flavorName,
         )
     }
 }
@@ -101,7 +99,7 @@ private fun Any.readStringProperty(getterName: String): String? =
 private fun Any.invokeNoArg(methodName: String): Any? =
     invokeNoArgOrNull(methodName)
 
-private fun String.asTaskNameSegment(): String =
+internal fun String.asTaskNameSegment(): String =
     split(taskNameSegmentSeparator)
         .filter(String::isNotBlank)
         .joinToString(separator = "") { segment ->
