@@ -1,16 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Kayan config schema",
-  "description": "Top-level keys act as defaults for every flavor. Each flavor object accepts the same keys.",
+  "description": "Top-level keys act as defaults for every flavor. Optional target sections may refine values per platform, and each flavor object accepts the same keys.",
   "type": "object",
   "required": [
     "flavors"
   ],
   "additionalProperties": false,
   "properties": {
+    "targets": {
+      "type": "object",
+      "description": "Target-specific overrides. Each target follows the same schema as a regular config section.",
+      "additionalProperties": {
+        "$ref": "#/$defs/targetSection"
+      }
+    },
     "flavors": {
       "type": "object",
-      "description": "Flavor-specific overrides. Each flavor follows the same schema as the top-level defaults section.",
+      "description": "Flavor-specific overrides. Each flavor follows the same schema as the top-level defaults section and may also declare target-specific overrides.",
       "additionalProperties": {
         "$ref": "#/$defs/configSection"
       }
@@ -113,7 +120,7 @@
     }
   },
   "$defs": {
-    "configSection": {
+    "targetSection": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -214,30 +221,115 @@
           "x-kayan-adapter": "sample.EnvironmentAdapter"
         }
       }
-    }
-  },
-  "allOf": [
-    {
-      "description": "Key 'bundle_id' is required after resolution. Define it at the top level or in every flavor.",
-      "anyOf": [
-        {
-          "required": [
-            "bundle_id"
-          ]
+    },
+    "configSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "title": "BUNDLE_ID",
+          "description": "Required after resolution.",
+          "x-kayan-propertyName": "BUNDLE_ID",
+          "x-kayan-requiredAfterResolution": true
         },
-        {
-          "properties": {
-            "flavors": {
-              "type": "object",
-              "additionalProperties": {
-                "required": [
-                  "bundle_id"
-                ]
-              }
+        "brand_name": {
+          "type": "string",
+          "title": "BRAND_NAME",
+          "description": "Cannot be set in custom config files; only the main config file may define it.",
+          "x-kayan-propertyName": "BRAND_NAME",
+          "x-kayan-preventOverride": true
+        },
+        "feature_search_enabled": {
+          "type": "boolean",
+          "title": "FEATURE_SEARCH_ENABLED",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "FEATURE_SEARCH_ENABLED"
+        },
+        "max_workspace_count": {
+          "type": "integer",
+          "title": "MAX_WORKSPACE_COUNT",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "MAX_WORKSPACE_COUNT"
+        },
+        "max_cache_bytes": {
+          "type": "integer",
+          "title": "MAX_CACHE_BYTES",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "MAX_CACHE_BYTES"
+        },
+        "rollout_ratio": {
+          "type": "number",
+          "title": "ROLLOUT_RATIO",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "ROLLOUT_RATIO"
+        },
+        "support_links": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "SUPPORT_LINKS",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "SUPPORT_LINKS"
+        },
+        "support_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "SUPPORT_LABELS",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "SUPPORT_LABELS"
+        },
+        "regional_support_links": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
+          },
+          "title": "REGIONAL_SUPPORT_LINKS",
+          "description": "Built-in Kayan type.",
+          "x-kayan-propertyName": "REGIONAL_SUPPORT_LINKS"
+        },
+        "release_stage": {
+          "type": "string",
+          "title": "RELEASE_STAGE",
+          "description": "Generates Kotlin enum values of `sample.ReleaseStage` from normalized string input.",
+          "x-kayan-propertyName": "RELEASE_STAGE",
+          "x-kayan-enumType": "sample.ReleaseStage"
+        },
+        "support_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "SUPPORT_EMAIL",
+          "description": "Allows explicit null values.",
+          "x-kayan-propertyName": "SUPPORT_EMAIL",
+          "x-kayan-nullable": true
+        },
+        "environment": {
+          "type": "string",
+          "title": "ENVIRONMENT",
+          "description": "Parsed from `string` with custom adapter `sample.EnvironmentAdapter`.",
+          "x-kayan-propertyName": "ENVIRONMENT",
+          "x-kayan-adapter": "sample.EnvironmentAdapter"
+        },
+        "targets": {
+          "type": "object",
+          "description": "Target-specific overrides. Each target follows the same schema as a regular config section.",
+          "additionalProperties": {
+            "$ref": "#/$defs/targetSection"
           }
         }
-      ]
+      }
     }
-  ]
+  }
 }

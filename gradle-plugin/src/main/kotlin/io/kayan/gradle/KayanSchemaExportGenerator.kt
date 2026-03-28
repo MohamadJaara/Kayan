@@ -13,6 +13,7 @@ import kotlinx.serialization.json.put
 
 internal object KayanSchemaExportGenerator {
     private const val flavorsKey: String = "flavors"
+    private const val targetsKey: String = "targets"
     private const val jsonSchemaSpecUrl: String = "https://json-schema.org/draft/2020-12/schema"
 
     private val json: Json = Json {
@@ -33,33 +34,15 @@ internal object KayanSchemaExportGenerator {
             put(
                 "description",
                 JsonPrimitive(
-                    "Top-level keys act as defaults for every flavor. Each flavor object accepts the same keys."
+                    "Top-level keys act as defaults for every flavor. Optional target sections may refine values " +
+                        "per platform, and each flavor object accepts the same keys."
                 ),
             )
             put("type", JsonPrimitive("object"))
             put("required", jsonArrayOf(flavorsKey))
             put("additionalProperties", JsonPrimitive(false))
             put("properties", rootProperties(sectionProperties))
-            put(
-                "\$defs",
-                buildJsonObject {
-                    put(
-                        "configSection",
-                        buildJsonObject {
-                            put("type", JsonPrimitive("object"))
-                            put("additionalProperties", JsonPrimitive(false))
-                            put("properties", sectionProperties)
-                        },
-                    )
-                },
-            )
-
-            val requiredRules = schema.entries
-                .filter(ConfigDefinition::required)
-                .map(::requiredResolutionRule)
-            if (requiredRules.isNotEmpty()) {
-                put("allOf", JsonArray(requiredRules))
-            }
+            put("\$defs", defs(sectionProperties))
         }
 
         return json.encodeToString(JsonElement.serializer(), rootSchema) + "\n"
@@ -80,10 +63,12 @@ internal object KayanSchemaExportGenerator {
         appendLine()
         appendLine("- The root object must contain `flavors`.")
         appendLine("- Top-level keys act as defaults for every flavor.")
+        appendLine("- Optional top-level `targets` refine defaults for specific targets such as `android` or `ios`.")
         appendLine("- Every flavor object accepts the same keys as the top-level defaults section.")
+        appendLine("- Flavor objects may also declare `targets` for flavor-specific target overrides.")
         appendLine(
-            "- Keys marked `required` must appear either at the top level or inside every " +
-                "flavor to resolve for all variants.",
+            "- Keys marked `required` must resolve for the selected flavor and optional target, " +
+                "using Kayan's layer precedence.",
         )
         appendLine(
             "- Keys marked `preventOverride` can only be defined in the main config file. " +
@@ -114,6 +99,7 @@ internal object KayanSchemaExportGenerator {
     }
 
     private fun rootProperties(sectionProperties: JsonObject): JsonObject = buildJsonObject {
+        put(targetsKey, targetSectionProperty())
         put(
             flavorsKey,
             buildJsonObject {
@@ -122,7 +108,7 @@ internal object KayanSchemaExportGenerator {
                     "description",
                     JsonPrimitive(
                         "Flavor-specific overrides. Each flavor follows the same schema as " +
-                            "the top-level defaults section.",
+                            "the top-level defaults section and may also declare target-specific overrides.",
                     ),
                 )
                 put(
@@ -137,6 +123,48 @@ internal object KayanSchemaExportGenerator {
         sectionProperties.forEach { (jsonKey, propertySchema) ->
             put(jsonKey, propertySchema)
         }
+    }
+
+    private fun defs(sectionProperties: JsonObject): JsonObject = buildJsonObject {
+        put(
+            "targetSection",
+            buildJsonObject {
+                put("type", JsonPrimitive("object"))
+                put("additionalProperties", JsonPrimitive(false))
+                put("properties", sectionProperties)
+            },
+        )
+        put(
+            "configSection",
+            buildJsonObject {
+                put("type", JsonPrimitive("object"))
+                put("additionalProperties", JsonPrimitive(false))
+                put("properties", sectionPropertiesWithTargets(sectionProperties))
+            },
+        )
+    }
+
+    private fun sectionPropertiesWithTargets(sectionProperties: JsonObject): JsonObject = buildJsonObject {
+        sectionProperties.forEach { (jsonKey, propertySchema) ->
+            put(jsonKey, propertySchema)
+        }
+        put(targetsKey, targetSectionProperty())
+    }
+
+    private fun targetSectionProperty(): JsonObject = buildJsonObject {
+        put("type", JsonPrimitive("object"))
+        put(
+            "description",
+            JsonPrimitive(
+                "Target-specific overrides. Each target follows the same schema as a regular config section.",
+            ),
+        )
+        put(
+            "additionalProperties",
+            buildJsonObject {
+                put("\$ref", JsonPrimitive("#/\$defs/targetSection"))
+            },
+        )
     }
 
     private fun propertySchema(definition: ConfigDefinition): JsonObject = buildJsonObject {
@@ -226,45 +254,6 @@ internal object KayanSchemaExportGenerator {
                 put("type", JsonPrimitive("string"))
             }
         }
-    }
-
-    private fun requiredResolutionRule(definition: ConfigDefinition): JsonObject = buildJsonObject {
-        put(
-            "description",
-            JsonPrimitive(
-                "Key '${definition.jsonKey}' is required after resolution. Define it at the " +
-                    "top level or in every flavor.",
-            ),
-        )
-        put(
-            "anyOf",
-            JsonArray(
-                listOf(
-                    buildJsonObject {
-                        put("required", jsonArrayOf(definition.jsonKey))
-                    },
-                    buildJsonObject {
-                        put(
-                            "properties",
-                            buildJsonObject {
-                                put(
-                                    flavorsKey,
-                                    buildJsonObject {
-                                        put("type", JsonPrimitive("object"))
-                                        put(
-                                            "additionalProperties",
-                                            buildJsonObject {
-                                                put("required", jsonArrayOf(definition.jsonKey))
-                                            },
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    },
-                ),
-            ),
-        )
     }
 
     private fun notesFor(definition: ConfigDefinition): String {
