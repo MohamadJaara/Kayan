@@ -63,22 +63,26 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
 
     data class BlankTargetSourceSetName(
         val index: Int,
+        val fieldName: String,
+        val configuredValue: String,
     ) : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Kayan target source generation requires non-blank Kotlin source set names. " +
-                "Invalid entry at index $index."
+                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
     }
 
     data class BlankTargetName(
         val index: Int,
+        val fieldName: String,
+        val configuredValue: String,
     ) : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Kayan target source generation requires non-blank target names. " +
-                "Invalid entry at index $index."
+                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
     }
 
     data class DuplicateTargetSourceSet(

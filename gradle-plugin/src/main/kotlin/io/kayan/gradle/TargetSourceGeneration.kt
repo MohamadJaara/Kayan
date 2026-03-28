@@ -19,14 +19,28 @@ internal fun targetSourceGenerationsEither(
     val entriesBySourceSet = linkedMapOf<String, String>()
 
     configuredMappings.forEachIndexed { index, mapping ->
-        val sourceSetName = mapping.sourceSetName.trim()
-        val targetName = mapping.targetName.trim()
+        val configuredSourceSetName = mapping.sourceSetName
+        val configuredTargetName = mapping.targetName
+        val sourceSetName = configuredSourceSetName.trim()
+        val targetName = configuredTargetName.trim()
 
         if (sourceSetName.isEmpty()) {
-            raise(PluginConfigurationError.BlankTargetSourceSetName(index))
+            raise(
+                PluginConfigurationError.BlankTargetSourceSetName(
+                    index = index,
+                    fieldName = "sourceSetName",
+                    configuredValue = configuredSourceSetName,
+                ),
+            )
         }
         if (targetName.isEmpty()) {
-            raise(PluginConfigurationError.BlankTargetName(index))
+            raise(
+                PluginConfigurationError.BlankTargetName(
+                    index = index,
+                    fieldName = "targetName",
+                    configuredValue = configuredTargetName,
+                ),
+            )
         }
 
         val previousTarget = entriesBySourceSet[sourceSetName]
