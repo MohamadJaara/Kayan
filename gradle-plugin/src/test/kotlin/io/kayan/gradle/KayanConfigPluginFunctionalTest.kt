@@ -104,17 +104,14 @@ class KayanConfigPluginFunctionalTest {
 
         val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val generatedText = generatedFile.readText()
-        assertTrue(
-            generatedText.contains(
-                "public val SUPPORT_LINKS: List<String> = " +
-                    "listOf(\"https://custom.example.com/help\")",
-            ),
+        assertContainsNormalized(
+            generatedText,
+            "public val SUPPORT_LINKS: List<String> = listOf(\"https://custom.example.com/help\")",
         )
-        assertTrue(
-            generatedText.contains(
-                "public val REGIONAL_SUPPORT_LINKS: Map<String, List<String>> = " +
-                    "mapOf(\"example.com\" to listOf(\"sha-a\"))",
-            ),
+        assertContainsNormalized(
+            generatedText,
+            "public val REGIONAL_SUPPORT_LINKS: Map<String, List<String>> = " +
+                "mapOf(\"example.com\" to listOf(\"sha-a\"))",
         )
         assertTrue(generatedText.contains("public val BRAND_NAME: String = \"Custom Flavor\""))
     }
@@ -275,17 +272,15 @@ class KayanConfigPluginFunctionalTest {
         val jsonSchemaFile = File(projectDir, "build/generated/kayan/schema/kayan.schema.json")
         val markdownSchemaFile = File(projectDir, "build/generated/kayan/schema/SCHEMA.md")
         val generatedText = generatedFile.readText()
-        assertTrue(generatedText.contains("public val MAX_CACHE_BYTES: Long = 9876543210L"))
+        assertContainsNormalized(generatedText, "public val MAX_CACHE_BYTES: Long = 9_876_543_210L")
         assertTrue(generatedText.contains("public val ROLLOUT_RATIO: Double = 0.75"))
-        assertTrue(
-            generatedText.contains(
-                "public val SUPPORT_LABELS: Map<String, String> = mapOf(\"channel\" to \"stable\")",
-            ),
+        assertContainsNormalized(
+            generatedText,
+            "public val SUPPORT_LABELS: Map<String, String> = mapOf(\"channel\" to \"stable\")",
         )
-        assertTrue(
-            generatedText.contains(
-                "public val RELEASE_STAGE: sample.ReleaseStage = sample.ReleaseStage.BETA",
-            ),
+        assertContainsNormalized(
+            generatedText,
+            "public val RELEASE_STAGE: ReleaseStage = sample.ReleaseStage.BETA",
         )
         assertTrue(generatedText.contains("public val SUPPORT_EMAIL: String? = null"))
         assertTrue(jsonSchemaFile.readText().contains("\"x-kayan-nullable\": true"))
@@ -487,10 +482,9 @@ class KayanConfigPluginFunctionalTest {
 
         val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         val generatedText = generatedFile.readText()
-        assertTrue(
-            generatedText.contains(
-                "public val RELEASE_STAGE: sample.ReleaseStage = sample.ReleaseStage.BETA"
-            )
+        assertContainsNormalized(
+            generatedText,
+            "public val RELEASE_STAGE: ReleaseStage = sample.ReleaseStage.BETA",
         )
     }
 
@@ -548,8 +542,9 @@ class KayanConfigPluginFunctionalTest {
 
         val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
         assertTrue(generatedFile.exists())
-        assertTrue(
-            generatedFile.readText().contains("public val RELEASE_STAGE: sample.ReleaseStage? = null"),
+        assertContainsNormalized(
+            generatedFile.readText(),
+            "public val RELEASE_STAGE: ReleaseStage? = null",
         )
     }
 
@@ -603,10 +598,9 @@ class KayanConfigPluginFunctionalTest {
         assertTrue(secondRun.output.contains("Configuration cache entry reused."))
 
         val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
-        assertTrue(
-            generatedFile.readText().contains(
-                "public val RELEASE_STAGE: sample.ReleaseStage = sample.ReleaseStage.BETA"
-            )
+        assertContainsNormalized(
+            generatedFile.readText(),
+            "public val RELEASE_STAGE: ReleaseStage = sample.ReleaseStage.BETA",
         )
     }
 
@@ -973,4 +967,16 @@ class KayanConfigPluginFunctionalTest {
             .withProjectDir(projectDir)
             .withPluginClasspath()
             .withArguments(*tasks, "--stacktrace")
+
+    private fun assertContainsNormalized(
+        actual: String,
+        expected: String,
+    ) {
+        assertTrue(
+            normalizeWhitespace(actual).contains(normalizeWhitespace(expected)),
+            "Expected normalized source to contain <$expected>.\nActual:\n$actual",
+        )
+    }
+
+    private fun normalizeWhitespace(value: String): String = value.replace(Regex("\\s+"), " ").trim()
 }

@@ -17,6 +17,7 @@ repos:
       - id: mixed-line-ending
         args:
           - --fix=no
+        exclude: ^gradle-plugin/src/test/resources/golden/KayanConfigEscapedTemplates\.kt$
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/compilerla/conventional-pre-commit
