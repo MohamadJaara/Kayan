@@ -9,6 +9,7 @@ import io.kayan.ResolvedFlavorConfig
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class KayanConfigGeneratorTest {
@@ -224,6 +225,110 @@ class KayanConfigGeneratorTest {
         assertEquals(
             "public val ROLLOUT_RATIO: Double = 1.0",
             propertyLine(actual, "ROLLOUT_RATIO"),
+        )
+    }
+
+    @Test
+    fun rendersExpectAndActualObjectsForTargetSpecificGeneration() {
+        val bundleId = stringDefinition(
+            jsonKey = "bundle_id",
+            propertyName = "BUNDLE_ID",
+            required = true,
+        )
+        val environment = stringDefinition(
+            jsonKey = "environment",
+            propertyName = "ENVIRONMENT",
+            nullable = true,
+            adapterClassName = "sample.EnvironmentAdapter",
+        )
+        val schema = ConfigSchema(listOf(bundleId, environment))
+
+        val expectSource = KayanConfigGenerator.generate(
+            packageName = "sample.config",
+            className = "KayanConfig",
+            schema = schema,
+            declarationMode = KayanDeclarationMode.EXPECT,
+            renderedCustomProperties = mapOf(
+                environment to RenderedCustomProperty(
+                    typeName = bestGuessTypeName("sample.Environment"),
+                    expression = null,
+                ),
+            ),
+        )
+        val actualSource = KayanConfigGenerator.generate(
+            packageName = "sample.config",
+            className = "KayanConfig",
+            schema = schema,
+            declarationMode = KayanDeclarationMode.ACTUAL,
+            resolvedFlavorConfig = ResolvedFlavorConfig(
+                flavorName = "prod",
+                targetName = "ios",
+                values = mapOf(
+                    bundleId to ConfigValue.StringValue("com.example.ios"),
+                    environment to ConfigValue.NullValue(ConfigValueKind.STRING),
+                ),
+            ),
+            renderedCustomProperties = mapOf(
+                environment to RenderedCustomProperty(
+                    typeName = bestGuessTypeName("sample.Environment"),
+                    expression = null,
+                ),
+            ),
+        )
+
+        assertContains(expectSource, "public expect object KayanConfig")
+        assertEquals("public val BUNDLE_ID: String", propertyLine(expectSource, "BUNDLE_ID"))
+        assertMatchesDeclaration(
+            actual = propertyLine(expectSource, "ENVIRONMENT"),
+            expectedPattern = """public val ENVIRONMENT: (sample\.)?Environment\?""",
+        )
+        assertContains(actualSource, "public actual object KayanConfig")
+        assertEquals(
+            "public actual val BUNDLE_ID: String = \"com.example.ios\"",
+            propertyLine(actualSource, "BUNDLE_ID"),
+        )
+        assertMatchesDeclaration(
+            actual = propertyLine(actualSource, "ENVIRONMENT"),
+            expectedPattern = """public actual val ENVIRONMENT: (sample\.)?Environment\? = null""",
+        )
+    }
+
+    @Test
+    fun requiresResolvedFlavorConfigForObjectAndActualGeneration() {
+        val schema = ConfigSchema(
+            listOf(
+                stringDefinition(
+                    jsonKey = "bundle_id",
+                    propertyName = "BUNDLE_ID",
+                    required = true,
+                )
+            )
+        )
+
+        val objectError = assertFailsWith<IllegalArgumentException> {
+            KayanConfigGenerator.generate(
+                packageName = "sample.config",
+                className = "KayanConfig",
+                schema = schema,
+                declarationMode = KayanDeclarationMode.OBJECT,
+            )
+        }
+        assertEquals(
+            "resolvedFlavorConfig is required when declarationMode is OBJECT.",
+            objectError.message,
+        )
+
+        val actualError = assertFailsWith<IllegalArgumentException> {
+            KayanConfigGenerator.generate(
+                packageName = "sample.config",
+                className = "KayanConfig",
+                schema = schema,
+                declarationMode = KayanDeclarationMode.ACTUAL,
+            )
+        }
+        assertEquals(
+            "resolvedFlavorConfig is required when declarationMode is ACTUAL.",
+            actualError.message,
         )
     }
 
