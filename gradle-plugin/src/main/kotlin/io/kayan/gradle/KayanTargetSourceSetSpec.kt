@@ -47,14 +47,14 @@ public abstract class KayanTargetSourceSetContainer {
             this.sourceSetName.set(sourceSetName)
             this.targetName.set(targetName)
         }
-        entries += entry
+        entries += requireValidEntry(entry)
     }
 
     /** Configures one target mapping entry with a Gradle [Action]. */
     public fun sourceSet(action: Action<in KayanTargetSourceSetSpec>) {
         val entry = objects.newInstance(KayanTargetSourceSetSpec::class.java)
         action.execute(entry)
-        entries += entry
+        entries += requireValidEntry(entry)
     }
 
     /**
@@ -102,6 +102,20 @@ public abstract class KayanTargetSourceSetContainer {
     /** Maps the conventional Wasm JS source set to [targetName]. */
     public fun wasmJs(targetName: String = "wasmJs") {
         sourceSet(sourceSetName = "wasmJsMain", targetName = targetName)
+    }
+
+    private fun requireValidEntry(entry: KayanTargetSourceSetSpec): KayanTargetSourceSetSpec {
+        val configuredSourceSetName = entry.sourceSetName.orNull
+        val configuredTargetName = entry.targetName.orNull
+
+        require(!configuredSourceSetName.isNullOrBlank() && !configuredTargetName.isNullOrBlank()) {
+            "Invalid Kayan target source set mapping: " +
+                "sourceSetName=${configuredSourceSetName?.let { "'$it'" } ?: "<unset>"}, " +
+                "targetName=${configuredTargetName?.let { "'$it'" } ?: "<unset>"}. " +
+                "Both sourceSetName and targetName must be configured with non-blank values."
+        }
+
+        return entry
     }
 
     private companion object {

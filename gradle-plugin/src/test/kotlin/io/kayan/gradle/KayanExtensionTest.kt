@@ -1,11 +1,13 @@
 package io.kayan.gradle
 
 import io.kayan.ConfigValueKind
+import io.kayan.assertMessageContains
 import org.gradle.api.Action
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalKayanGenerationApi::class)
@@ -120,6 +122,52 @@ class KayanExtensionTest {
                 KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
             ),
             extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsDslRejectsMissingSourceSetNameImmediately() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            extension.targetSourceSets {
+                sourceSet(
+                    Action { spec ->
+                        spec.targetName.set("ios")
+                    },
+                )
+            }
+        }
+
+        assertMessageContains(
+            error,
+            "Invalid Kayan target source set mapping:",
+            "sourceSetName=<unset>",
+            "targetName='ios'",
+        )
+    }
+
+    @Test
+    fun targetSourceSetsDslRejectsBlankTargetNameImmediately() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            extension.targetSourceSets {
+                sourceSet(
+                    Action { spec ->
+                        spec.sourceSetName.set("iosMain")
+                        spec.targetName.set("   ")
+                    },
+                )
+            }
+        }
+
+        assertMessageContains(
+            error,
+            "Invalid Kayan target source set mapping:",
+            "sourceSetName='iosMain'",
+            "targetName='   '",
+            "Both sourceSetName and targetName must be configured with non-blank values.",
         )
     }
 
