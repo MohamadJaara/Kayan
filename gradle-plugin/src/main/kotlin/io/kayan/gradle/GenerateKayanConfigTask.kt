@@ -1,6 +1,7 @@
 package io.kayan.gradle
 
 import arrow.core.Either
+import arrow.core.flatMap
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.raise.either
@@ -36,11 +37,19 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     @get:Input
     public abstract val flavor: Property<String>
 
+    @get:Optional
+    @get:Input
+    public abstract val target: Property<String>
+
     @get:Input
     public abstract val className: Property<String>
 
     @get:Input
     public abstract val kotlinPluginApplied: Property<Boolean>
+
+    @get:Optional
+    @get:Input
+    public abstract val declarationMode: Property<KayanDeclarationMode>
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -77,21 +86,18 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
     private fun generateEither(): Either<KayanGradleError, Unit> = either {
         val inputs = loadGenerationInputsEither().bind()
-        val resolved = resolveConfigEither(
-            schema = inputs.schema,
-            baseFile = inputs.baseFile,
-            customFile = inputs.customFile,
-            configFormat = inputs.configFormat,
-        ).bind()
-        val resolvedFlavor = requireResolvedFlavorEither(resolved, inputs.flavor).bind()
+        val resolvedFlavor = resolveFlavorForEither(inputs).bind()
         writeGeneratedSourceEither(inputs, resolvedFlavor).bind()
     }
 
     private fun renderCustomPropertiesEither(
         schema: ConfigSchema,
-        resolvedFlavor: ResolvedFlavorConfig,
+        resolvedFlavor: ResolvedFlavorConfig?,
     ): Either<GenerationError, Map<ConfigDefinition, RenderedCustomProperty>> = either {
-        val buildscriptClasspathLoader = createBuildscriptClasspathLoader()
+        val buildscriptClasspathLoader = createBuildscriptClasspathLoader(
+            buildscriptClasspath = buildscriptClasspath,
+            parentClassLoader = javaClass.classLoader,
+        )
         buildscriptClasspathLoader?.use { classLoader ->
             renderCustomPropertiesWithLoaderEither(schema, resolvedFlavor, classLoader).bind()
         } ?: renderCustomPropertiesWithLoaderEither(schema, resolvedFlavor, null).bind()
@@ -99,7 +105,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
     private fun renderCustomPropertiesWithLoaderEither(
         schema: ConfigSchema,
-        resolvedFlavor: ResolvedFlavorConfig,
+        resolvedFlavor: ResolvedFlavorConfig?,
         buildscriptClasspathLoader: URLClassLoader?,
     ): Either<GenerationError, Map<ConfigDefinition, RenderedCustomProperty>> = either {
         val adapterCache = mutableMapOf<String, LoadedCustomAdapter>()
@@ -113,7 +119,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
                 validateAdapterEither(definition, adapter).bind()
 
-                val expression = resolvedFlavor.values[definition]
+                val expression = resolvedFlavor?.values?.get(definition)
                     ?.takeUnless { it is ConfigValue.NullValue }
                     ?.let { value ->
                         renderCustomExpressionEither(
@@ -132,27 +138,6 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
                 )
             }
         }
-    }
-
-    private fun createBuildscriptClasspathLoader(): URLClassLoader? =
-        buildscriptClasspath.files
-            .takeIf { it.isNotEmpty() }
-            ?.let { files ->
-                URLClassLoader(
-                    files.map { it.toURI().toURL() }.toTypedArray(),
-                    javaClass.classLoader,
-                )
-            }
-
-    private fun validateAdapterEither(
-        definition: ConfigDefinition,
-        adapter: LoadedCustomAdapter,
-    ): Either<GenerationError, Unit> = when {
-        adapter.rawKind != null && adapter.rawKind != definition.kind -> {
-            GenerationError.AdapterRawKindMismatch(definition, adapter.rawKind).left()
-        }
-
-        else -> Unit.right()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -233,62 +218,13 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         )
     }
 
-    private fun reflectiveTypeNamePropertyEither(
-        adapterClass: Class<*>,
-        instance: Any,
-        propertyName: String,
-        className: String,
-    ): Either<GenerationError, TypeName> {
-        val getterValue = Either.catch {
-            adapterClass.getMethod(getterName(propertyName)).invoke(instance)
-        }
-        val value = when (getterValue) {
-            is Either.Left -> {
-                val fieldValue = Either.catch {
-                    adapterClass.getDeclaredField(propertyName).apply { isAccessible = true }.get(instance)
-                }
-                when (fieldValue) {
-                    is Either.Left -> {
-                        return GenerationError.MissingAdapterProperty(
-                            className = className,
-                            propertyName = propertyName,
-                            cause = fieldValue.value,
-                        ).left()
-                    }
-                    is Either.Right -> fieldValue.value
-                }
-            }
-            is Either.Right -> getterValue.value
-        }
-
-        return (value as? TypeName)?.right()
-            ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "TypeName").left()
-    }
-
-    private fun reflectiveRawKindProperty(
-        adapterClass: Class<*>,
-        instance: Any,
-    ): ConfigValueKind? {
-        val rawValue = Either.catch {
-            adapterClass.getMethod(getterName("rawKind")).invoke(instance)
-        }.getOrElse {
-            Either.catch {
-                adapterClass.getDeclaredField("rawKind").apply { isAccessible = true }.get(instance)
-            }.getOrNull()
-        } ?: return null
-
-        return when (rawValue) {
-            is ConfigValueKind -> rawValue
-            is String -> Either.catch { ConfigValueKind.valueOf(rawValue) }.getOrNull()
-            else -> null
-        }
-    }
-
     @OptIn(ExperimentalKayanGradleApi::class)
     private fun loadGenerationInputsEither(): Either<KayanGradleError, GenerationInputs> = either {
+        val mode = declarationMode.orNull ?: KayanDeclarationMode.OBJECT
         GenerationInputs(
             packageName = requireConfiguredEither(packageName.orNull, "packageName").bind(),
             flavor = requireConfiguredEither(flavor.orNull, "flavor").bind(),
+            targetName = loadTargetNameEither(target.orNull, mode).bind(),
             className = requireConfiguredEither(className.orNull, "className").bind(),
             schema = requireSchemaEither(schemaEntries.orNull.orEmpty()).bind(),
             baseFile = requireExistingFileEither(baseConfigFile.asFile.get(), "base").bind(),
@@ -296,12 +232,13 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
                 requireExistingFileEither(file, "custom").bind()
             },
             configFormat = configFormat.orNull ?: ConfigFormat.AUTO,
+            declarationMode = mode,
         )
     }
 
     private fun writeGeneratedSourceEither(
         inputs: GenerationInputs,
-        resolvedFlavor: ResolvedFlavorConfig,
+        resolvedFlavor: ResolvedFlavorConfig?,
     ): Either<GenerationError, Unit> = either {
         val renderedCustomProperties = renderCustomPropertiesEither(
             schema = inputs.schema,
@@ -312,6 +249,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
                 packageName = inputs.packageName,
                 className = inputs.className,
                 schema = inputs.schema,
+                declarationMode = inputs.declarationMode,
                 resolvedFlavorConfig = resolvedFlavor,
                 renderedCustomProperties = renderedCustomProperties,
             )
@@ -334,3 +272,120 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         }
     }
 }
+
+private fun GenerateKayanConfigTask.resolveFlavorForEither(
+    inputs: GenerationInputs,
+): Either<KayanGradleError, ResolvedFlavorConfig?> =
+    if (!inputs.declarationMode.requiresResolvedFlavor()) {
+        null.right()
+    } else {
+        resolveConfigEither(
+            schema = inputs.schema,
+            baseFile = inputs.baseFile,
+            customFile = inputs.customFile,
+            configFormat = inputs.configFormat,
+            targetName = inputs.targetName,
+        ).flatMap { resolved ->
+            requireResolvedFlavorEither(resolved, inputs.flavor)
+        }
+    }
+
+private fun createBuildscriptClasspathLoader(
+    buildscriptClasspath: ConfigurableFileCollection,
+    parentClassLoader: ClassLoader,
+): URLClassLoader? =
+    buildscriptClasspath.files
+        .takeIf { it.isNotEmpty() }
+        ?.let { files ->
+            URLClassLoader(
+                files.map { it.toURI().toURL() }.toTypedArray(),
+                parentClassLoader,
+            )
+        }
+
+private fun validateAdapterEither(
+    definition: ConfigDefinition,
+    adapter: LoadedCustomAdapter,
+): Either<GenerationError, Unit> = when {
+    adapter.rawKind != null && adapter.rawKind != definition.kind -> {
+        GenerationError.AdapterRawKindMismatch(definition, adapter.rawKind).left()
+    }
+
+    else -> Unit.right()
+}
+
+private fun reflectiveTypeNamePropertyEither(
+    adapterClass: Class<*>,
+    instance: Any,
+    propertyName: String,
+    className: String,
+): Either<GenerationError, TypeName> {
+    val getterValue = Either.catch {
+        adapterClass.getMethod(getterName(propertyName)).invoke(instance)
+    }
+    val value = when (getterValue) {
+        is Either.Left -> {
+            val fieldValue = Either.catch {
+                adapterClass.getDeclaredField(propertyName).apply { isAccessible = true }.get(instance)
+            }
+            when (fieldValue) {
+                is Either.Left -> {
+                    return GenerationError.MissingAdapterProperty(
+                        className = className,
+                        propertyName = propertyName,
+                        cause = fieldValue.value,
+                    ).left()
+                }
+
+                is Either.Right -> fieldValue.value
+            }
+        }
+
+        is Either.Right -> getterValue.value
+    }
+
+    return (value as? TypeName)?.right()
+        ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "TypeName").left()
+}
+
+private fun reflectiveRawKindProperty(
+    adapterClass: Class<*>,
+    instance: Any,
+): ConfigValueKind? {
+    val rawValue = Either.catch {
+        adapterClass.getMethod(getterName("rawKind")).invoke(instance)
+    }.getOrElse {
+        Either.catch {
+            adapterClass.getDeclaredField("rawKind").apply { isAccessible = true }.get(instance)
+        }.getOrNull()
+    } ?: return null
+
+    return when (rawValue) {
+        is ConfigValueKind -> rawValue
+        is String -> Either.catch { ConfigValueKind.valueOf(rawValue) }.getOrNull()
+        else -> null
+    }
+}
+
+/**
+ * Loads the configured target name for source generation.
+ *
+ * A target is only required for [KayanDeclarationMode.ACTUAL], because target
+ * overlays are resolved only when generating target-specific `actual` objects.
+ * For [KayanDeclarationMode.OBJECT] and [KayanDeclarationMode.EXPECT], the
+ * target is ignored and this returns `null`.
+ */
+private fun loadTargetNameEither(
+    targetName: String?,
+    declarationMode: KayanDeclarationMode,
+): Either<PluginConfigurationError, String?> {
+    if (!declarationMode.requiresTargetName()) {
+        return null.right()
+    }
+
+    return requireConfiguredEither(targetName, "target").map(String::trim)
+}
+
+private fun KayanDeclarationMode.requiresResolvedFlavor(): Boolean = this != KayanDeclarationMode.EXPECT
+
+private fun KayanDeclarationMode.requiresTargetName(): Boolean = this == KayanDeclarationMode.ACTUAL

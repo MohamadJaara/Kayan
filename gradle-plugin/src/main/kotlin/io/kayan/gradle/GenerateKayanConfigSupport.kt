@@ -24,11 +24,13 @@ import java.lang.reflect.Method
 internal data class GenerationInputs(
     val packageName: String,
     val flavor: String,
+    val targetName: String?,
     val className: String,
     val schema: io.kayan.ConfigSchema,
     val baseFile: File,
     val customFile: File?,
     val configFormat: ConfigFormat,
+    val declarationMode: KayanDeclarationMode,
 )
 
 internal data class LoadedCustomAdapter(
@@ -152,6 +154,7 @@ internal fun resolveConfigEither(
     baseFile: File,
     customFile: File?,
     configFormat: ConfigFormat = ConfigFormat.AUTO,
+    targetName: String? = null,
 ): Either<GenerationError, ResolvedConfigsByFlavor> = either {
     val baseText = readFileEither(baseFile).bind()
     val customText = customFile?.let { readFileEither(it).bind() }
@@ -171,6 +174,7 @@ internal fun resolveConfigEither(
         customConfigJson = customText,
         defaultConfigSourceName = baseFile.absolutePath,
         customConfigSourceName = customFile?.absolutePath ?: "custom config",
+        targetName = targetName,
     )
 
     when (resolved) {
@@ -185,8 +189,15 @@ internal fun resolveConfig(
     baseFile: File,
     customFile: File?,
     configFormat: ConfigFormat = ConfigFormat.AUTO,
+    targetName: String? = null,
 ): ResolvedConfigsByFlavor =
-    resolveConfigEither(schema, baseFile, customFile, configFormat).getOrElse { throw it.toGradleException() }
+    resolveConfigEither(
+        schema = schema,
+        baseFile = baseFile,
+        customFile = customFile,
+        configFormat = configFormat,
+        targetName = targetName,
+    ).getOrElse { throw it.toGradleException() }
 
 internal fun requireResolvedFlavorEither(
     resolved: ResolvedConfigsByFlavor,
