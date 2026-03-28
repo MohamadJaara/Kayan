@@ -222,6 +222,17 @@ internal sealed interface ConfigError : KayanError {
         )
     }
 
+    data class UnknownTargetInCustomConfig(
+        val customTarget: String,
+        val customContext: DiagnosticContext,
+        val defaultConfigSourceName: String,
+    ) : ConfigError {
+        override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
+            "Target '$customTarget' in ${customContext.describe()} does not exist in source " +
+                "'$defaultConfigSourceName'."
+        )
+    }
+
     data class PreventedCustomOverride(
         val definition: ConfigDefinition,
         val customContext: DiagnosticContext,
@@ -230,22 +241,29 @@ internal sealed interface ConfigError : KayanError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
             "Key '${definition.jsonKey}' in ${customContext.describe()} cannot be set from a custom config " +
                 "because the schema marks it as preventOverride. Define it only in source " +
-                "'$defaultConfigSourceName', either at the top level or inside its flavors."
+                "'$defaultConfigSourceName', either at the top level or inside its flavors or targets."
         )
     }
 
     data class MissingRequiredResolvedKey(
         val flavorName: String,
+        val targetName: String?,
         val definition: ConfigDefinition,
     ) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
-            "Resolved flavor '$flavorName' is missing required key '${definition.jsonKey}' at path '${
+            "Resolved ${resolutionLabel()} is missing required key '${definition.jsonKey}' at path '${
                 DiagnosticContext(DefaultConfigResolver.RESOLVED_CONFIG_SOURCE_NAME)
                     .atFlavor(flavorName)
+                    .let { context ->
+                        targetName?.let(context::atTarget) ?: context
+                    }
                     .atKey(definition.jsonKey)
                     .path
             }'."
         )
+
+        private fun resolutionLabel(): String =
+            targetName?.let { "flavor '$flavorName' for target '$it'" } ?: "flavor '$flavorName'"
     }
 
     data class InvalidEnumValue(
@@ -264,6 +282,7 @@ internal sealed interface ConfigError : KayanError {
 internal data class DiagnosticContext(
     val sourceName: String,
     val flavorName: String? = null,
+    val targetName: String? = null,
     private val segments: List<PathSegment> = emptyList(),
 ) {
     val path: String
@@ -295,12 +314,22 @@ internal data class DiagnosticContext(
         segments = segments + PathSegment.Key(DefaultConfigResolver.FLAVORS_KEY) + PathSegment.Key(flavorName),
     )
 
+    fun atTarget(targetName: String): DiagnosticContext = copy(
+        targetName = targetName,
+        segments = segments + PathSegment.Key(DefaultConfigResolver.TARGETS_KEY) + PathSegment.Key(targetName),
+    )
+
     fun describe(): String = buildString {
         append("source '")
         append(sourceName)
         append('\'')
         flavorName?.let {
             append(", flavor '")
+            append(it)
+            append('\'')
+        }
+        targetName?.let {
+            append(", target '")
             append(it)
             append('\'')
         }

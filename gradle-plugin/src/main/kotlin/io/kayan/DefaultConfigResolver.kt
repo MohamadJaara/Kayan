@@ -97,6 +97,27 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigSourceName = customConfigSourceName,
     ).getOrElse { throw it.toConfigValidationException() }
 
+    /**
+     * Resolves [defaultConfigJson] and [customConfigJson] for one specific [targetName].
+     *
+     * Target overlays participate in precedence only when this overload is used.
+     */
+    public fun resolve(
+        defaultConfigJson: String,
+        schema: ConfigSchema,
+        customConfigJson: String?,
+        targetName: String,
+        defaultConfigSourceName: String,
+        customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
+    ): ResolvedConfigsByFlavor = resolveEither(
+        defaultConfigJson = defaultConfigJson,
+        schema = schema,
+        customConfigJson = customConfigJson,
+        defaultConfigSourceName = defaultConfigSourceName,
+        customConfigSourceName = customConfigSourceName,
+        targetName = targetName,
+    ).getOrElse { throw it.toConfigValidationException() }
+
     internal fun parseEither(
         configJson: String,
         schema: ConfigSchema,
@@ -113,12 +134,14 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigJson: String?,
         defaultConfigSourceName: String,
         customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
+        targetName: String? = null,
     ): Either<ConfigError, ResolvedConfigsByFlavor> = resolveInternalEither(
         defaultConfigJson = defaultConfigJson,
         schema = schema,
         customConfigJson = customConfigJson,
         defaultConfigSourceName = defaultConfigSourceName,
         customConfigSourceName = customConfigSourceName,
+        targetName = targetName,
     )
 
     private fun parseInternalEither(
@@ -180,6 +203,7 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigJson: String?,
         defaultConfigSourceName: String,
         customConfigSourceName: String,
+        targetName: String?,
     ): Either<ConfigError, ResolvedConfigsByFlavor> = either {
         val defaultConfig = parseInternalEither(defaultConfigJson, schema, defaultConfigSourceName).bind()
         val customConfig = customConfigJson?.let {
@@ -197,6 +221,7 @@ public class DefaultConfigResolver : ConfigResolver {
                 schema = schema,
                 defaultConfig = defaultConfig,
                 customConfig = customConfig,
+                targetName = targetName,
             ).bind(),
         )
     }
@@ -205,9 +230,48 @@ public class DefaultConfigResolver : ConfigResolver {
         schema: ConfigSchema,
         objectNode: ConfigNode.ObjectNode,
         context: DiagnosticContext,
+        allowTargets: Boolean = true,
     ): Either<ConfigError, ConfigSection> = either {
+        var targets: Map<String, ConfigSection> = emptyMap()
         val values = buildMap<ConfigDefinition, ConfigValue> {
             for ((jsonKey, node) in objectNode.entries) {
+                if (allowTargets && jsonKey == TARGETS_KEY) {
+                    val targetsContext = context.atKey(TARGETS_KEY)
+                    val targetsObject = node as? ConfigNode.ObjectNode
+                        ?: raise(
+                            invalidTypeError(
+                                subject = "value for key '$TARGETS_KEY'",
+                                expectedType = "object",
+                                actualNode = node,
+                                context = targetsContext,
+                            ),
+                        )
+                    targets = buildMap {
+                        for ((targetName, targetNode) in targetsObject.entries) {
+                            val targetContext = context.atTarget(targetName)
+                            val targetObject = targetNode as? ConfigNode.ObjectNode
+                                ?: raise(
+                                    invalidTypeError(
+                                        subject = "value for target '$targetName'",
+                                        expectedType = "object",
+                                        actualNode = targetNode,
+                                        context = targetContext,
+                                    ),
+                                )
+
+                            put(
+                                targetName,
+                                parseSectionEither(
+                                    schema = schema,
+                                    objectNode = targetObject,
+                                    context = targetContext,
+                                    allowTargets = false,
+                                ).bind(),
+                            )
+                        }
+                    }
+                    continue
+                }
                 val valueContext = context.atKey(jsonKey)
                 val definition = schema.definitionFor(jsonKey)
                     ?: raise(unknownKeyError(jsonKey, schema, valueContext))
@@ -215,7 +279,7 @@ public class DefaultConfigResolver : ConfigResolver {
             }
         }
 
-        ConfigSection(values)
+        ConfigSection(values, targets)
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -533,6 +597,7 @@ public class DefaultConfigResolver : ConfigResolver {
 
     internal companion object {
         internal const val FLAVORS_KEY: String = "flavors"
+        internal const val TARGETS_KEY: String = "targets"
         internal const val RESOLVED_CONFIG_SOURCE_NAME: String = "resolved config"
         private const val DEFAULT_PARSE_SOURCE_NAME: String = "config"
         private const val DEFAULT_BASE_SOURCE_NAME: String = "default config"
@@ -567,6 +632,34 @@ private fun validateCustomConfigEither(
         }
     }
 
+    val declaredTargets = defaultConfig.declaredTargets()
+    customConfig?.defaults?.targets?.keys?.forEach { customTarget ->
+        if (customTarget !in declaredTargets) {
+            raise(
+                ConfigError.UnknownTargetInCustomConfig(
+                    customTarget = customTarget,
+                    customContext = DiagnosticContext(customConfigSourceName).atTarget(customTarget),
+                    defaultConfigSourceName = defaultConfigSourceName,
+                ),
+            )
+        }
+    }
+    customConfig?.flavors?.forEach { (flavorName, section) ->
+        section.targets.keys.forEach { customTarget ->
+            if (customTarget !in declaredTargets) {
+                raise(
+                    ConfigError.UnknownTargetInCustomConfig(
+                        customTarget = customTarget,
+                        customContext = DiagnosticContext(customConfigSourceName)
+                            .atFlavor(flavorName)
+                            .atTarget(customTarget),
+                        defaultConfigSourceName = defaultConfigSourceName,
+                    ),
+                )
+            }
+        }
+    }
+
     customConfig?.let {
         validateProtectedCustomOverridesEither(
             customConfig = it,
@@ -580,6 +673,7 @@ private fun resolveFlavorsEither(
     schema: ConfigSchema,
     defaultConfig: AppConfigFile,
     customConfig: AppConfigFile?,
+    targetName: String?,
 ): Either<ConfigError, Map<String, ResolvedFlavorConfig>> = either {
     buildMap {
         for ((flavorName, defaultFlavorValues) in defaultConfig.flavors) {
@@ -591,6 +685,7 @@ private fun resolveFlavorsEither(
                     defaultFlavorValues = defaultFlavorValues,
                     defaultConfig = defaultConfig,
                     customConfig = customConfig,
+                    targetName = targetName,
                 ).bind(),
             )
         }
@@ -603,6 +698,7 @@ private fun resolveFlavorEither(
     defaultFlavorValues: ConfigSection,
     defaultConfig: AppConfigFile,
     customConfig: AppConfigFile?,
+    targetName: String?,
 ): Either<ConfigError, ResolvedFlavorConfig> = either {
     val customFlavorValues = customConfig?.flavors?.get(flavorName)
     val merged = buildMap<ConfigDefinition, ConfigValue?> {
@@ -615,6 +711,7 @@ private fun resolveFlavorEither(
                     customConfig = customConfig,
                     defaultFlavorValues = defaultFlavorValues,
                     defaultConfig = defaultConfig,
+                    targetName = targetName,
                 ),
             )
         }
@@ -622,18 +719,21 @@ private fun resolveFlavorEither(
 
     requireResolvedRequiredKeysEither(
         flavorName = flavorName,
+        targetName = targetName,
         schema = schema,
         merged = merged,
     ).bind()
 
     ResolvedFlavorConfig(
         flavorName = flavorName,
+        targetName = targetName,
         values = merged,
     )
 }
 
 private fun requireResolvedRequiredKeysEither(
     flavorName: String,
+    targetName: String?,
     schema: ConfigSchema,
     merged: Map<ConfigDefinition, ConfigValue?>,
 ): Either<ConfigError, Unit> = either {
@@ -644,6 +744,7 @@ private fun requireResolvedRequiredKeysEither(
                 raise(
                     ConfigError.MissingRequiredResolvedKey(
                         flavorName = flavorName,
+                        targetName = targetName,
                         definition = definition,
                     ),
                 )
@@ -657,13 +758,27 @@ private fun resolvedValue(
     customConfig: AppConfigFile?,
     defaultFlavorValues: ConfigSection,
     defaultConfig: AppConfigFile,
+    targetName: String?,
 ): ConfigValue? {
-    val sections = listOf(
-        customFlavorValues,
-        customConfig?.defaults,
-        defaultFlavorValues,
-        defaultConfig.defaults,
-    )
+    val sections = if (targetName == null) {
+        listOf(
+            customFlavorValues,
+            customConfig?.defaults,
+            defaultFlavorValues,
+            defaultConfig.defaults,
+        )
+    } else {
+        listOf(
+            customFlavorValues?.targets?.get(targetName),
+            customFlavorValues,
+            customConfig?.defaults?.targets?.get(targetName),
+            customConfig?.defaults,
+            defaultFlavorValues.targets[targetName],
+            defaultFlavorValues,
+            defaultConfig.defaults.targets[targetName],
+            defaultConfig.defaults,
+        )
+    }
 
     sections.forEach { section ->
         if (section?.values?.containsKey(definition) == true) {
@@ -679,31 +794,50 @@ private fun validateProtectedCustomOverridesEither(
     customConfigSourceName: String,
     defaultConfigSourceName: String,
 ): Either<ConfigError, Unit> = either {
-    customConfig.defaults.values.keys.forEach { definition ->
+    validateProtectedSectionOverridesEither(
+        section = customConfig.defaults,
+        context = DiagnosticContext(customConfigSourceName),
+        defaultConfigSourceName = defaultConfigSourceName,
+    ).bind()
+
+    customConfig.flavors.forEach { (flavorName, section) ->
+        validateProtectedSectionOverridesEither(
+            section = section,
+            context = DiagnosticContext(customConfigSourceName).atFlavor(flavorName),
+            defaultConfigSourceName = defaultConfigSourceName,
+        ).bind()
+    }
+}
+
+private fun validateProtectedSectionOverridesEither(
+    section: ConfigSection,
+    context: DiagnosticContext,
+    defaultConfigSourceName: String,
+): Either<ConfigError, Unit> = either {
+    section.values.keys.forEach { definition ->
         if (definition.preventOverride) {
             raise(
                 ConfigError.PreventedCustomOverride(
                     definition = definition,
-                    customContext = DiagnosticContext(customConfigSourceName).atKey(definition.jsonKey),
+                    customContext = context.atKey(definition.jsonKey),
                     defaultConfigSourceName = defaultConfigSourceName,
                 ),
             )
         }
     }
 
-    customConfig.flavors.forEach { (flavorName, section) ->
-        section.values.keys.forEach { definition ->
-            if (definition.preventOverride) {
-                raise(
-                    ConfigError.PreventedCustomOverride(
-                        definition = definition,
-                        customContext = DiagnosticContext(customConfigSourceName)
-                            .atFlavor(flavorName)
-                            .atKey(definition.jsonKey),
-                        defaultConfigSourceName = defaultConfigSourceName,
-                    ),
-                )
-            }
-        }
+    section.targets.forEach { (targetName, targetSection) ->
+        validateProtectedSectionOverridesEither(
+            section = targetSection,
+            context = context.atTarget(targetName),
+            defaultConfigSourceName = defaultConfigSourceName,
+        ).bind()
+    }
+}
+
+private fun AppConfigFile.declaredTargets(): Set<String> = buildSet {
+    addAll(defaults.targets.keys)
+    flavors.values.forEach { section ->
+        addAll(section.targets.keys)
     }
 }
