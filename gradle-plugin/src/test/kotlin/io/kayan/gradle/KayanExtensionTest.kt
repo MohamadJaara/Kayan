@@ -105,6 +105,203 @@ class KayanExtensionTest {
         assertEquals(listOf("prod", "beta"), extension.androidFlavorSourceSetFlavors())
     }
 
+    @Test
+    fun targetSourceSetsStoreConfiguredMappings() {
+        val extension = createExtension()
+
+        extension.targetSourceSets {
+            sourceSet("iosMain", "ios")
+            sourceSet("jvmMain", "jvm")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargStoresConventionalMappings() {
+        val extension = createExtension()
+
+        extension.targets("android", "ios", "jvm")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsDslStoresConvenienceAndExplicitMappings() {
+        val extension = createExtension()
+
+        extension.targets {
+            ios()
+            jvm("desktop")
+            sourceSet("appleMain", "ios-shared")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+                KayanTargetSourceSetMapping(sourceSetName = "appleMain", targetName = "ios-shared"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetMappingsIsEmptyWhenNotConfigured() {
+        val extension = createExtension()
+
+        assertTrue(extension.targetSourceSetMappings().isEmpty())
+    }
+
+    @Test
+    fun targetSourceSetsActionFormStoresMappings() {
+        val extension = createExtension()
+
+        extension.targetSourceSets(
+            Action { container ->
+                container.sourceSet("jvmMain", "jvm")
+                container.sourceSet("iosMain", "ios")
+            },
+        )
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsSourceSetActionOverloadStoresMapping() {
+        val extension = createExtension()
+
+        extension.targetSourceSets {
+            sourceSet(
+                Action { spec ->
+                    spec.sourceSetName.set("jvmMain")
+                    spec.targetName.set("desktop")
+                },
+            )
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsWithUnsupportedNameThrowsIllegalArgumentException() {
+        val extension = createExtension()
+
+        assertFailsWith<IllegalArgumentException> {
+            extension.targets("unsupportedPlatform")
+        }
+    }
+
+    @Test
+    fun allConvenienceTargetMethodsMapToExpectedSourceSets() {
+        val extension = createExtension()
+
+        extension.targets {
+            android()
+            ios()
+            jvm()
+            js()
+            wasmJs()
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+                KayanTargetSourceSetMapping(sourceSetName = "jsMain", targetName = "js"),
+                KayanTargetSourceSetMapping(sourceSetName = "wasmJsMain", targetName = "wasmJs"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun convenienceTargetMethodsAcceptCustomTargetNames() {
+        val extension = createExtension()
+
+        extension.targets {
+            android("android-custom")
+            ios("ios-custom")
+            jvm("desktop")
+            js("browser")
+            wasmJs("wasm-browser")
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android-custom"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios-custom"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+                KayanTargetSourceSetMapping(sourceSetName = "jsMain", targetName = "browser"),
+                KayanTargetSourceSetMapping(sourceSetName = "wasmJsMain", targetName = "wasm-browser"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsVarargWithAllSupportedConventionalNames() {
+        val extension = createExtension()
+
+        extension.targets("android", "ios", "jvm", "js", "wasmJs")
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+                KayanTargetSourceSetMapping(sourceSetName = "jsMain", targetName = "js"),
+                KayanTargetSourceSetMapping(sourceSetName = "wasmJsMain", targetName = "wasmJs"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetsDslActionFormStoresMappings() {
+        val extension = createExtension()
+
+        extension.targets(
+            Action { container ->
+                container.ios()
+                container.jvm("desktop")
+            },
+        )
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "desktop"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
     private fun createExtension(): KayanExtension {
         val project = ProjectBuilder.builder().build()
         return project.extensions.create("kayan", KayanExtension::class.java)
