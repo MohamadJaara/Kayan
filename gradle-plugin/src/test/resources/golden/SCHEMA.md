@@ -7,8 +7,10 @@ Generated Kotlin access point: `sample.config.KayanConfig`.
 
 - The root object must contain `flavors`.
 - Top-level keys act as defaults for every flavor.
+- Optional top-level `targets` refine defaults for specific targets such as `android` or `ios`.
 - Every flavor object accepts the same keys as the top-level defaults section.
-- Keys marked `required` must appear either at the top level or inside every flavor to resolve for all variants.
+- Flavor objects may also declare `targets` for flavor-specific target overrides.
+- Keys marked `required` must resolve for the selected flavor and optional target, using Kayan's layer precedence.
 - Keys marked `preventOverride` can only be defined in the main config file. Custom config files cannot set them.
 
 ## Entries

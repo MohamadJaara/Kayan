@@ -642,7 +642,7 @@ class KayanConfigPluginFunctionalTest {
         )
         assertTrue(
             markdownSchemaFile.readText().contains(
-                "Keys marked `required` must appear either at the top level or inside every flavor",
+                "Keys marked `required` must resolve for the selected flavor and optional target",
             ),
         )
     }
