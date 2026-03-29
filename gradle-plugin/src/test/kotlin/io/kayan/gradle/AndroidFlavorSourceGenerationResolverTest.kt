@@ -39,11 +39,16 @@ class AndroidFlavorSourceGenerationResolverTest {
         )
         val exportSchemaTask = project.tasks.register("exportKayanSchema")
         val defaultGenerateTask = project.tasks.register("generateKayanConfig", GenerateKayanConfigTask::class.java)
-        val resolver = AndroidFlavorSourceGenerationResolver(
+        val generationTaskRegistrar = GenerationTaskRegistrar(
             project = project,
             extension = extension,
             exportSchemaTask = exportSchemaTask,
+        )
+        val resolver = AndroidFlavorSourceGenerationResolver(
+            project = project,
+            extension = extension,
             defaultGenerateTask = defaultGenerateTask,
+            generationTaskRegistrar = generationTaskRegistrar,
         )
 
         val prodTask = requireRight(
@@ -109,11 +114,16 @@ class AndroidFlavorSourceGenerationResolverTest {
                 productFlavors = listOf(FakeProductFlavor(name = "prod", dimension = "environment")),
             ),
         )
+        val exportSchemaTask = project.tasks.register("exportKayanSchema")
         val resolver = AndroidFlavorSourceGenerationResolver(
             project = project,
             extension = extension,
-            exportSchemaTask = project.tasks.register("exportKayanSchema"),
             defaultGenerateTask = project.tasks.register("generateKayanConfig", GenerateKayanConfigTask::class.java),
+            generationTaskRegistrar = GenerationTaskRegistrar(
+                project = project,
+                extension = extension,
+                exportSchemaTask = exportSchemaTask,
+            ),
         )
 
         val error = assertFailsWith<GradleException> {

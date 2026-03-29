@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.right
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 
 internal fun interface AndroidVariantGenerationResolver {
@@ -16,8 +15,8 @@ internal fun interface AndroidVariantGenerationResolver {
 internal class AndroidFlavorSourceGenerationResolver(
     private val project: Project,
     private val extension: KayanExtension,
-    private val exportSchemaTask: TaskProvider<out Task>,
     private val defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>,
+    private val generationTaskRegistrar: GenerationTaskRegistrar,
 ) : AndroidVariantGenerationResolver {
     private var resolvedState: ResolvedAndroidFlavorSourceGeneration? = null
 
@@ -70,12 +69,7 @@ internal class AndroidFlavorSourceGenerationResolver(
             val generationTasksByFlavor = if (configuredGenerations.isEmpty()) {
                 emptyMap()
             } else {
-                registerAndroidFlavorGenerationTasks(
-                    project = project,
-                    extension = extension,
-                    exportSchemaTask = exportSchemaTask,
-                    configuredGenerations = configuredGenerations,
-                )
+                generationTaskRegistrar.registerAndroidFlavorGenerationTasks(configuredGenerations)
             }
 
             ResolvedAndroidFlavorSourceGeneration(

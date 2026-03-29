@@ -4,7 +4,6 @@ import arrow.core.getOrElse
 import io.kayan.ConfigFormat
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 
@@ -33,33 +32,26 @@ public class KayanConfigPlugin : Plugin<Project> {
             task.jsonSchemaOutputFile.set(extension.jsonSchemaOutputFile)
             task.markdownSchemaOutputFile.set(extension.markdownSchemaOutputFile)
         }
+        val generationTaskRegistrar = GenerationTaskRegistrar(
+            project = project,
+            extension = extension,
+            exportSchemaTask = exportSchemaTask,
+        )
 
-        val generateTask = project.tasks.register("generateKayanConfig", GenerateKayanConfigTask::class.java) { task ->
-            task.group = "code generation"
-            task.description = "Generates a typed Kayan config object for the configured flavor."
-            task.flavor.set(extension.flavor)
-            task.kotlinPluginApplied.convention(false)
-            task.declarationMode.convention(KayanDeclarationMode.OBJECT)
-            task.configureCommonInputs(
-                project = project,
-                extension = extension,
-                exportSchemaTask = exportSchemaTask,
-                outputDirectory = "generated/kayan/kotlin",
-            )
-        }
+        val generateTask = generationTaskRegistrar.registerDefaultGenerateTask()
 
         wireKotlinSourceSet(project, extension, KOTLIN_MULTIPLATFORM_PLUGIN_ID, "commonMain", generateTask)
         wireKotlinSourceSet(project, extension, KOTLIN_JVM_PLUGIN_ID, "main", generateTask)
         configureTargetSourceGeneration(
             project = project,
             extension = extension,
-            exportSchemaTask = exportSchemaTask,
+            generationTaskRegistrar = generationTaskRegistrar,
         )
         configureAndroidSourceGeneration(
             project = project,
             extension = extension,
-            exportSchemaTask = exportSchemaTask,
             defaultGenerateTask = generateTask,
+            generationTaskRegistrar = generationTaskRegistrar,
         )
     }
 
@@ -97,14 +89,14 @@ public class KayanConfigPlugin : Plugin<Project> {
     private fun configureTargetSourceGeneration(
         project: Project,
         extension: KayanExtension,
-        exportSchemaTask: TaskProvider<out Task>,
+        generationTaskRegistrar: GenerationTaskRegistrar,
     ) {
         project.pluginManager.withPlugin(KOTLIN_MULTIPLATFORM_PLUGIN_ID) {
             project.afterEvaluate {
                 configureEvaluatedTargetSourceGeneration(
                     project = project,
                     extension = extension,
-                    exportSchemaTask = exportSchemaTask,
+                    generationTaskRegistrar = generationTaskRegistrar,
                 )
             }
         }
@@ -113,7 +105,7 @@ public class KayanConfigPlugin : Plugin<Project> {
     private fun configureEvaluatedTargetSourceGeneration(
         project: Project,
         extension: KayanExtension,
-        exportSchemaTask: TaskProvider<out Task>,
+        generationTaskRegistrar: GenerationTaskRegistrar,
     ) {
         val configuredGenerations = targetSourceGenerationsEither(
             extension.targetSourceSetMappings(),
@@ -129,22 +121,7 @@ public class KayanConfigPlugin : Plugin<Project> {
         ).getOrThrowGradle()
 
         configuredGenerations.forEach { generation ->
-            val targetTask = project.tasks.register(generation.taskName, GenerateKayanConfigTask::class.java) { task ->
-                task.group = "code generation"
-                task.description =
-                    "Generates a typed Kayan config actual object for source set '${generation.sourceSetName}' " +
-                    "and target '${generation.targetName}'."
-                task.flavor.set(extension.flavor)
-                task.target.set(generation.targetName)
-                task.kotlinPluginApplied.set(true)
-                task.declarationMode.set(KayanDeclarationMode.ACTUAL)
-                task.configureCommonInputs(
-                    project = project,
-                    extension = extension,
-                    exportSchemaTask = exportSchemaTask,
-                    outputDirectory = "generated/kayan-targets/kotlin/${generation.sourceSetName}",
-                )
-            }
+            val targetTask = generationTaskRegistrar.registerTargetGenerateTask(generation)
 
             kotlinExtension.sourceSets.matching { sourceSet ->
                 sourceSet.name == generation.sourceSetName
@@ -157,8 +134,8 @@ public class KayanConfigPlugin : Plugin<Project> {
     private fun configureAndroidSourceGeneration(
         project: Project,
         extension: KayanExtension,
-        exportSchemaTask: TaskProvider<out Task>,
         defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>,
+        generationTaskRegistrar: GenerationTaskRegistrar,
     ) {
         var androidPluginApplied = false
 
@@ -176,8 +153,8 @@ public class KayanConfigPlugin : Plugin<Project> {
                 val androidFlavorGenerationResolver = AndroidFlavorSourceGenerationResolver(
                     project = project,
                     extension = extension,
-                    exportSchemaTask = exportSchemaTask,
                     defaultGenerateTask = defaultGenerateTask,
+                    generationTaskRegistrar = generationTaskRegistrar,
                 )
 
                 registerAndroidGeneratedSourcesEither(
@@ -210,76 +187,3 @@ public class KayanConfigPlugin : Plugin<Project> {
 
 private fun <T> arrow.core.Either<KayanGradleError, T>.getOrThrowGradle(): T =
     getOrElse { throw it.toGradleException() }
-
-internal fun registerAndroidFlavorGenerationTasks(
-    project: Project,
-    extension: KayanExtension,
-    exportSchemaTask: TaskProvider<out Task>,
-    configuredGenerations: List<AndroidFlavorSourceGeneration>,
-): Map<String, TaskProvider<GenerateKayanConfigTask>> {
-    val aggregateTask = project.tasks.register("generateKayanAndroidFlavorConfigs") { task ->
-        task.group = "code generation"
-        task.description = "Generates typed Kayan config objects for configured Android flavor source sets."
-        task.dependsOn(exportSchemaTask)
-    }
-    val generationTasksByFlavor = linkedMapOf<String, TaskProvider<GenerateKayanConfigTask>>()
-
-    configuredGenerations.forEach { generation ->
-        val flavorTask = registerAndroidFlavorGenerationTask(
-            project = project,
-            extension = extension,
-            exportSchemaTask = exportSchemaTask,
-            generation = generation,
-        )
-
-        generationTasksByFlavor[generation.flavorName] = flavorTask
-        aggregateTask.configure { task ->
-            task.dependsOn(flavorTask)
-        }
-    }
-
-    return generationTasksByFlavor
-}
-
-private fun registerAndroidFlavorGenerationTask(
-    project: Project,
-    extension: KayanExtension,
-    exportSchemaTask: TaskProvider<out Task>,
-    generation: AndroidFlavorSourceGeneration,
-): TaskProvider<GenerateKayanConfigTask> =
-    project.tasks.register(
-        generation.taskName,
-        GenerateKayanConfigTask::class.java,
-    ) { task ->
-        task.group = "code generation"
-        task.description =
-            "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'."
-        task.flavor.set(generation.flavorName)
-        task.kotlinPluginApplied.set(true)
-        task.declarationMode.set(KayanDeclarationMode.OBJECT)
-        task.configureCommonInputs(
-            project = project,
-            extension = extension,
-            exportSchemaTask = exportSchemaTask,
-            outputDirectory = "generated/kayan/kotlin/android/${generation.flavorName}",
-        )
-    }
-
-private fun GenerateKayanConfigTask.configureCommonInputs(
-    project: Project,
-    extension: KayanExtension,
-    exportSchemaTask: TaskProvider<out Task>,
-    outputDirectory: String,
-) {
-    packageName.set(extension.packageName)
-    className.set(extension.className)
-    baseConfigFile.set(extension.baseConfigFile)
-    customConfigFile.set(extension.customConfigFile)
-    configFormat.set(extension.configFormat)
-    schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
-    outputDir.set(project.layout.buildDirectory.dir(outputDirectory))
-    project.buildscript.configurations.findByName("classpath")?.let { classpath ->
-        buildscriptClasspath.from(classpath)
-    }
-    dependsOn(exportSchemaTask)
-}
