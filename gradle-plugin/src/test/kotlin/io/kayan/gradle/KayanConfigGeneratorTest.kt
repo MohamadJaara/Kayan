@@ -296,6 +296,41 @@ class KayanConfigGeneratorTest {
     }
 
     @Test
+    fun rendersOptionalTargetDeclarationsAsNonNullWhenContractProvesCoverage() {
+        val brandName = stringDefinition(
+            jsonKey = "brand_name",
+            propertyName = "BRAND_NAME",
+        )
+        val schema = ConfigSchema(listOf(brandName))
+
+        val expectSource = KayanConfigGenerator.generate(
+            packageName = "sample.config",
+            className = "KayanConfig",
+            schema = schema,
+            declarationMode = KayanDeclarationMode.EXPECT,
+            declarationNullability = mapOf(brandName to false),
+        )
+        val actualSource = KayanConfigGenerator.generate(
+            packageName = "sample.config",
+            className = "KayanConfig",
+            schema = schema,
+            declarationMode = KayanDeclarationMode.ACTUAL,
+            resolvedFlavorConfig = ResolvedFlavorConfig(
+                flavorName = "prod",
+                targetName = "jvm",
+                values = mapOf(brandName to ConfigValue.StringValue("Prod JVM")),
+            ),
+            declarationNullability = mapOf(brandName to false),
+        )
+
+        assertEquals("public val BRAND_NAME: String", propertyLine(expectSource, "BRAND_NAME"))
+        assertEquals(
+            "public actual val BRAND_NAME: String = \"Prod JVM\"",
+            propertyLine(actualSource, "BRAND_NAME"),
+        )
+    }
+
+    @Test
     fun requiresResolvedFlavorConfigForObjectAndActualGeneration() {
         val schema = ConfigSchema(
             listOf(

@@ -1,5 +1,6 @@
 package io.kayan.gradle
 
+import arrow.core.getOrElse
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
@@ -170,6 +171,109 @@ class GenerateKayanConfigSupportTest {
         assertEquals(
             ConfigValue.StringValue("Prod JVM"),
             resolved.flavors.getValue("prod").values.getValue(brandName),
+        )
+    }
+
+    @Test
+    fun resolveTargetDeclarationNullabilityTreatsOptionalNonNullableKeysAsNonNullWhenAllTargetsResolveThem() {
+        val brandName = ConfigDefinition(
+            jsonKey = "brand_name",
+            propertyName = "BRAND_NAME",
+            kind = ConfigValueKind.STRING,
+        )
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = brandName.jsonKey,
+                    propertyName = brandName.propertyName,
+                    kind = brandName.kind,
+                    required = brandName.required,
+                    nullable = brandName.nullable,
+                ).serialize(),
+            ),
+        )
+
+        val declarationNullability = resolveTargetDeclarationNullabilityEither(
+            schema = schema,
+            flavorName = "prod",
+            targetNames = listOf("jvm", "ios"),
+            baseFile = createConfigFile(
+                """
+                    {
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Base JVM"
+                        },
+                        "ios": {
+                          "brand_name": "Base iOS"
+                        }
+                      },
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+            ),
+            customFile = null,
+        ).getOrElse { throw it.toGradleException() }
+
+        assertEquals(false, declarationNullability.getValue(brandName))
+    }
+
+    @Test
+    fun resolveTargetDeclarationNullabilityFailsWhenNonNullableKeyIsMissingOnOneGeneratedTarget() {
+        val brandName = ConfigDefinition(
+            jsonKey = "brand_name",
+            propertyName = "BRAND_NAME",
+            kind = ConfigValueKind.STRING,
+        )
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = brandName.jsonKey,
+                    propertyName = brandName.propertyName,
+                    kind = brandName.kind,
+                    required = brandName.required,
+                    nullable = brandName.nullable,
+                ).serialize(),
+            ),
+        )
+
+        val error = assertFailsWith<GradleException> {
+            resolveTargetDeclarationNullabilityEither(
+                schema = schema,
+                flavorName = "prod",
+                targetNames = listOf("jvm", "ios"),
+                baseFile = createConfigFile(
+                    """
+                        {
+                          "targets": {
+                            "jvm": {
+                              "brand_name": "Base JVM"
+                            }
+                          },
+                          "flavors": {
+                            "prod": {
+                              "bundle_id": "com.example.prod"
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                ),
+                customFile = null,
+            ).getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(
+            error,
+            "could not declare key 'brand_name' as non-null",
+            "flavor 'prod'",
+            "'ios'",
+            "mark the schema entry nullable",
         )
     }
 

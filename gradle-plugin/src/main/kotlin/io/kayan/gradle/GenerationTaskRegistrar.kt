@@ -103,6 +103,7 @@ internal class GenerationTaskRegistrar(
         customConfigFile.set(extension.customConfigFile)
         configFormat.set(extension.configFormat)
         validationMode.set(extension.validationMode)
+        generatedTargetNames.set(project.provider { extension.targetSourceSetMappings().map(KayanTargetSourceSetMapping::targetName) })
         schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
         outputDir.set(project.layout.buildDirectory.dir(outputDirectory))
         project.buildscript.configurations.findByName("classpath")?.let { classpath ->

@@ -500,7 +500,7 @@ class KayanConfigPluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanJvmMainConfig")?.outcome)
         val actualFile = File(projectDir, "build/generated/kayan-targets/kotlin/jvmMain/sample/config/KayanConfig.kt")
         assertTrue(actualFile.exists())
-        assertTrue(actualFile.readText().contains("public actual val BRAND_NAME: String? = \"Prod JVM\""))
+        assertTrue(actualFile.readText().contains("public actual val BRAND_NAME: String = \"Prod JVM\""))
     }
 
     @Test

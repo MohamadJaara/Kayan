@@ -2,6 +2,9 @@
 
 package io.kayan.gradle
 
+import arrow.core.Either
+import arrow.core.getOrElse
+import arrow.core.raise.either
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
@@ -36,7 +39,26 @@ internal object KayanConfigGenerator {
         declarationMode: KayanDeclarationMode = KayanDeclarationMode.OBJECT,
         resolvedFlavorConfig: ResolvedFlavorConfig? = null,
         renderedCustomProperties: Map<ConfigDefinition, RenderedCustomProperty> = emptyMap(),
-    ): String {
+        declarationNullability: Map<ConfigDefinition, Boolean> = emptyMap(),
+    ): String = generateEither(
+        packageName = packageName,
+        className = className,
+        schema = schema,
+        declarationMode = declarationMode,
+        resolvedFlavorConfig = resolvedFlavorConfig,
+        renderedCustomProperties = renderedCustomProperties,
+        declarationNullability = declarationNullability,
+    ).getOrElse { throw it.toGradleException() }
+
+    internal fun generateEither(
+        packageName: String,
+        className: String,
+        schema: ConfigSchema,
+        declarationMode: KayanDeclarationMode = KayanDeclarationMode.OBJECT,
+        resolvedFlavorConfig: ResolvedFlavorConfig? = null,
+        renderedCustomProperties: Map<ConfigDefinition, RenderedCustomProperty> = emptyMap(),
+        declarationNullability: Map<ConfigDefinition, Boolean> = emptyMap(),
+    ): Either<GenerationError, String> = either {
         val resolvedFlavor = declarationMode.requiredResolvedFlavorOrNull(resolvedFlavorConfig)
         val objectSpec = TypeSpec.objectBuilder(className)
             .addModifiers(KModifier.PUBLIC)
@@ -54,11 +76,13 @@ internal object KayanConfigGenerator {
                     declarationMode = declarationMode,
                     value = resolvedFlavor?.values?.get(definition),
                     renderedCustomProperty = renderedCustomProperties[definition],
+                    declarationNullable = declarationNullability[definition],
                 )
+                    .bind()
             }
             .forEach(objectSpec::addProperty)
 
-        return FileSpec.builder(packageName, className)
+        FileSpec.builder(packageName, className)
             .addKotlinDefaultImports(true, true)
             .indent("    ")
             .addType(objectSpec.build())
@@ -71,22 +95,28 @@ internal object KayanConfigGenerator {
         declarationMode: KayanDeclarationMode,
         value: ConfigValue?,
         renderedCustomProperty: RenderedCustomProperty?,
-    ): PropertySpec = when (declarationMode) {
-        KayanDeclarationMode.EXPECT -> buildExpectProperty(definition, renderedCustomProperty)
+        declarationNullable: Boolean?,
+    ): Either<GenerationError, PropertySpec> = when (declarationMode) {
+        KayanDeclarationMode.EXPECT -> buildExpectProperty(definition, renderedCustomProperty, declarationNullable)
         KayanDeclarationMode.OBJECT,
         KayanDeclarationMode.ACTUAL,
         -> if (renderedCustomProperty != null) {
-            buildCustomProperty(definition, renderedCustomProperty, declarationMode)
+            buildCustomProperty(definition, renderedCustomProperty, declarationMode, declarationNullable)
         } else {
             when (value) {
                 null,
-                is ConfigValue.NullValue -> buildNullableProperty(
-                    definition = definition,
-                    declarationMode = declarationMode,
-                    typeName = typeNameFor(definition).copy(nullable = true),
-                )
+                is ConfigValue.NullValue -> either {
+                    validateDeclarationNullability(declarationNullable, definition).bind()
+                    buildNullableProperty(
+                        definition = definition,
+                        declarationMode = declarationMode,
+                        typeName = typeNameFor(definition).copy(nullable = true),
+                    )
+                }
 
-                else -> buildBuiltInProperty(definition, value, declarationMode)
+                else -> either {
+                    buildBuiltInProperty(definition, value, declarationMode, declarationNullable)
+                }
             }
         }
     }
@@ -94,19 +124,24 @@ internal object KayanConfigGenerator {
     private fun buildExpectProperty(
         definition: ConfigDefinition,
         renderedCustomProperty: RenderedCustomProperty?,
-    ): PropertySpec = basePropertyBuilder(
-        definition = definition,
-        declarationMode = KayanDeclarationMode.EXPECT,
-        typeName = declaredTypeName(definition, renderedCustomProperty),
-    ).build()
+        declarationNullable: Boolean?,
+    ): Either<GenerationError, PropertySpec> = either {
+        basePropertyBuilder(
+            definition = definition,
+            declarationMode = KayanDeclarationMode.EXPECT,
+            typeName = declaredTypeName(definition, renderedCustomProperty, declarationNullable),
+        ).build()
+    }
 
     private fun buildCustomProperty(
         definition: ConfigDefinition,
         renderedCustomProperty: RenderedCustomProperty,
         declarationMode: KayanDeclarationMode,
-    ): PropertySpec {
+        declarationNullable: Boolean?,
+    ): Either<GenerationError, PropertySpec> = either {
         val typeName = renderedCustomProperty.typeName
-        return if (renderedCustomProperty.expression == null) {
+        if (renderedCustomProperty.expression == null) {
+            validateDeclarationNullability(declarationNullable, definition).bind()
             buildNullableProperty(
                 definition = definition,
                 declarationMode = declarationMode,
@@ -118,6 +153,7 @@ internal object KayanConfigGenerator {
                         definition = definition,
                         declarationMode = declarationMode,
                         customTypeName = typeName,
+                        declarationNullable = declarationNullable,
                     )
                 },
             )
@@ -129,9 +165,19 @@ internal object KayanConfigGenerator {
                     definition = definition,
                     declarationMode = declarationMode,
                     customTypeName = typeName,
+                    declarationNullable = declarationNullable,
                 ),
                 initializer = CodeBlock.of("%L", renderedCustomProperty.expression),
             )
+        }
+    }
+
+    private fun validateDeclarationNullability(
+        declarationNullable: Boolean?,
+        definition: ConfigDefinition,
+    ): Either<GenerationError, Unit> = either {
+        if (declarationNullable == false) {
+            raise(GenerationError.NonNullableDeclarationResolvedToNull(definition))
         }
     }
 
@@ -139,57 +185,67 @@ internal object KayanConfigGenerator {
         definition: ConfigDefinition,
         value: ConfigValue,
         declarationMode: KayanDeclarationMode,
+        declarationNullable: Boolean?,
     ): PropertySpec = when (value) {
         is ConfigValue.StringValue -> buildScalarBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of("%S", value.value),
         )
 
         is ConfigValue.BooleanValue -> buildScalarBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of("%L", value.value),
         )
 
         is ConfigValue.IntValue -> buildScalarBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of("%L", value.value),
         )
 
         is ConfigValue.LongValue -> buildScalarBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of("%LL", value.value),
         )
 
         is ConfigValue.DoubleValue -> buildScalarBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of("%L", value.value),
         )
         is ConfigValue.StringMapValue -> buildRenderedBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = renderStringMap(value.value),
         )
 
         is ConfigValue.StringListValue -> buildRenderedBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = renderStringList(value.value),
         )
 
         is ConfigValue.StringListMapValue -> buildRenderedBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = renderStringListMap(value.value),
         )
 
         is ConfigValue.EnumValue -> buildRenderedBuiltInProperty(
             definition = definition,
             declarationMode = declarationMode,
+            declarationNullable = declarationNullable,
             initializer = CodeBlock.of(
                 "%L.%L",
                 requireNotNull(definition.enumTypeName),
@@ -203,22 +259,24 @@ internal object KayanConfigGenerator {
     private fun buildScalarBuiltInProperty(
         definition: ConfigDefinition,
         declarationMode: KayanDeclarationMode,
+        declarationNullable: Boolean?,
         initializer: CodeBlock,
     ): PropertySpec = buildScalarProperty(
         definition = definition,
         declarationMode = declarationMode,
-        typeName = effectiveTypeName(definition, declarationMode),
+        typeName = effectiveTypeName(definition, declarationMode, declarationNullable = declarationNullable),
         initializer = initializer,
     )
 
     private fun buildRenderedBuiltInProperty(
         definition: ConfigDefinition,
         declarationMode: KayanDeclarationMode,
+        declarationNullable: Boolean?,
         initializer: CodeBlock,
     ): PropertySpec = buildProperty(
         definition = definition,
         declarationMode = declarationMode,
-        typeName = effectiveTypeName(definition, declarationMode),
+        typeName = effectiveTypeName(definition, declarationMode, declarationNullable = declarationNullable),
         initializer = initializer,
     )
 
@@ -291,9 +349,11 @@ private fun KayanDeclarationMode.objectModifier(): KModifier? = when (this) {
 private fun declaredTypeName(
     definition: ConfigDefinition,
     renderedCustomProperty: RenderedCustomProperty?,
+    declarationNullable: Boolean? = null,
 ): TypeName {
     val baseTypeName = renderedCustomProperty?.typeName ?: typeNameFor(definition)
-    return if (definition.nullable || !definition.required) {
+    val isNullable = declarationNullable ?: (definition.nullable || !definition.required)
+    return if (isNullable) {
         baseTypeName.copy(nullable = true)
     } else {
         baseTypeName
@@ -304,6 +364,7 @@ private fun effectiveTypeName(
     definition: ConfigDefinition,
     declarationMode: KayanDeclarationMode,
     customTypeName: TypeName? = null,
+    declarationNullable: Boolean? = null,
 ): TypeName = when (declarationMode) {
     KayanDeclarationMode.OBJECT -> customTypeName ?: typeNameFor(definition)
     KayanDeclarationMode.EXPECT,
@@ -311,6 +372,7 @@ private fun effectiveTypeName(
     -> declaredTypeName(
         definition = definition,
         renderedCustomProperty = customTypeName?.let { RenderedCustomProperty(it, null) },
+        declarationNullable = declarationNullable,
     )
 }
 
