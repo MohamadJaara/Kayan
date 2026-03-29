@@ -38,7 +38,9 @@ import javax.inject.Inject
  */
 public abstract class KayanExtension {
     internal val schemaBuilder: KayanSchemaBuilder = KayanSchemaBuilder()
-    private val resolvedBuildValueProviders: MutableMap<BuildValueRequest, Provider<ResolvedBuildValue>> = mutableMapOf()
+    private val resolvedBuildValueProviders:
+        MutableMap<BuildValueRequest, Provider<ResolvedBuildValue>> =
+        mutableMapOf()
 
     @get:Inject
     internal abstract val objects: ObjectFactory
@@ -169,7 +171,8 @@ public abstract class KayanExtension {
         )
     }
 
-    internal fun serializedSchemaEntries(): List<String> = schemaBuilder.entries.map(KayanSchemaEntrySpec::serialize)
+    internal fun serializedSchemaEntries(): List<String> =
+        schemaBuilder.entries.map(KayanSchemaEntrySpec::serialize)
 
     @OptIn(ExperimentalKayanGenerationApi::class)
     internal fun androidFlavorSourceSetFlavors(): List<String> = androidFlavorSourceSetSpec.flavors.getOrElse(
@@ -207,18 +210,18 @@ public abstract class KayanExtension {
             }
         }
     }
+}
 
-    private fun validateSchemaKeyEither(
-        schema: ConfigSchema,
-        jsonKey: String,
-    ): Either<BuildTimeAccessError, Unit> {
-        if (schema.definitionFor(jsonKey) != null) {
-            return Unit.right()
-        }
-
-        val suggestions = closeKeyMatches(jsonKey, schema.entries.map(ConfigDefinition::jsonKey))
-        return BuildTimeAccessError.UnknownSchemaKey(jsonKey, suggestions).left()
+private fun validateSchemaKeyEither(
+    schema: ConfigSchema,
+    jsonKey: String,
+): Either<BuildTimeAccessError, Unit> {
+    if (schema.definitionFor(jsonKey) != null) {
+        return Unit.right()
     }
+
+    val suggestions = closeKeyMatches(jsonKey, schema.entries.map(ConfigDefinition::jsonKey))
+    return BuildTimeAccessError.UnknownSchemaKey(jsonKey, suggestions).left()
 }
 
 private data class BuildValueRequest(
