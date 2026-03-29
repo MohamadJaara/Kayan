@@ -52,6 +52,49 @@ class KayanBuildValueFunctionalTest {
     }
 
     @Test
+    fun readsJvmTargetSpecificBrandNameInsideBuildScript() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                """
+                    abstract class PrintBuildValueTask : DefaultTask() {
+                        @get:Input
+                        abstract val value: Property<String>
+
+                        @TaskAction
+                        fun printValue() {
+                            println("brand=${'$'}{value.get()}")
+                        }
+                    }
+
+                    tasks.register<PrintBuildValueTask>("printBuildValue") {
+                        value.set(kayan.buildValue("brand_name", "jvm").asStringProvider())
+                    }
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "brand_name": "Example",
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Example JVM"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "printBuildValue").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printBuildValue")?.outcome)
+        assertTrue(result.output.contains("brand=Example JVM"))
+    }
+
+    @Test
     fun conditionallyAddsDependencyFromBooleanBuildValue() {
         val projectDir = createProject(
             buildScript = buildScript(

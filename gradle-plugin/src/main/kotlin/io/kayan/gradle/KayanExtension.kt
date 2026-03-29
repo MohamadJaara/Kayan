@@ -38,7 +38,7 @@ import javax.inject.Inject
  */
 public abstract class KayanExtension {
     internal val schemaBuilder: KayanSchemaBuilder = KayanSchemaBuilder()
-    private val resolvedBuildValueProviders: MutableMap<String, Provider<ResolvedBuildValue>> = mutableMapOf()
+    private val resolvedBuildValueProviders: MutableMap<BuildValueRequest, Provider<ResolvedBuildValue>> = mutableMapOf()
 
     @get:Inject
     internal abstract val objects: ObjectFactory
@@ -147,11 +147,25 @@ public abstract class KayanExtension {
      */
     @ExperimentalKayanGradleApi
     public fun buildValue(jsonKey: String): KayanBuildValue {
+        return buildValue(jsonKey = jsonKey, targetName = null)
+    }
+
+    /**
+     * Exposes a schema entry to Gradle build logic through typed accessors for one explicit target.
+     *
+     * When [targetName] is provided, target overlays participate in the same
+     * precedence used for generated KMP target sources.
+     */
+    @ExperimentalKayanGradleApi
+    public fun buildValue(
+        jsonKey: String,
+        targetName: String?,
+    ): KayanBuildValue {
         val schema = requireSchema(serializedSchemaEntries())
         validateSchemaKeyEither(schema, jsonKey).getOrElse { throw it.toGradleException() }
 
         return KayanBuildValue(
-            valueProvider = resolvedBuildValueProvider(jsonKey),
+            valueProvider = resolvedBuildValueProvider(jsonKey, targetName),
         )
     }
 
@@ -171,8 +185,14 @@ public abstract class KayanExtension {
             )
         }
 
-    private fun resolvedBuildValueProvider(jsonKey: String): Provider<ResolvedBuildValue> =
-        resolvedBuildValueProviders.getOrPut(jsonKey) {
+    private fun resolvedBuildValueProvider(
+        jsonKey: String,
+        targetName: String?,
+    ): Provider<ResolvedBuildValue> {
+        val normalizedTargetName = targetName?.let { requireConfigured(it, "targetName") }
+        val request = BuildValueRequest(jsonKey = jsonKey, targetName = normalizedTargetName)
+
+        return resolvedBuildValueProviders.getOrPut(request) {
             providers.of(KayanConfigValueSource::class.java) { spec ->
                 spec.parameters.baseConfigFile.set(baseConfigFile)
                 spec.parameters.customConfigFile.set(customConfigFile)
@@ -180,11 +200,13 @@ public abstract class KayanExtension {
                 spec.parameters.flavor.set(flavor)
                 spec.parameters.schemaEntries.set(serializedSchemaEntries())
                 spec.parameters.jsonKey.set(jsonKey)
+                normalizedTargetName?.let(spec.parameters.targetName::set)
             }.map { serialized ->
                 deserializeResolvedBuildValueEither(jsonKey, serialized)
                     .getOrElse { throw it.toGradleException() }
             }
         }
+    }
 
     private fun validateSchemaKeyEither(
         schema: ConfigSchema,
@@ -198,6 +220,11 @@ public abstract class KayanExtension {
         return BuildTimeAccessError.UnknownSchemaKey(jsonKey, suggestions).left()
     }
 }
+
+private data class BuildValueRequest(
+    val jsonKey: String,
+    val targetName: String?,
+)
 
 /**
  * Builder used inside `kayan { schema { ... } }` to declare config entries.

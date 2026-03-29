@@ -74,6 +74,41 @@ class KayanConfigValueSourceTest {
     }
 
     @Test
+    fun resolvesJvmTargetSpecificBrandNameThroughValueSource() {
+        val tempDir = createTempDirectory(prefix = "kayan-value-source-test").toFile()
+        val baseFile = File(tempDir, "default.json").apply {
+            writeText(
+                """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "brand_name": "Example",
+                          "targets": {
+                            "jvm": {
+                              "brand_name": "Example JVM"
+                            }
+                          }
+                        }
+                      }
+                    }
+                """.trimIndent(),
+            )
+        }
+
+        val actual = resolveWithValueSource(
+            baseFile = baseFile,
+            jsonKey = "brand_name",
+            targetName = "jvm",
+        )
+
+        assertEquals(
+            ResolvedBuildValue("brand_name", io.kayan.ConfigValueKind.STRING, "Example JVM"),
+            actual,
+        )
+    }
+
+    @Test
     fun resolvesYamlConfigValuesThroughValueSource() {
         val tempDir = createTempDirectory(prefix = "kayan-value-source-test").toFile()
         val baseFile = File(tempDir, "default.yaml").apply {
@@ -122,6 +157,7 @@ class KayanConfigValueSourceTest {
         baseFile: File,
         jsonKey: String,
         customFile: File? = null,
+        targetName: String? = null,
     ): ResolvedBuildValue =
         deserializeResolvedBuildValue(
             jsonKey = jsonKey,
@@ -129,6 +165,7 @@ class KayanConfigValueSourceTest {
                 baseFile = baseFile,
                 customFile = customFile,
                 jsonKey = jsonKey,
+                targetName = targetName,
             ),
         )
 
@@ -136,6 +173,7 @@ class KayanConfigValueSourceTest {
         baseFile: File,
         jsonKey: String,
         customFile: File? = null,
+        targetName: String? = null,
     ): String {
         val project = ProjectBuilder.builder().build()
         val provider = project.providers.of(KayanConfigValueSource::class.java) { spec ->
@@ -144,6 +182,7 @@ class KayanConfigValueSourceTest {
             spec.parameters.configFormat.set(ConfigFormat.AUTO)
             spec.parameters.flavor.set("prod")
             spec.parameters.jsonKey.set(jsonKey)
+            targetName?.let(spec.parameters.targetName::set)
             spec.parameters.schemaEntries.set(
                 listOf(
                     KayanSchemaEntrySpec(

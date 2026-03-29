@@ -131,6 +131,26 @@ class KayanBuildValueTest {
     }
 
     @Test
+    fun buildValueResolvesJvmTargetSpecificBrandName() {
+        val extension = createExtension()
+
+        val value = extension.buildValue("brand_name", "jvm").asString()
+
+        assertEquals("Example JVM", value)
+    }
+
+    @Test
+    fun buildValueRejectsBlankTargetName() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<GradleException> {
+            extension.buildValue("brand_name", "   ")
+        }
+
+        assertMessageContains(error, "Kayan requires `targetName` to be configured.")
+    }
+
+    @Test
     fun nullableAccessorReturnsNullWhenValueIsNull() {
         assertNull(buildValue("support_email", ConfigValueKind.STRING, null).asStringOrNull())
         assertNull(buildValue("feature_search_enabled", ConfigValueKind.BOOLEAN, null).asBooleanOrNull())
@@ -219,7 +239,12 @@ class KayanBuildValueTest {
                       "flavors": {
                         "prod": {
                           "bundle_id": "com.example.prod",
-                          "brand_name": "Example"
+                          "brand_name": "Example",
+                          "targets": {
+                            "jvm": {
+                              "brand_name": "Example JVM"
+                            }
+                          }
                         }
                       }
                     }

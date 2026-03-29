@@ -37,6 +37,10 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
 
         @get:Input
         public val jsonKey: Property<String>
+
+        @get:Optional
+        @get:Input
+        public val targetName: Property<String>
     }
 
     override fun obtain(): String =
@@ -47,6 +51,7 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
         val schema = requireSchemaEither(parameters.schemaEntries.get()).bind()
         val flavor = requireConfiguredEither(parameters.flavor.orNull, "flavor").bind()
         val jsonKey = requireConfiguredEither(parameters.jsonKey.orNull, "jsonKey").bind()
+        val targetName = parameters.targetName.orNull?.let { requireConfiguredEither(it, "targetName").bind() }
         val baseFile = requireExistingFileEither(parameters.baseConfigFile.asFile.get(), "base").bind()
         val customFile = parameters.customConfigFile.orNull?.asFile?.let { file ->
             requireExistingFileEither(file, "custom").bind()
@@ -56,6 +61,7 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
             baseFile = baseFile,
             customFile = customFile,
             configFormat = parameters.configFormat.orNull ?: ConfigFormat.AUTO,
+            targetName = targetName,
         ).bind()
         val resolvedFlavor = requireResolvedFlavorEither(resolved, flavor).bind()
         val resolvedEntry = resolvedFlavor.values.entries
