@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalKayanApi::class)
+
 package io.kayan.gradle
 
 import com.squareup.kotlinpoet.CodeBlock
@@ -12,6 +14,7 @@ import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
+import io.kayan.ExperimentalKayanApi
 import io.kayan.ResolvedFlavorConfig
 
 internal data class RenderedCustomProperty(

@@ -6,6 +6,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalKayanApi::class)
 class DefaultConfigResolverTest {
     private val resolver = DefaultConfigResolver()
     private val emptyValue = ConfigDefinition(

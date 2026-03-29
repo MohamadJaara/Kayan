@@ -231,6 +231,7 @@ public class ConfigSchema(
  */
 public data class ConfigSection(
     val values: Map<ConfigDefinition, ConfigValue>,
+    @ExperimentalKayanApi
     val targets: Map<String, ConfigSection> = emptyMap(),
 ) {
     /** Returns the value stored for [definition], or `null` if it is absent. */
@@ -258,6 +259,7 @@ public data class AppConfigFile(
  */
 public data class ResolvedFlavorConfig(
     val flavorName: String,
+    @ExperimentalKayanApi
     val targetName: String? = null,
     val values: Map<ConfigDefinition, ConfigValue?>,
 ) {

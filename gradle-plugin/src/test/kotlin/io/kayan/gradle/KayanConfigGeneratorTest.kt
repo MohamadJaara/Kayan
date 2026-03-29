@@ -5,6 +5,7 @@ import io.kayan.ConfigDefinition
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
+import io.kayan.ExperimentalKayanApi
 import io.kayan.ResolvedFlavorConfig
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -12,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalKayanApi::class)
 class KayanConfigGeneratorTest {
     @Test
     fun rendersRequiredScalarBuiltInsAsConstAndOtherPropertiesAsVal() {

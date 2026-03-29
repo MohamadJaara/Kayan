@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalKayanApi::class)
+
 package io.kayan
 
 import arrow.core.Either
@@ -102,6 +104,7 @@ public class DefaultConfigResolver : ConfigResolver {
      *
      * Target overlays participate in precedence only when this overload is used.
      */
+    @ExperimentalKayanApi
     public fun resolve(
         defaultConfigJson: String,
         schema: ConfigSchema,
