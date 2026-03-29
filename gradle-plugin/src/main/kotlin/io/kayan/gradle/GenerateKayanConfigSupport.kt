@@ -26,6 +26,7 @@ internal data class GenerationInputs(
     val packageName: String,
     val flavor: String,
     val targetName: String?,
+    val generatedTargetNames: List<String>,
     val className: String,
     val schema: io.kayan.ConfigSchema,
     val baseFile: File,
@@ -214,6 +215,51 @@ internal fun requireResolvedFlavor(
     flavorName: String,
 ): ResolvedFlavorConfig =
     requireResolvedFlavorEither(resolved, flavorName).getOrElse { throw it.toGradleException() }
+
+internal fun resolveTargetDeclarationNullabilityEither(
+    schema: io.kayan.ConfigSchema,
+    flavorName: String,
+    targetNames: List<String>,
+    baseFile: File,
+    customFile: File?,
+    configFormat: ConfigFormat = ConfigFormat.AUTO,
+    validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
+): Either<GenerationError, Map<ConfigDefinition, Boolean>> = either {
+    val distinctTargetNames = targetNames.distinct()
+    val resolvedFlavorsByTarget = buildMap<String, ResolvedFlavorConfig> {
+        distinctTargetNames.forEach { targetName ->
+            val resolved = resolveConfigEither(
+                schema = schema,
+                baseFile = baseFile,
+                customFile = customFile,
+                configFormat = configFormat,
+                validationMode = validationMode,
+                targetName = targetName,
+            ).bind()
+            put(targetName, requireResolvedFlavorEither(resolved, flavorName).bind())
+        }
+    }
+
+    buildMap {
+        schema.entries.forEach { definition ->
+            if (definition.nullable) {
+                put(definition, true)
+            } else if (definition.required) {
+                put(definition, false)
+            } else {
+                val missingTargetNames = distinctTargetNames.filter { targetName ->
+                    val value = resolvedFlavorsByTarget.getValue(targetName).values[definition]
+                    value == null || value is ConfigValue.NullValue
+                }
+                if (missingTargetNames.isNotEmpty()) {
+                    put(definition, true)
+                } else {
+                    put(definition, false)
+                }
+            }
+        }
+    }
+}
 
 internal fun <T> runAdapterStepEither(
     definition: ConfigDefinition,

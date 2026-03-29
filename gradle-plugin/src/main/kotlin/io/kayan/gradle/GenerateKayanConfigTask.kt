@@ -43,6 +43,9 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     public abstract val target: Property<String>
 
     @get:Input
+    public abstract val generatedTargetNames: ListProperty<String>
+
+    @get:Input
     public abstract val className: Property<String>
 
     @get:Input
@@ -89,8 +92,9 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
     private fun generateEither(): Either<KayanGradleError, Unit> = either {
         val inputs = loadGenerationInputsEither().bind()
+        val declarationNullability = resolveDeclarationNullabilityEither(inputs).bind()
         val resolvedFlavor = resolveFlavorForEither(inputs).bind()
-        writeGeneratedSourceEither(inputs, resolvedFlavor).bind()
+        writeGeneratedSourceEither(inputs, resolvedFlavor, declarationNullability).bind()
     }
 
     private fun renderCustomPropertiesEither(
@@ -186,6 +190,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
                     is Either.Right -> constructed.value
                 }
             }
+
             is Either.Right -> objectInstance.value
         }
 
@@ -227,6 +232,8 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
             packageName = requireConfiguredEither(packageName.orNull, "packageName").bind(),
             flavor = requireConfiguredEither(flavor.orNull, "flavor").bind(),
             targetName = loadTargetNameEither(target.orNull, mode).bind(),
+            generatedTargetNames = generatedTargetNames.orNull.orEmpty().map(String::trim).filter(String::isNotEmpty)
+                .distinct(),
             className = requireConfiguredEither(className.orNull, "className").bind(),
             schema = requireSchemaEither(schemaEntries.orNull.orEmpty()).bind(),
             baseFile = requireExistingFileEither(baseConfigFile.asFile.get(), "base").bind(),
@@ -242,21 +249,21 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     private fun writeGeneratedSourceEither(
         inputs: GenerationInputs,
         resolvedFlavor: ResolvedFlavorConfig?,
+        declarationNullability: Map<ConfigDefinition, Boolean>,
     ): Either<GenerationError, Unit> = either {
         val renderedCustomProperties = renderCustomPropertiesEither(
             schema = inputs.schema,
             resolvedFlavor = resolvedFlavor,
         ).bind()
-        val source = Either.catch {
-            KayanConfigGenerator.generate(
-                packageName = inputs.packageName,
-                className = inputs.className,
-                schema = inputs.schema,
-                declarationMode = inputs.declarationMode,
-                resolvedFlavorConfig = resolvedFlavor,
-                renderedCustomProperties = renderedCustomProperties,
-            )
-        }.getOrElse { raise(GenerationError.SourceGenerationFailure("Kayan config source", it)) }
+        val source = KayanConfigGenerator.generateEither(
+            packageName = inputs.packageName,
+            className = inputs.className,
+            schema = inputs.schema,
+            declarationMode = inputs.declarationMode,
+            resolvedFlavorConfig = resolvedFlavor,
+            renderedCustomProperties = renderedCustomProperties,
+            declarationNullability = declarationNullability,
+        ).bind()
 
         val outputRoot = outputDir.get().asFile
         val packagePath = inputs.packageName.replace('.', File.separatorChar)
@@ -275,6 +282,31 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         }
     }
 }
+
+private fun GenerateKayanConfigTask.resolveDeclarationNullabilityEither(
+    inputs: GenerationInputs,
+): Either<KayanGradleError, Map<ConfigDefinition, Boolean>> =
+    when {
+        inputs.declarationMode == KayanDeclarationMode.OBJECT -> emptyMap<ConfigDefinition, Boolean>().right()
+        else -> {
+            val targetNames = inputs.generatedTargetNames.ifEmpty {
+                listOfNotNull(inputs.targetName)
+            }
+            if (targetNames.isEmpty()) {
+                emptyMap<ConfigDefinition, Boolean>().right()
+            } else {
+                resolveTargetDeclarationNullabilityEither(
+                    schema = inputs.schema,
+                    flavorName = inputs.flavor,
+                    targetNames = targetNames,
+                    baseFile = inputs.baseFile,
+                    customFile = inputs.customFile,
+                    configFormat = inputs.configFormat,
+                    validationMode = inputs.validationMode,
+                )
+            }
+        }
+    }
 
 private fun GenerateKayanConfigTask.resolveFlavorForEither(
     inputs: GenerationInputs,

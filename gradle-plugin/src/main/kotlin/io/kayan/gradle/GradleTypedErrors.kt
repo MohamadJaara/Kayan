@@ -191,6 +191,30 @@ internal sealed interface GenerationError : KayanGradleError {
             "Configured Kayan flavor '$flavorName' was not found in the resolved config."
     }
 
+    data class MissingNonNullableTargetValue(
+        val definition: ConfigDefinition,
+        val flavorName: String,
+        val targetNames: List<String>,
+    ) : GenerationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan target source generation could not declare key '${definition.jsonKey}' as non-null for " +
+                "flavor '$flavorName' because it is missing or null for targets " +
+                targetNames.joinToString { "'$it'" } +
+                ". Provide a value for every generated target or mark the schema entry nullable."
+    }
+
+    data class NonNullableDeclarationResolvedToNull(
+        val definition: ConfigDefinition,
+    ) : GenerationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Key '${definition.jsonKey}' resolved to null for target generation " +
+                "but the generated declaration contract is non-null."
+    }
+
     data class AdapterStepFailure(
         val definition: ConfigDefinition,
         val action: String,
