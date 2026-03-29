@@ -46,7 +46,6 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
     override fun obtain(): String =
         obtainEither().getOrElse { throw it.toGradleException() }
 
-    @OptIn(ExperimentalKayanGradleApi::class)
     private fun obtainEither(): Either<KayanGradleError, String> = either {
         val schema = requireSchemaEither(parameters.schemaEntries.get()).bind()
         val flavor = requireConfiguredEither(parameters.flavor.orNull, "flavor").bind()

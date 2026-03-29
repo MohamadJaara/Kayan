@@ -217,7 +217,6 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         )
     }
 
-    @OptIn(ExperimentalKayanGradleApi::class)
     private fun loadGenerationInputsEither(): Either<KayanGradleError, GenerationInputs> = either {
         val mode = declarationMode.orNull ?: KayanDeclarationMode.OBJECT
         GenerationInputs(

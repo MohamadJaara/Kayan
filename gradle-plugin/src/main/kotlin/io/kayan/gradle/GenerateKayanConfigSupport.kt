@@ -148,7 +148,6 @@ internal fun requireExistingFileEither(
 internal fun requireExistingFile(file: File, label: String): File =
     requireExistingFileEither(file, label).getOrElse { throw it.toGradleException() }
 
-@OptIn(ExperimentalKayanGradleApi::class)
 internal fun resolveConfigEither(
     schema: io.kayan.ConfigSchema,
     baseFile: File,
@@ -183,7 +182,6 @@ internal fun resolveConfigEither(
     }
 }
 
-@OptIn(ExperimentalKayanGradleApi::class)
 internal fun resolveConfig(
     schema: io.kayan.ConfigSchema,
     baseFile: File,

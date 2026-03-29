@@ -3,7 +3,6 @@ package io.kayan
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import io.kayan.gradle.ExperimentalKayanGradleApi
 
 /**
  * Selects how Kayan should parse the base config file and optional override file.
@@ -20,11 +19,9 @@ public enum class ConfigFormat {
     YAML,
 
     /** Detects the format from the source file extension such as `.json` or `.yaml`. */
-    @ExperimentalKayanGradleApi
     AUTO,
 }
 
-@OptIn(ExperimentalKayanGradleApi::class)
 internal fun parserFor(format: ConfigFormat): ConfigFormatParser = when (format) {
     ConfigFormat.JSON -> JsonConfigFormatParser()
     ConfigFormat.YAML -> YamlConfigFormatParser()
@@ -60,7 +57,6 @@ internal fun validateConfigFormatEither(
         }
     }
 
-@OptIn(ExperimentalKayanGradleApi::class)
 internal fun resolveConfigFormatEither(
     baseSourceName: String,
     customSourceName: String?,
