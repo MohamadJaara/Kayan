@@ -52,41 +52,6 @@ internal fun deserializeResolvedBuildValueEither(
     return deserializeResolvedValueEither(jsonKey, value)
 }
 
-private fun serializeResolvedValue(
-    definition: ConfigDefinition,
-    value: ConfigValue?,
-): JsonObject = buildJsonObject {
-    put("kind", JsonPrimitive((value?.kind ?: definition.kind).name))
-    put(
-        "value",
-        when (value) {
-            null,
-            is ConfigValue.NullValue -> JsonNull
-            is ConfigValue.StringValue -> JsonPrimitive(value.value)
-            is ConfigValue.BooleanValue -> JsonPrimitive(value.value)
-            is ConfigValue.IntValue -> JsonPrimitive(value.value)
-            is ConfigValue.LongValue -> JsonPrimitive(value.value)
-            is ConfigValue.DoubleValue -> JsonPrimitive(value.value)
-            is ConfigValue.StringMapValue -> buildJsonObject {
-                value.value.entries
-                    .sortedBy { it.key }
-                    .forEach { (key, entryValue) ->
-                        put(key, JsonPrimitive(entryValue))
-                    }
-            }
-            is ConfigValue.StringListValue -> JsonArray(value.value.map(::JsonPrimitive))
-            is ConfigValue.StringListMapValue -> buildJsonObject {
-                value.value.entries
-                    .sortedBy { it.key }
-                    .forEach { (key, entries) ->
-                        put(key, JsonArray(entries.map(::JsonPrimitive)))
-                    }
-            }
-            is ConfigValue.EnumValue -> JsonPrimitive(value.value)
-        },
-    )
-}
-
 private fun deserializeResolvedValueEither(
     jsonKey: String,
     element: JsonElement,
@@ -108,6 +73,14 @@ private fun deserializeResolvedValueEither(
         kind = kind,
         rawValue = rawValue,
     ).right()
+}
+
+private fun serializeResolvedValue(
+    definition: ConfigDefinition,
+    value: ConfigValue?,
+): JsonObject = buildJsonObject {
+    put("kind", JsonPrimitive((value?.kind ?: definition.kind).name))
+    put("value", value.toJsonElement())
 }
 
 private fun JsonObject.requireKindEither(
@@ -243,4 +216,30 @@ private fun decodeStringListMapEither(
 private val resolvedValueJson: Json = Json {
     ignoreUnknownKeys = false
     isLenient = false
+}
+
+private fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
+    null,
+    is ConfigValue.NullValue -> JsonNull
+    is ConfigValue.StringValue -> JsonPrimitive(value)
+    is ConfigValue.BooleanValue -> JsonPrimitive(value)
+    is ConfigValue.IntValue -> JsonPrimitive(value)
+    is ConfigValue.LongValue -> JsonPrimitive(value)
+    is ConfigValue.DoubleValue -> JsonPrimitive(value)
+    is ConfigValue.StringMapValue -> buildJsonObject {
+        value.entries
+            .sortedBy { it.key }
+            .forEach { (key, entryValue) ->
+                put(key, JsonPrimitive(entryValue))
+            }
+    }
+    is ConfigValue.StringListValue -> JsonArray(value.map(::JsonPrimitive))
+    is ConfigValue.StringListMapValue -> buildJsonObject {
+        value.entries
+            .sortedBy { it.key }
+            .forEach { (key, entries) ->
+                put(key, JsonArray(entries.map(::JsonPrimitive)))
+            }
+    }
+    is ConfigValue.EnumValue -> JsonPrimitive(value)
 }
