@@ -10,6 +10,78 @@ import kotlin.test.assertTrue
 
 class KayanConfigPluginFunctionalTest {
     @Test
+    fun subprojectInheritsRootConfigAndCanOverrideInheritedFlavor() {
+        val projectDir = createMultiProject(
+            rootBuildScript = """
+                plugins {
+                    kotlin("jvm") version "2.3.20" apply false
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayanRoot {
+                    flavor.set("prod")
+                    baseConfigFile.set(layout.projectDirectory.file("shared.json"))
+                    schema {
+                        boolean("feature_search_enabled", "FEATURE_SEARCH_ENABLED", required = true)
+                    }
+                }
+            """.trimIndent(),
+            childBuildScript = """
+                plugins {
+                    kotlin("jvm")
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayan {
+                    inheritFromRoot()
+                    packageName.set("sample.feature")
+                    className.set("FeatureConfig")
+                    flavor.set("staging")
+                    schema {
+                        include("feature_search_enabled")
+                    }
+                }
+            """.trimIndent(),
+            sharedConfigJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "feature_search_enabled": false
+                    },
+                    "staging": {
+                      "feature_search_enabled": true
+                    }
+                  }
+                }
+            """.trimIndent(),
+            childSource = """
+                package sample
+
+                import sample.feature.FeatureConfig
+
+                val featureSearchEnabled: Boolean = FeatureConfig.FEATURE_SEARCH_ENABLED
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, ":feature:compileKotlin").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:generateKayanConfig")?.outcome)
+        val generatedFile = File(projectDir, "feature/build/generated/kayan/kotlin/sample/feature/FeatureConfig.kt")
+        assertTrue(generatedFile.exists())
+        assertTrue(generatedFile.readText().contains("public const val FEATURE_SEARCH_ENABLED: Boolean = true"))
+    }
+
+    @Test
     fun generatesConfigFromBaseFileAndCompilesCommonCode() {
         val projectDir = createProject(
             buildScript = buildScript(
@@ -1066,6 +1138,49 @@ class KayanConfigPluginFunctionalTest {
             .withProjectDir(projectDir)
             .withPluginClasspath()
             .withArguments(*tasks, "--stacktrace")
+
+    private fun createMultiProject(
+        rootBuildScript: String,
+        childBuildScript: String,
+        sharedConfigJson: String,
+        childSource: String,
+        childProjectName: String = "feature",
+    ): File {
+        val projectDir = createTempDirectory(prefix = "kayan-plugin-multiproject-test").toFile()
+        File(projectDir, "settings.gradle.kts").writeText(
+            """
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                        google()
+                        mavenCentral()
+                    }
+                }
+
+                dependencyResolutionManagement {
+                    repositories {
+                        google()
+                        mavenCentral()
+                    }
+                }
+
+                rootProject.name = "sample-root"
+                include(":$childProjectName")
+            """.trimIndent()
+        )
+        File(projectDir, "build.gradle.kts").writeText(rootBuildScript)
+        File(projectDir, "shared.json").writeText(sharedConfigJson)
+
+        val childProjectDir = File(projectDir, childProjectName).apply {
+            mkdirs()
+        }
+        File(childProjectDir, "build.gradle.kts").writeText(childBuildScript)
+
+        val sourceFile = File(childProjectDir, "src/main/kotlin/sample/UseConfig.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(childSource)
+        return projectDir
+    }
 
     private fun assertContainsNormalized(
         actual: String,

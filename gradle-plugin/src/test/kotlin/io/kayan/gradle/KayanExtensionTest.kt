@@ -1,10 +1,13 @@
 package io.kayan.gradle
 
+import arrow.core.Either
+import io.kayan.ConfigFormat
 import io.kayan.ConfigValueKind
 import io.kayan.KayanValidationMode
 import io.kayan.assertMessageContains
 import org.gradle.api.Action
 import org.gradle.api.GradleException
+import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,6 +17,124 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalKayanGenerationApi::class)
 class KayanExtensionTest {
+    @Test
+    fun deserializeInheritedRootEntriesReturnsPluginConfigurationErrorForInvalidSerializedEntry() {
+        when (val result = deserializeInheritedRootEntriesEither(listOf("[]"))) {
+            is Either.Left -> {
+                val error = result.value
+
+                assertTrue(error is PluginConfigurationError.InvalidInheritedSchemaEntry)
+                assertMessageContains(
+                    error.toGradleException(),
+                    "Failed to deserialize inherited Kayan root schema entry",
+                    "entry #0",
+                )
+            }
+
+            is Either.Right -> error("Expected inherited root entry deserialization to fail.")
+        }
+    }
+
+    @Test
+    fun inheritFromRootUsesRootConventionsAndIncludedSchemaEntries() {
+        val projects = createProjectHierarchy()
+        val rootExtension = projects.root.extensions.getByType(KayanRootExtension::class.java)
+        val childExtension = projects.child.extensions.getByType(KayanExtension::class.java)
+
+        rootExtension.flavor.set("prod")
+        rootExtension.baseConfigFile.set(projects.root.layout.projectDirectory.file("shared.json"))
+        rootExtension.customConfigFile.set(projects.root.layout.projectDirectory.file("custom.json"))
+        rootExtension.configFormat.set(ConfigFormat.YAML)
+        rootExtension.validationMode.set(KayanValidationMode.STRICT)
+        rootExtension.schema {
+            boolean("use_unified_core_crypto", "USE_UNIFIED_CORE_CRYPTO", required = true)
+            string("provider_cache_scope", "PROVIDER_CACHE_SCOPE", required = true)
+        }
+
+        childExtension.inheritFromRoot()
+        childExtension.schema {
+            include("use_unified_core_crypto")
+        }
+
+        val specs = childExtension.serializedSchemaEntries().map(KayanSchemaEntrySpec::deserialize)
+
+        assertEquals("prod", childExtension.flavor.get())
+        assertEquals("shared.json", childExtension.baseConfigFile.get().asFile.name)
+        assertEquals("custom.json", childExtension.customConfigFile.get().asFile.name)
+        assertEquals(ConfigFormat.YAML, childExtension.configFormat.get())
+        assertEquals(KayanValidationMode.STRICT, childExtension.validationMode.get())
+        assertEquals(listOf("use_unified_core_crypto"), specs.map(KayanSchemaEntrySpec::jsonKey))
+    }
+
+    @Test
+    fun inheritFromRootRejectsLocalSchemaEntries() {
+        val projects = createProjectHierarchy()
+        val rootExtension = projects.root.extensions.getByType(KayanRootExtension::class.java)
+        val childExtension = projects.child.extensions.getByType(KayanExtension::class.java)
+
+        rootExtension.schema {
+            string("bundle_id", "BUNDLE_ID", required = true)
+        }
+        childExtension.schema {
+            string("module_only_key", "MODULE_ONLY_KEY")
+        }
+
+        val error = assertFailsWith<GradleException> {
+            childExtension.inheritFromRoot()
+        }
+
+        assertMessageContains(
+            error,
+            "does not support module-local schema entries",
+            "Define new keys in `kayanRoot { schema { ... } }`",
+        )
+    }
+
+    @Test
+    fun inheritFromRootRejectsUnknownIncludedSchemaKeyWithSuggestions() {
+        val projects = createProjectHierarchy()
+        val rootExtension = projects.root.extensions.getByType(KayanRootExtension::class.java)
+        val childExtension = projects.child.extensions.getByType(KayanExtension::class.java)
+
+        rootExtension.schema {
+            boolean("use_unified_core_crypto", "USE_UNIFIED_CORE_CRYPTO", required = true)
+        }
+        childExtension.inheritFromRoot()
+        childExtension.schema {
+            include("use_unified_core_crypt")
+        }
+
+        val error = assertFailsWith<GradleException> {
+            childExtension.serializedSchemaEntries()
+        }
+
+        assertMessageContains(
+            error,
+            "could not find shared schema key 'use_unified_core_crypt'",
+            "Did you mean 'use_unified_core_crypto'?",
+        )
+    }
+
+    @Test
+    fun schemaInclusionRequiresInheritFromRoot() {
+        val extension = createExtension()
+
+        extension.schema {
+            include("bundle_id")
+        }
+
+        val error = assertFailsWith<GradleException> {
+            extension.serializedSchemaEntries()
+        }
+
+        assertMessageContains(
+            error,
+            "schema inclusion requires `inheritFromRoot()`",
+            "`include(...)`",
+            "`includeAll()`",
+        )
+    }
+
     @Test
     fun schemaActionPropagatesPreventOverrideAcrossBuilderEntryKinds() {
         val extension = createExtension()
@@ -255,6 +376,23 @@ class KayanExtensionTest {
 
     private fun createExtension(): KayanExtension {
         val project = ProjectBuilder.builder().build()
-        return project.extensions.create("kayan", KayanExtension::class.java)
+        return project.extensions.create("kayan", KayanExtension::class.java).apply {
+            owningProject = project
+        }
     }
+
+    private fun createProjectHierarchy(): RootChildProjects {
+        val root = ProjectBuilder.builder().withName("root").build()
+        val child = ProjectBuilder.builder().withName("child").withParent(root).build()
+
+        root.plugins.apply(KayanConfigPlugin::class.java)
+        child.plugins.apply(KayanConfigPlugin::class.java)
+
+        return RootChildProjects(root = root, child = child)
+    }
+
+    private data class RootChildProjects(
+        val root: Project,
+        val child: Project,
+    )
 }

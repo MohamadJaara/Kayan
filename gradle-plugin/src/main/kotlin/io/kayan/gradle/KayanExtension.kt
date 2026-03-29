@@ -23,6 +23,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import org.gradle.api.Action
+import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
@@ -37,11 +38,15 @@ import javax.inject.Inject
  * export locations, and optional Android-specific generation behavior used by
  * Kayan's Gradle tasks.
  */
+@Suppress("TooManyFunctions")
 public abstract class KayanExtension {
     internal val schemaBuilder: KayanSchemaBuilder = KayanSchemaBuilder()
     private val resolvedBuildValueProviders:
         MutableMap<BuildValueRequest, Provider<ResolvedBuildValue>> =
         mutableMapOf()
+    private var inheritsFromRoot: Boolean = false
+
+    internal lateinit var owningProject: Project
 
     @get:Inject
     internal abstract val objects: ObjectFactory
@@ -96,6 +101,28 @@ public abstract class KayanExtension {
     /** Configures the schema that drives validation, generation, and schema export using the Kotlin DSL. */
     public fun schema(action: KayanSchemaBuilder.() -> Unit) {
         schemaBuilder.action()
+    }
+
+    /**
+     * Inherits shared config defaults and schema ownership from `kayanRoot { ... }`
+     * defined on this build's root project.
+     */
+    public fun inheritFromRoot() {
+        if (inheritsFromRoot) {
+            return
+        }
+        val rootExtension = rootExtensionEither().getOrElse { throw it.toGradleException() }
+        if (schemaBuilder.hasLocalEntries()) {
+            throw PluginConfigurationError.LocalSchemaEntriesNotSupportedWithRootInheritance.toGradleException()
+        }
+
+        inheritsFromRoot = true
+        schemaBuilder.enableIncludeOnlyMode()
+        flavor.convention(rootExtension.flavor)
+        baseConfigFile.convention(rootExtension.baseConfigFile)
+        customConfigFile.convention(rootExtension.customConfigFile)
+        configFormat.convention(rootExtension.configFormat)
+        validationMode.convention(rootExtension.validationMode)
     }
 
     /** Configures Android flavor-specific generation using a Gradle [Action]. */
@@ -176,7 +203,7 @@ public abstract class KayanExtension {
     }
 
     internal fun serializedSchemaEntries(): List<String> =
-        schemaBuilder.entries.map(KayanSchemaEntrySpec::serialize)
+        serializedSchemaEntriesEither().getOrElse { throw it.toGradleException() }
 
     @OptIn(ExperimentalKayanGenerationApi::class)
     internal fun androidFlavorSourceSetFlavors(): List<String> = androidFlavorSourceSetSpec.flavors.getOrElse(
@@ -215,6 +242,59 @@ public abstract class KayanExtension {
             }
         }
     }
+
+    @Suppress("ReturnCount")
+    private fun serializedSchemaEntriesEither(): Either<PluginConfigurationError, List<String>> {
+        if (!inheritsFromRoot) {
+            if (schemaBuilder.hasRootIncludes()) {
+                return PluginConfigurationError.RootSchemaInclusionRequiresInheritance.left()
+            }
+
+            return schemaBuilder.serializedLocalEntries().right()
+        }
+
+        val rootExtension = rootExtensionEither().getOrElse { return it.left() }
+        val rootEntries = deserializeInheritedRootEntriesEither(
+            rootExtension.serializedSchemaEntriesEither().getOrElse { return it.left() },
+        ).getOrElse { return it.left() }
+        val rootEntriesByJsonKey = rootEntries.associateBy(KayanSchemaEntrySpec::jsonKey)
+
+        if (schemaBuilder.includesAll()) {
+            return rootEntries.map(KayanSchemaEntrySpec::serialize).right()
+        }
+
+        val includedKeys = schemaBuilder.includedJsonKeys()
+        if (includedKeys.isEmpty()) {
+            return PluginConfigurationError.MissingInheritedSchemaSelection.left()
+        }
+
+        includedKeys.forEach { jsonKey ->
+            if (rootEntriesByJsonKey[jsonKey] == null) {
+                val suggestions = closeKeyMatches(jsonKey, rootEntriesByJsonKey.keys.toList())
+                return PluginConfigurationError.UnknownInheritedSchemaKey(jsonKey, suggestions).left()
+            }
+        }
+
+        return rootEntries
+            .filter { entry -> includedKeys.contains(entry.jsonKey) }
+            .map(KayanSchemaEntrySpec::serialize)
+            .right()
+    }
+
+    private fun rootExtensionEither(): Either<PluginConfigurationError, KayanRootExtension> =
+        owningProject.rootProject.extensions.findByType(KayanRootExtension::class.java)?.right()
+            ?: PluginConfigurationError.MissingRootKayanConfiguration.left()
+}
+
+internal fun deserializeInheritedRootEntriesEither(
+    serializedEntries: List<String>,
+): Either<PluginConfigurationError, List<KayanSchemaEntrySpec>> = either {
+    serializedEntries.mapIndexed { index, serialized ->
+        when (val deserialized = KayanSchemaEntrySpec.deserializeEither(serialized, index)) {
+            is Either.Left -> raise(PluginConfigurationError.InvalidInheritedSchemaEntry(index, deserialized.value))
+            is Either.Right -> deserialized.value
+        }
+    }
 }
 
 private fun validateSchemaKeyEither(
@@ -243,8 +323,22 @@ private data class BuildValueRequest(
  * `preventOverride` blocks the custom override file from replacing the base
  * value.
  */
+@Suppress("TooManyFunctions")
 public class KayanSchemaBuilder internal constructor() {
     internal val entries: MutableList<KayanSchemaEntrySpec> = mutableListOf()
+    private val includedJsonKeys: LinkedHashSet<String> = linkedSetOf()
+    private var includeAllFromRoot: Boolean = false
+    private var includeOnlyMode: Boolean = false
+
+    /** Includes one shared schema entry from `kayanRoot { schema { ... } }`. */
+    public fun include(jsonKey: String) {
+        includedJsonKeys += jsonKey
+    }
+
+    /** Includes every shared schema entry from `kayanRoot { schema { ... } }`. */
+    public fun includeAll() {
+        includeAllFromRoot = true
+    }
 
     /** Adds a string schema entry. */
     public fun string(
@@ -461,6 +555,10 @@ public class KayanSchemaBuilder internal constructor() {
         adapterClassName: String? = null,
         preventOverride: Boolean = false,
     ) {
+        if (includeOnlyMode) {
+            throw PluginConfigurationError.LocalSchemaEntriesNotSupportedWithRootInheritance.toGradleException()
+        }
+
         entries += KayanSchemaEntrySpec(
             jsonKey = jsonKey,
             propertyName = propertyName,
@@ -472,6 +570,20 @@ public class KayanSchemaBuilder internal constructor() {
             preventOverride = preventOverride,
         )
     }
+
+    internal fun enableIncludeOnlyMode() {
+        includeOnlyMode = true
+    }
+
+    internal fun hasLocalEntries(): Boolean = entries.isNotEmpty()
+
+    internal fun hasRootIncludes(): Boolean = includeAllFromRoot || includedJsonKeys.isNotEmpty()
+
+    internal fun includesAll(): Boolean = includeAllFromRoot
+
+    internal fun includedJsonKeys(): Set<String> = includedJsonKeys
+
+    internal fun serializedLocalEntries(): List<String> = entries.map(KayanSchemaEntrySpec::serialize)
 }
 
 internal data class KayanSchemaEntrySpec(

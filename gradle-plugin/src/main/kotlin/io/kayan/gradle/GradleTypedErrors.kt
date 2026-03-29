@@ -31,6 +31,78 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         override fun message(): String = "Kayan requires at least one consumer-defined schema entry."
     }
 
+    data object MissingRootKayanConfiguration : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan root inheritance requires the root project to apply the " +
+                "`io.github.mohamadjaara.kayan` plugin and configure `kayanRoot { ... }`."
+    }
+
+    data object MissingRootSchemaEntries : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan root inheritance requires `kayanRoot { schema { ... } }` to declare at least one schema entry."
+    }
+
+    data object MissingInheritedSchemaSelection : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan root inheritance requires `schema { include(\"...\") }` or `schema { includeAll() }`."
+    }
+
+    data object RootSchemaInclusionRequiresInheritance : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan schema inclusion requires `inheritFromRoot()` before calling `include(...)` or `includeAll()`."
+    }
+
+    data object RootSchemaIncludesNotSupported : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "`kayanRoot { schema { ... } }` defines shared schema entries and does not support `include(...)` " +
+                "or `includeAll()`."
+    }
+
+    data object LocalSchemaEntriesNotSupportedWithRootInheritance : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Kayan root inheritance does not support module-local schema entries. " +
+                "Define new keys in `kayanRoot { schema { ... } }` and consume them with `include(...)`."
+    }
+
+    data class UnknownInheritedSchemaKey(
+        val jsonKey: String,
+        val suggestions: List<String>,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String {
+            val suggestionMessage = suggestions
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(prefix = " Did you mean ", postfix = "?") { "'$it'" }
+                .orEmpty()
+
+            return "Kayan root inheritance could not find shared schema key '$jsonKey' in `kayanRoot`. " +
+                "Use a key declared in `kayanRoot { schema { ... } }`.$suggestionMessage"
+        }
+    }
+
+    data class InvalidInheritedSchemaEntry(
+        val entryIndex: Int,
+        val error: SchemaError,
+    ) : PluginConfigurationError {
+        override val cause: Throwable? = error.cause
+
+        override fun message(): String =
+            "Failed to deserialize inherited Kayan root schema entry #$entryIndex: ${error.message()}"
+    }
+
     data class MissingConfigFile(
         val fileLabel: String,
         val path: String,

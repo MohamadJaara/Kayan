@@ -12,7 +12,16 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 @OptIn(ExperimentalKayanGenerationApi::class)
 public class KayanConfigPlugin : Plugin<Project> {
     override fun apply(project: Project) {
+        if (project == project.rootProject && project.extensions.findByType(KayanRootExtension::class.java) == null) {
+            project.extensions.create("kayanRoot", KayanRootExtension::class.java).apply {
+                baseConfigFile.convention(project.layout.projectDirectory.file("default.json"))
+                configFormat.convention(ConfigFormat.JSON)
+                validationMode.convention(KayanValidationMode.SUBSET)
+            }
+        }
+
         val extension = project.extensions.create("kayan", KayanExtension::class.java).apply {
+            owningProject = project
             baseConfigFile.convention(project.layout.projectDirectory.file("default.json"))
             configFormat.convention(ConfigFormat.JSON)
             validationMode.convention(KayanValidationMode.SUBSET)
