@@ -12,6 +12,7 @@ import io.kayan.ConfigFormat
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import io.kayan.ResolvedFlavorConfig
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -61,6 +62,9 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
     @get:Input
     public abstract val configFormat: Property<ConfigFormat>
+
+    @get:Input
+    public abstract val validationMode: Property<KayanValidationMode>
 
     @get:OutputDirectory
     public abstract val outputDir: DirectoryProperty
@@ -230,6 +234,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
                 requireExistingFileEither(file, "custom").bind()
             },
             configFormat = configFormat.orNull ?: ConfigFormat.AUTO,
+            validationMode = validationMode.orNull ?: KayanValidationMode.SUBSET,
             declarationMode = mode,
         )
     }
@@ -282,6 +287,7 @@ private fun GenerateKayanConfigTask.resolveFlavorForEither(
             baseFile = inputs.baseFile,
             customFile = inputs.customFile,
             configFormat = inputs.configFormat,
+            validationMode = inputs.validationMode,
             targetName = inputs.targetName,
         ).flatMap { resolved ->
             requireResolvedFlavorEither(resolved, inputs.flavor)

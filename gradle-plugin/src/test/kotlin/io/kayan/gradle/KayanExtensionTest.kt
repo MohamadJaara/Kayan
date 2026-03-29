@@ -1,6 +1,7 @@
 package io.kayan.gradle
 
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import io.kayan.assertMessageContains
 import org.gradle.api.Action
 import org.gradle.api.GradleException
@@ -240,6 +241,16 @@ class KayanExtensionTest {
             ),
             extension.targetSourceSetMappings(),
         )
+    }
+
+    @Test
+    fun pluginDefaultsValidationModeToSubset() {
+        val project = ProjectBuilder.builder().build()
+        project.plugins.apply(KayanConfigPlugin::class.java)
+
+        val extension = project.extensions.getByType(KayanExtension::class.java)
+
+        assertEquals(KayanValidationMode.SUBSET, extension.validationMode.get())
     }
 
     private fun createExtension(): KayanExtension {

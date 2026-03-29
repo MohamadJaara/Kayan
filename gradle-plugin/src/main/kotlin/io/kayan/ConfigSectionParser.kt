@@ -10,6 +10,7 @@ internal class ConfigSectionParser(
         configJson: String,
         schema: ConfigSchema,
         sourceName: String,
+        validationMode: KayanValidationMode,
     ): Either<ConfigError, AppConfigFile> = either {
         val rootContext = DiagnosticContext(sourceName = sourceName)
         val root = parser.parseRootEither(configJson, sourceName).bind()
@@ -32,6 +33,7 @@ internal class ConfigSectionParser(
                 root.entries.filterKeys { it != DefaultConfigResolver.FLAVORS_KEY },
             ),
             context = rootContext,
+            validationMode = validationMode,
         ).bind()
 
         val flavors = buildMap<String, ConfigSection> {
@@ -53,6 +55,7 @@ internal class ConfigSectionParser(
                         schema = schema,
                         objectNode = flavorObject,
                         context = flavorContext,
+                        validationMode = validationMode,
                     ).bind(),
                 )
             }
@@ -65,6 +68,7 @@ internal class ConfigSectionParser(
         schema: ConfigSchema,
         objectNode: ConfigNode.ObjectNode,
         context: DiagnosticContext,
+        validationMode: KayanValidationMode,
         allowTargets: Boolean = true,
     ): Either<ConfigError, ConfigSection> = either {
         var targets: Map<String, ConfigSection> = emptyMap()
@@ -100,17 +104,23 @@ internal class ConfigSectionParser(
                                     schema = schema,
                                     objectNode = targetObject,
                                     context = targetContext,
+                                    validationMode = validationMode,
                                     allowTargets = false,
                                 ).bind(),
                             )
                         }
                     }
-                    continue
+                } else {
+                    val valueContext = context.atKey(jsonKey)
+                    val definition = schema.definitionFor(jsonKey)
+                    if (definition == null) {
+                        if (validationMode == KayanValidationMode.STRICT) {
+                            raise(unknownKeyError(jsonKey, schema, valueContext))
+                        }
+                    } else {
+                        put(definition, parseValueEither(definition, node, valueContext).bind())
+                    }
                 }
-                val valueContext = context.atKey(jsonKey)
-                val definition = schema.definitionFor(jsonKey)
-                    ?: raise(unknownKeyError(jsonKey, schema, valueContext))
-                put(definition, parseValueEither(definition, node, valueContext).bind())
             }
         }
 

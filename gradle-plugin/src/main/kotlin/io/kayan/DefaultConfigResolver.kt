@@ -49,6 +49,19 @@ public class DefaultConfigResolver : ConfigResolver {
         configJson = configJson,
         schema = schema,
         sourceName = DEFAULT_PARSE_SOURCE_NAME,
+        validationMode = KayanValidationMode.STRICT,
+    ).getOrElse { throw it.toConfigValidationException() }
+
+    /** Parses [configJson] using the supplied [validationMode]. */
+    public fun parse(
+        configJson: String,
+        schema: ConfigSchema,
+        validationMode: KayanValidationMode,
+    ): AppConfigFile = parseEither(
+        configJson = configJson,
+        schema = schema,
+        sourceName = DEFAULT_PARSE_SOURCE_NAME,
+        validationMode = validationMode,
     ).getOrElse { throw it.toConfigValidationException() }
 
     /**
@@ -65,6 +78,20 @@ public class DefaultConfigResolver : ConfigResolver {
         configJson = configJson,
         schema = schema,
         sourceName = sourceName,
+        validationMode = KayanValidationMode.STRICT,
+    ).getOrElse { throw it.toConfigValidationException() }
+
+    /** Parses [configJson] with a custom [sourceName] and [validationMode]. */
+    public fun parse(
+        configJson: String,
+        schema: ConfigSchema,
+        sourceName: String,
+        validationMode: KayanValidationMode,
+    ): AppConfigFile = parseEither(
+        configJson = configJson,
+        schema = schema,
+        sourceName = sourceName,
+        validationMode = validationMode,
     ).getOrElse { throw it.toConfigValidationException() }
 
     override fun resolve(
@@ -77,6 +104,22 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigJson = customConfigJson,
         defaultConfigSourceName = DEFAULT_BASE_SOURCE_NAME,
         customConfigSourceName = DEFAULT_CUSTOM_SOURCE_NAME,
+        validationMode = KayanValidationMode.STRICT,
+    ).getOrElse { throw it.toConfigValidationException() }
+
+    /** Resolves configs using the supplied [validationMode]. */
+    public fun resolve(
+        defaultConfigJson: String,
+        schema: ConfigSchema,
+        customConfigJson: String?,
+        validationMode: KayanValidationMode,
+    ): ResolvedConfigsByFlavor = resolveEither(
+        defaultConfigJson = defaultConfigJson,
+        schema = schema,
+        customConfigJson = customConfigJson,
+        defaultConfigSourceName = DEFAULT_BASE_SOURCE_NAME,
+        customConfigSourceName = DEFAULT_CUSTOM_SOURCE_NAME,
+        validationMode = validationMode,
     ).getOrElse { throw it.toConfigValidationException() }
 
     /**
@@ -97,6 +140,24 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigJson = customConfigJson,
         defaultConfigSourceName = defaultConfigSourceName,
         customConfigSourceName = customConfigSourceName,
+        validationMode = KayanValidationMode.STRICT,
+    ).getOrElse { throw it.toConfigValidationException() }
+
+    /** Resolves configs while preserving source names and applying [validationMode]. */
+    public fun resolve(
+        defaultConfigJson: String,
+        schema: ConfigSchema,
+        customConfigJson: String?,
+        defaultConfigSourceName: String,
+        customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
+        validationMode: KayanValidationMode,
+    ): ResolvedConfigsByFlavor = resolveEither(
+        defaultConfigJson = defaultConfigJson,
+        schema = schema,
+        customConfigJson = customConfigJson,
+        defaultConfigSourceName = defaultConfigSourceName,
+        customConfigSourceName = customConfigSourceName,
+        validationMode = validationMode,
     ).getOrElse { throw it.toConfigValidationException() }
 
     /**
@@ -119,16 +180,42 @@ public class DefaultConfigResolver : ConfigResolver {
         defaultConfigSourceName = defaultConfigSourceName,
         customConfigSourceName = customConfigSourceName,
         targetName = targetName,
+        validationMode = KayanValidationMode.STRICT,
+    ).getOrElse { throw it.toConfigValidationException() }
+
+    /**
+     * Resolves [defaultConfigJson] and [customConfigJson] for one specific [targetName]
+     * while applying [validationMode].
+     */
+    @ExperimentalKayanApi
+    public fun resolve(
+        defaultConfigJson: String,
+        schema: ConfigSchema,
+        customConfigJson: String?,
+        targetName: String,
+        defaultConfigSourceName: String,
+        customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
+        validationMode: KayanValidationMode,
+    ): ResolvedConfigsByFlavor = resolveEither(
+        defaultConfigJson = defaultConfigJson,
+        schema = schema,
+        customConfigJson = customConfigJson,
+        defaultConfigSourceName = defaultConfigSourceName,
+        customConfigSourceName = customConfigSourceName,
+        targetName = targetName,
+        validationMode = validationMode,
     ).getOrElse { throw it.toConfigValidationException() }
 
     internal fun parseEither(
         configJson: String,
         schema: ConfigSchema,
         sourceName: String,
+        validationMode: KayanValidationMode = KayanValidationMode.STRICT,
     ): Either<ConfigError, AppConfigFile> = parseInternalEither(
         configJson = configJson,
         schema = schema,
         sourceName = sourceName,
+        validationMode = validationMode,
     )
 
     internal fun resolveEither(
@@ -138,6 +225,7 @@ public class DefaultConfigResolver : ConfigResolver {
         defaultConfigSourceName: String,
         customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
         targetName: String? = null,
+        validationMode: KayanValidationMode = KayanValidationMode.STRICT,
     ): Either<ConfigError, ResolvedConfigsByFlavor> = resolveInternalEither(
         defaultConfigJson = defaultConfigJson,
         schema = schema,
@@ -145,16 +233,19 @@ public class DefaultConfigResolver : ConfigResolver {
         defaultConfigSourceName = defaultConfigSourceName,
         customConfigSourceName = customConfigSourceName,
         targetName = targetName,
+        validationMode = validationMode,
     )
 
     private fun parseInternalEither(
         configJson: String,
         schema: ConfigSchema,
         sourceName: String,
+        validationMode: KayanValidationMode,
     ): Either<ConfigError, AppConfigFile> = ConfigSectionParser(parser).parseEither(
         configJson = configJson,
         schema = schema,
         sourceName = sourceName,
+        validationMode = validationMode,
     )
 
     private fun resolveInternalEither(
@@ -164,10 +255,16 @@ public class DefaultConfigResolver : ConfigResolver {
         defaultConfigSourceName: String,
         customConfigSourceName: String,
         targetName: String?,
+        validationMode: KayanValidationMode,
     ): Either<ConfigError, ResolvedConfigsByFlavor> = either {
-        val defaultConfig = parseInternalEither(defaultConfigJson, schema, defaultConfigSourceName).bind()
+        val defaultConfig = parseInternalEither(
+            defaultConfigJson,
+            schema,
+            defaultConfigSourceName,
+            validationMode,
+        ).bind()
         val customConfig = customConfigJson?.let {
-            parseInternalEither(it, schema, customConfigSourceName).bind()
+            parseInternalEither(it, schema, customConfigSourceName, validationMode).bind()
         }
         CustomConfigValidator.validateEither(
             defaultConfig = defaultConfig,

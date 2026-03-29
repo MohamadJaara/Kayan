@@ -13,6 +13,7 @@ import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.DefaultConfigResolver
+import io.kayan.KayanValidationMode
 import io.kayan.ResolvedConfigsByFlavor
 import io.kayan.ResolvedFlavorConfig
 import io.kayan.parserFor
@@ -30,6 +31,7 @@ internal data class GenerationInputs(
     val baseFile: File,
     val customFile: File?,
     val configFormat: ConfigFormat,
+    val validationMode: KayanValidationMode,
     val declarationMode: KayanDeclarationMode,
 )
 
@@ -153,6 +155,7 @@ internal fun resolveConfigEither(
     baseFile: File,
     customFile: File?,
     configFormat: ConfigFormat = ConfigFormat.AUTO,
+    validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
     targetName: String? = null,
 ): Either<GenerationError, ResolvedConfigsByFlavor> = either {
     val baseText = readFileEither(baseFile).bind()
@@ -174,6 +177,7 @@ internal fun resolveConfigEither(
         defaultConfigSourceName = baseFile.absolutePath,
         customConfigSourceName = customFile?.absolutePath ?: "custom config",
         targetName = targetName,
+        validationMode = validationMode,
     )
 
     when (resolved) {
@@ -187,6 +191,7 @@ internal fun resolveConfig(
     baseFile: File,
     customFile: File?,
     configFormat: ConfigFormat = ConfigFormat.AUTO,
+    validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
     targetName: String? = null,
 ): ResolvedConfigsByFlavor =
     resolveConfigEither(
@@ -194,6 +199,7 @@ internal fun resolveConfig(
         baseFile = baseFile,
         customFile = customFile,
         configFormat = configFormat,
+        validationMode = validationMode,
         targetName = targetName,
     ).getOrElse { throw it.toGradleException() }
 

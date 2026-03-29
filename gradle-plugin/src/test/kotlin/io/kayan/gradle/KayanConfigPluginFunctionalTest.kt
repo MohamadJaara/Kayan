@@ -432,6 +432,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
+                    validationMode.set(io.kayan.KayanValidationMode.STRICT)
                 """.trimIndent()
             ),
             baseJson = """
@@ -449,6 +450,57 @@ class KayanConfigPluginFunctionalTest {
 
         val result = gradleRunner(projectDir, "generateKayanConfig").buildAndFail()
         assertTrue(result.output.contains("Unknown key 'unknown_key'"))
+    }
+
+    @Test
+    fun defaultsToSubsetValidationForSharedConfigKeysIncludingTargets() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    targets("jvm")
+                """.trimIndent()
+            ),
+            baseJson = """
+                {
+                  "unknown_root_key": true,
+                  "targets": {
+                    "jvm": {
+                      "brand_name": "Base JVM",
+                      "unknown_default_target_key": "ignored"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Prod JVM",
+                          "unknown_flavor_target_key": 1
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            commonSource = """
+                package sample
+
+                import sample.config.KayanConfig
+
+                val bundleId: String = KayanConfig.BUNDLE_ID
+                val brandName: String? = KayanConfig.BRAND_NAME
+            """.trimIndent(),
+        )
+
+        val result = gradleRunner(projectDir, "compileKotlinJvm").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanJvmMainConfig")?.outcome)
+        val actualFile = File(projectDir, "build/generated/kayan-targets/kotlin/jvmMain/sample/config/KayanConfig.kt")
+        assertTrue(actualFile.exists())
+        assertTrue(actualFile.readText().contains("public actual val BRAND_NAME: String? = \"Prod JVM\""))
     }
 
     @Test

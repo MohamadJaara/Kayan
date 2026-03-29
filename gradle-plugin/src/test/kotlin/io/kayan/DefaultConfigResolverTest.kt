@@ -509,6 +509,79 @@ class DefaultConfigResolverTest {
     }
 
     @Test
+    fun strictValidationModeRejectsUnknownKeyInsideTargetBlock() {
+        val error = assertFailsWith<ConfigValidationException> {
+            resolver.resolve(
+                defaultConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "targets": {
+                            "jvm": {
+                              "unknown_key": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                customConfigJson = null,
+                targetName = "jvm",
+                defaultConfigSourceName = "base.json",
+                validationMode = KayanValidationMode.STRICT,
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "Unknown key 'unknown_key'",
+            "source 'base.json'",
+            "path '$.flavors.prod.targets.jvm.unknown_key'",
+        )
+    }
+
+    @Test
+    fun subsetValidationModeIgnoresUnknownKeysInSharedRootAndTargets() {
+        val resolved = resolver.resolve(
+            defaultConfigJson = """
+                {
+                  "brand_name": "Base",
+                  "unknown_root_key": true,
+                  "targets": {
+                    "jvm": {
+                      "brand_name": "Base JVM",
+                      "unknown_default_target_key": "ignored"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Prod JVM",
+                          "unknown_flavor_target_key": 7
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+            customConfigJson = null,
+            targetName = "jvm",
+            defaultConfigSourceName = "base.json",
+            validationMode = KayanValidationMode.SUBSET,
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("Prod JVM"),
+            resolved.flavors.getValue("prod")[brandName],
+        )
+    }
+
+    @Test
     fun rejectsUnknownKeyInCustomConfig() {
         val error = assertFailsWith<ConfigValidationException> {
             resolver.resolve(
@@ -572,6 +645,42 @@ class DefaultConfigResolverTest {
             "path '$.max_workspace_count'",
             "expected int",
             "found string",
+        )
+    }
+
+    @Test
+    fun subsetValidationModeStillValidatesDeclaredTargetSpecificKeys() {
+        val error = assertFailsWith<ConfigValidationException> {
+            resolver.resolve(
+                defaultConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "targets": {
+                            "jvm": {
+                              "brand_name": false,
+                              "unknown_key": "ignored"
+                            }
+                          }
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                customConfigJson = null,
+                targetName = "jvm",
+                defaultConfigSourceName = "base.json",
+                validationMode = KayanValidationMode.SUBSET,
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "source 'base.json'",
+            "path '$.flavors.prod.targets.jvm.brand_name'",
+            "expected string",
+            "found boolean",
         )
     }
 

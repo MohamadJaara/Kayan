@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.raise.either
 import io.kayan.ConfigFormat
+import io.kayan.KayanValidationMode
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -33,6 +34,9 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
         public val configFormat: Property<ConfigFormat>
 
         @get:Input
+        public val validationMode: Property<KayanValidationMode>
+
+        @get:Input
         public val schemaEntries: ListProperty<String>
 
         @get:Input
@@ -50,6 +54,7 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
         val schema = requireSchemaEither(parameters.schemaEntries.get()).bind()
         val flavor = requireConfiguredEither(parameters.flavor.orNull, "flavor").bind()
         val jsonKey = requireConfiguredEither(parameters.jsonKey.orNull, "jsonKey").bind()
+        val validationMode = parameters.validationMode.orNull ?: KayanValidationMode.SUBSET
         val targetName = parameters.targetName.orNull?.let { requireConfiguredEither(it, "targetName").bind() }
         val baseFile = requireExistingFileEither(parameters.baseConfigFile.asFile.get(), "base").bind()
         val customFile = parameters.customConfigFile.orNull?.asFile?.let { file ->
@@ -60,6 +65,7 @@ internal abstract class KayanConfigValueSource : ValueSource<String, KayanConfig
             baseFile = baseFile,
             customFile = customFile,
             configFormat = parameters.configFormat.orNull ?: ConfigFormat.AUTO,
+            validationMode = validationMode,
             targetName = targetName,
         ).bind()
         val resolvedFlavor = requireResolvedFlavorEither(resolved, flavor).bind()

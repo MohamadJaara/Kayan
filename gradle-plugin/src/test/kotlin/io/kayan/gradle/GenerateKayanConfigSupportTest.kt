@@ -4,6 +4,7 @@ import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import io.kayan.assertMessageContains
 import org.gradle.api.GradleException
 import java.io.File
@@ -100,7 +101,12 @@ class GenerateKayanConfigSupportTest {
         val schema = requireSchema(listOf(bundleIdEntry().serialize()))
 
         val error = assertFailsWith<GradleException> {
-            resolveConfig(schema = schema, baseFile = baseFile, customFile = null)
+            resolveConfig(
+                schema = schema,
+                baseFile = baseFile,
+                customFile = null,
+                validationMode = KayanValidationMode.STRICT,
+            )
         }
 
         assertMessageContains(
@@ -109,6 +115,62 @@ class GenerateKayanConfigSupportTest {
             "Unknown key 'brand_name_typo'",
         )
         assertTrue(error.cause is IllegalArgumentException)
+    }
+
+    @Test
+    fun resolveConfigDefaultsToSubsetModeForSharedFiles() {
+        val brandName = ConfigDefinition(
+            jsonKey = "brand_name",
+            propertyName = "BRAND_NAME",
+            kind = ConfigValueKind.STRING,
+        )
+        val schema = requireSchema(
+            listOf(
+                bundleIdEntry().serialize(),
+                KayanSchemaEntrySpec(
+                    jsonKey = brandName.jsonKey,
+                    propertyName = brandName.propertyName,
+                    kind = brandName.kind,
+                    required = brandName.required,
+                    nullable = brandName.nullable,
+                ).serialize(),
+            ),
+        )
+
+        val resolved = resolveConfig(
+            schema = schema,
+            baseFile = createConfigFile(
+                """
+                    {
+                      "unknown_root_key": true,
+                      "targets": {
+                        "jvm": {
+                          "brand_name": "Base JVM",
+                          "unknown_target_key": "ignored"
+                        }
+                      },
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "targets": {
+                            "jvm": {
+                              "brand_name": "Prod JVM",
+                              "unknown_flavor_target_key": 42
+                            }
+                          }
+                        }
+                      }
+                    }
+                """.trimIndent(),
+            ),
+            customFile = null,
+            targetName = "jvm",
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("Prod JVM"),
+            resolved.flavors.getValue("prod").values.getValue(brandName),
+        )
     }
 
     @Test

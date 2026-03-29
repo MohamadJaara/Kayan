@@ -2,6 +2,7 @@ package io.kayan.gradle
 
 import arrow.core.getOrElse
 import io.kayan.ConfigFormat
+import io.kayan.KayanValidationMode
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -14,6 +15,7 @@ public class KayanConfigPlugin : Plugin<Project> {
         val extension = project.extensions.create("kayan", KayanExtension::class.java).apply {
             baseConfigFile.convention(project.layout.projectDirectory.file("default.json"))
             configFormat.convention(ConfigFormat.JSON)
+            validationMode.convention(KayanValidationMode.SUBSET)
             className.convention("KayanConfig")
             jsonSchemaOutputFile.convention(
                 project.layout.buildDirectory.file("generated/kayan/schema/kayan.schema.json"),

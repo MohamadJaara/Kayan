@@ -28,8 +28,8 @@ internal class GenerationTaskRegistrar(
             spec = GenerationSpec(
                 taskName = generation.taskName,
                 description =
-                    "Generates a typed Kayan config actual object for source set '${generation.sourceSetName}' " +
-                        "and target '${generation.targetName}'.",
+                "Generates a typed Kayan config actual object for source set '${generation.sourceSetName}' " +
+                    "and target '${generation.targetName}'.",
                 outputDirectory = "generated/kayan-targets/kotlin/${generation.sourceSetName}",
                 targetName = generation.targetName,
                 kotlinPluginApplied = true,
@@ -64,8 +64,7 @@ internal class GenerationTaskRegistrar(
         registerGenerateTask(
             spec = GenerationSpec(
                 taskName = generation.taskName,
-                description =
-                    "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'.",
+                description = "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'.",
                 outputDirectory = "generated/kayan/kotlin/android/${generation.flavorName}",
                 flavorName = generation.flavorName,
                 kotlinPluginApplied = true,
@@ -103,6 +102,7 @@ internal class GenerationTaskRegistrar(
         baseConfigFile.set(extension.baseConfigFile)
         customConfigFile.set(extension.customConfigFile)
         configFormat.set(extension.configFormat)
+        validationMode.set(extension.validationMode)
         schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
         outputDir.set(project.layout.buildDirectory.dir(outputDirectory))
         project.buildscript.configurations.findByName("classpath")?.let { classpath ->

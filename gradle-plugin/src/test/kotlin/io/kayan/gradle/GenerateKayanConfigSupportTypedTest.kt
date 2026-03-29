@@ -4,6 +4,7 @@ import arrow.core.Either
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigError
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
@@ -50,7 +51,14 @@ class GenerateKayanConfigSupportTypedTest {
         }
         val schema = requireSchema(listOf(bundleIdEntry().serialize()))
 
-        when (val result = resolveConfigEither(schema, baseFile, null)) {
+        when (
+            val result = resolveConfigEither(
+                schema = schema,
+                baseFile = baseFile,
+                customFile = null,
+                validationMode = KayanValidationMode.STRICT,
+            )
+        ) {
             is Either.Left -> {
                 val error = assertIs<GenerationError.ConfigResolutionFailure>(result.value)
                 assertIs<ConfigError.UnknownKey>(error.error)

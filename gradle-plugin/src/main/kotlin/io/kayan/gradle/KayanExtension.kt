@@ -11,6 +11,7 @@ import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
 import io.kayan.ConfigSchema
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import io.kayan.SchemaError
 import io.kayan.closeKeyMatches
 import kotlinx.serialization.SerializationException
@@ -74,6 +75,9 @@ public abstract class KayanExtension {
 
     /** Config source format, or `AUTO` to infer it from file extensions. */
     public abstract val configFormat: Property<ConfigFormat>
+
+    /** How strictly shared config files should be validated against this module's schema. */
+    public abstract val validationMode: Property<KayanValidationMode>
 
     /** Name of the generated Kotlin object or type. */
     public abstract val className: Property<String>
@@ -200,6 +204,7 @@ public abstract class KayanExtension {
                 spec.parameters.baseConfigFile.set(baseConfigFile)
                 spec.parameters.customConfigFile.set(customConfigFile)
                 spec.parameters.configFormat.set(configFormat)
+                spec.parameters.validationMode.set(validationMode)
                 spec.parameters.flavor.set(flavor)
                 spec.parameters.schemaEntries.set(serializedSchemaEntries())
                 spec.parameters.jsonKey.set(jsonKey)
