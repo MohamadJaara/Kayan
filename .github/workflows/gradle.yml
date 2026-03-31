@@ -76,7 +76,7 @@ jobs:
       run: ./gradlew ${{ matrix.target }} ${{ matrix.extra_args }}
     - name: Upload coverage to Codecov
       if: matrix.target == ':gradle-plugin:test'
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         files: ./gradle-plugin/build/reports/jacoco/test/jacocoTestReport.xml
         fail_ci_if_error: true
