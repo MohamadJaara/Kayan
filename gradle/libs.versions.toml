@@ -9,7 +9,7 @@ detekt = "1.23.8"
 dokka = "2.2.0"
 arrow = "2.2.2.1"
 snakeyaml = "2.6"
-kotlinpoet = "2.2.0"
+kotlinpoet = "2.3.0"
 
 [libraries]
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
