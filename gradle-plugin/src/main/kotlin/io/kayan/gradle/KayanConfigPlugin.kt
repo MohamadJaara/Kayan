@@ -7,6 +7,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 /** @suppress */
 @OptIn(ExperimentalKayanGenerationApi::class)
@@ -92,7 +93,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             kotlinExtension.sourceSets.matching { sourceSet ->
                 sourceSet.name == sourceSetName
             }.configureEach { sourceSet ->
-                sourceSet.kotlin.srcDir(generateTask.flatMap { it.outputDir })
+                sourceSet.registerGeneratedKayanSources(generateTask)
             }
         }
     }
@@ -137,7 +138,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             kotlinExtension.sourceSets.matching { sourceSet ->
                 sourceSet.name == generation.sourceSetName
             }.configureEach { sourceSet ->
-                sourceSet.kotlin.srcDir(targetTask.flatMap { it.outputDir })
+                sourceSet.registerGeneratedKayanSources(targetTask)
             }
         }
     }
@@ -194,6 +195,12 @@ public class KayanConfigPlugin : Plugin<Project> {
         internal const val KOTLIN_MULTIPLATFORM_PLUGIN_ID: String = "org.jetbrains.kotlin.multiplatform"
         internal const val KOTLIN_JVM_PLUGIN_ID: String = "org.jetbrains.kotlin.jvm"
     }
+}
+
+private fun KotlinSourceSet.registerGeneratedKayanSources(
+    generateTask: TaskProvider<GenerateKayanConfigTask>,
+) {
+    kotlin.srcDir(generateTask)
 }
 
 private fun <T> arrow.core.Either<KayanGradleError, T>.getOrThrowGradle(): T =
