@@ -82,6 +82,220 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun subprojectInheritsRootSchemaAndGeneratesEnumActualsForConfiguredKmpTargetSourceSets() {
+        val projectDir = createMultiProject(
+            rootBuildScript = """
+                plugins {
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayanRoot {
+                    flavor.set("default")
+                    baseConfigFile.set(layout.projectDirectory.file("kalium.yaml"))
+                    configFormat.set(io.kayan.ConfigFormat.YAML)
+                    schema {
+                        boolean("use_unified_core_crypto", "USE_UNIFIED_CORE_CRYPTO", required = true)
+                        enum(
+                            "provider_cache_scope",
+                            "PROVIDER_CACHE_SCOPE",
+                            "sample.buildflags.ProviderCacheScope",
+                            required = true,
+                        )
+                        boolean("sqliter_full_traces", "SQLITER_FULL_TRACES", required = true)
+                        string("sqliter_trace_file", "SQLITER_TRACE_FILE", required = true)
+                    }
+                }
+            """.trimIndent(),
+            childBuildScript = """
+                @file:OptIn(io.kayan.gradle.ExperimentalKayanGenerationApi::class)
+
+                import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+
+                plugins {
+                    kotlin("multiplatform")
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kotlin {
+                    jvm()
+
+                    sourceSets {
+                        val commonMain by getting
+                        val appleMain by creating {
+                            dependsOn(commonMain)
+                        }
+                    }
+                }
+
+                kayan {
+                    inheritFromRoot()
+                    packageName.set("sample.usernetwork.di")
+                    className.set("UserNetworkBuildConfig")
+                    targets {
+                        jvm()
+                        sourceSet(sourceSetName = "appleMain", targetName = "apple")
+                    }
+                    schema {
+                        include("provider_cache_scope")
+                    }
+                }
+
+                tasks.register("assertKayanTargetSourceWiring") {
+                    doLast {
+                        val kotlinExtension = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+                        val generatedCommonDir = layout.buildDirectory.dir("generated/kayan/kotlin").get().asFile
+                        val generatedJvmDir = layout.buildDirectory
+                            .dir("generated/kayan-targets/kotlin/jvmMain")
+                            .get()
+                            .asFile
+                        val generatedAppleDir = layout.buildDirectory
+                            .dir("generated/kayan-targets/kotlin/appleMain")
+                            .get()
+                            .asFile
+
+                        val commonSourceSet = kotlinExtension.sourceSets.getByName("commonMain")
+                        val jvmSourceSet = kotlinExtension.sourceSets.getByName("jvmMain")
+                        val appleSourceSet = kotlinExtension.sourceSets.getByName("appleMain")
+                        val commonBuildDependencies =
+                            commonSourceSet.kotlin.sourceDirectories.buildDependencies.getDependencies(null).map { it.name }.toSet()
+                        val jvmBuildDependencies =
+                            jvmSourceSet.kotlin.sourceDirectories.buildDependencies.getDependencies(null).map { it.name }.toSet()
+                        val appleBuildDependencies =
+                            appleSourceSet.kotlin.sourceDirectories.buildDependencies.getDependencies(null).map { it.name }.toSet()
+
+                        check(generatedCommonDir in commonSourceSet.kotlin.srcDirs) {
+                            "Expected commonMain to include generated common Kayan sources."
+                        }
+                        check(generatedJvmDir in jvmSourceSet.kotlin.srcDirs) {
+                            "Expected jvmMain to include generated Kayan target sources."
+                        }
+                        check(generatedAppleDir in appleSourceSet.kotlin.srcDirs) {
+                            "Expected appleMain to include generated Kayan target sources."
+                        }
+                        check("generateKayanConfig" in commonBuildDependencies) {
+                            "Expected commonMain generated Kayan sources to be built by generateKayanConfig, " +
+                                "but found ${'$'}commonBuildDependencies."
+                        }
+                        check("generateKayanJvmMainConfig" in jvmBuildDependencies) {
+                            "Expected jvmMain generated Kayan sources to be built by generateKayanJvmMainConfig, " +
+                                "but found ${'$'}jvmBuildDependencies."
+                        }
+                        check("generateKayanAppleMainConfig" in appleBuildDependencies) {
+                            "Expected appleMain generated Kayan sources to be built by generateKayanAppleMainConfig, " +
+                                "but found ${'$'}appleBuildDependencies."
+                        }
+                    }
+                }
+            """.trimIndent(),
+            sharedConfigJson = """
+                flavors:
+                  default:
+                    use_unified_core_crypto: false
+                    provider_cache_scope: LOCAL
+                    targets:
+                      jvm:
+                        provider_cache_scope: GLOBAL
+                      apple:
+                        use_unified_core_crypto: true
+                        provider_cache_scope: GLOBAL
+                    sqliter_full_traces: false
+                    sqliter_trace_file: ""
+            """.trimIndent(),
+            childSource = """
+                package sample.usernetwork
+
+                import sample.buildflags.ProviderCacheScope
+                import sample.usernetwork.di.UserNetworkBuildConfig
+
+                val providerCacheScope: ProviderCacheScope =
+                    UserNetworkBuildConfig.PROVIDER_CACHE_SCOPE
+            """.trimIndent(),
+            childSourceDir = "src/commonMain/kotlin",
+            childExtraSources = mapOf(
+                "src/commonMain/kotlin/sample/buildflags/ProviderCacheScope.kt" to """
+                    package sample.buildflags
+
+                    enum class ProviderCacheScope {
+                        LOCAL,
+                        GLOBAL,
+                    }
+                """.trimIndent(),
+                "src/commonMain/kotlin/sample/usernetwork/di/ProviderCacheScope.kt" to """
+                    package sample.usernetwork.di
+
+                    typealias ProviderCacheScope = sample.buildflags.ProviderCacheScope
+
+                    internal val providerCacheScopeAlias: ProviderCacheScope
+                        get() = UserNetworkBuildConfig.PROVIDER_CACHE_SCOPE
+                """.trimIndent(),
+            ),
+            sharedConfigFileName = "kalium.yaml",
+        )
+
+        val result = gradleRunner(
+            projectDir,
+            ":feature:assertKayanTargetSourceWiring",
+            ":feature:compileKotlinJvm",
+            ":feature:generateKayanAppleMainConfig",
+        ).build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:assertKayanTargetSourceWiring")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:generateKayanConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:generateKayanJvmMainConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:generateKayanAppleMainConfig")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, result.task(":feature:compileKotlinJvm")?.outcome)
+
+        val expectFile = File(
+            projectDir,
+            "feature/build/generated/kayan/kotlin/sample/usernetwork/di/UserNetworkBuildConfig.kt",
+        )
+        val jvmActualFile = File(
+            projectDir,
+            "feature/build/generated/kayan-targets/kotlin/jvmMain/sample/usernetwork/di/UserNetworkBuildConfig.kt",
+        )
+        val appleActualFile = File(
+            projectDir,
+            "feature/build/generated/kayan-targets/kotlin/appleMain/sample/usernetwork/di/UserNetworkBuildConfig.kt",
+        )
+
+        assertTrue(expectFile.exists())
+        assertTrue(jvmActualFile.exists())
+        assertTrue(appleActualFile.exists())
+
+        val expectSource = expectFile.readText()
+        val jvmActualSource = jvmActualFile.readText()
+        val appleActualSource = appleActualFile.readText()
+
+        assertTrue(expectSource.contains("import sample.buildflags.ProviderCacheScope"))
+        assertTrue(expectSource.contains("public expect object UserNetworkBuildConfig"))
+        assertTrue(expectSource.contains("public val PROVIDER_CACHE_SCOPE: ProviderCacheScope"))
+
+        assertTrue(jvmActualSource.contains("import sample.buildflags.ProviderCacheScope"))
+        assertTrue(jvmActualSource.contains("public actual object UserNetworkBuildConfig"))
+        assertContainsNormalized(
+            jvmActualSource,
+            "public actual val PROVIDER_CACHE_SCOPE: ProviderCacheScope = sample.buildflags.ProviderCacheScope.GLOBAL",
+        )
+
+        assertTrue(appleActualSource.contains("import sample.buildflags.ProviderCacheScope"))
+        assertTrue(appleActualSource.contains("public actual object UserNetworkBuildConfig"))
+        assertContainsNormalized(
+            appleActualSource,
+            "public actual val PROVIDER_CACHE_SCOPE: ProviderCacheScope = sample.buildflags.ProviderCacheScope.GLOBAL",
+        )
+    }
+
+    @Test
     fun generatesConfigFromBaseFileAndCompilesCommonCode() {
         val projectDir = createProject(
             buildScript = buildScript(
@@ -1145,6 +1359,9 @@ class KayanConfigPluginFunctionalTest {
         sharedConfigJson: String,
         childSource: String,
         childProjectName: String = "feature",
+        childSourceDir: String = "src/main/kotlin",
+        childExtraSources: Map<String, String> = emptyMap(),
+        sharedConfigFileName: String = "shared.json",
     ): File {
         val projectDir = createTempDirectory(prefix = "kayan-plugin-multiproject-test").toFile()
         File(projectDir, "settings.gradle.kts").writeText(
@@ -1169,16 +1386,21 @@ class KayanConfigPluginFunctionalTest {
             """.trimIndent()
         )
         File(projectDir, "build.gradle.kts").writeText(rootBuildScript)
-        File(projectDir, "shared.json").writeText(sharedConfigJson)
+        File(projectDir, sharedConfigFileName).writeText(sharedConfigJson)
 
         val childProjectDir = File(projectDir, childProjectName).apply {
             mkdirs()
         }
         File(childProjectDir, "build.gradle.kts").writeText(childBuildScript)
 
-        val sourceFile = File(childProjectDir, "src/main/kotlin/sample/UseConfig.kt")
+        val sourceFile = File(childProjectDir, "$childSourceDir/sample/UseConfig.kt")
         sourceFile.parentFile.mkdirs()
         sourceFile.writeText(childSource)
+        childExtraSources.forEach { (relativePath, content) ->
+            val extraSourceFile = File(childProjectDir, relativePath)
+            extraSourceFile.parentFile.mkdirs()
+            extraSourceFile.writeText(content)
+        }
         return projectDir
     }
 
