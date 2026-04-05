@@ -93,7 +93,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             kotlinExtension.sourceSets.matching { sourceSet ->
                 sourceSet.name == sourceSetName
             }.configureEach { sourceSet ->
-                sourceSet.registerGeneratedKayanSources(generateTask)
+                sourceSet.registerGeneratedKayanSources(project, generateTask)
             }
         }
     }
@@ -138,7 +138,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             kotlinExtension.sourceSets.matching { sourceSet ->
                 sourceSet.name == generation.sourceSetName
             }.configureEach { sourceSet ->
-                sourceSet.registerGeneratedKayanSources(targetTask)
+                sourceSet.registerGeneratedKayanSources(project, targetTask)
             }
         }
     }
@@ -198,9 +198,11 @@ public class KayanConfigPlugin : Plugin<Project> {
 }
 
 private fun KotlinSourceSet.registerGeneratedKayanSources(
+    project: Project,
     generateTask: TaskProvider<GenerateKayanConfigTask>,
 ) {
     kotlin.srcDir(generateTask)
+    project.wireKspTaskDependencies(this, generateTask)
 }
 
 private fun <T> arrow.core.Either<KayanGradleError, T>.getOrThrowGradle(): T =
