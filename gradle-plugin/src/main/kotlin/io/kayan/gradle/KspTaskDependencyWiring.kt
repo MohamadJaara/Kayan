@@ -109,7 +109,14 @@ private fun Task.reportKspIntrospectionIssue(
 
 private fun Any?.declaredDirectories(): Set<File> = when (this) {
     null -> emptySet()
-    is Provider<*> -> runCatching { get() }.getOrNull().declaredDirectories()
+    is Provider<*> -> try {
+        get().declaredDirectories()
+    } catch (exception: Exception) {
+        throw org.gradle.api.GradleException(
+            "Failed to resolve provider while collecting KSP declared source directories.",
+            exception,
+        )
+    }
     is Directory -> setOf(asFile.normalizedAbsoluteFile())
     is File -> setOf(normalizedAbsoluteFile())
     is SourceDirectorySet -> srcDirs.mapTo(linkedSetOf(), File::normalizedAbsoluteFile)
