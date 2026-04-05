@@ -195,9 +195,15 @@ private open class FakeKspTask : DefaultTask() {
 
 private open class FlexibleKspTask : DefaultTask() {
     lateinit var configHolder: Any
+
+    fun getKspConfig(): Any = configHolder
 }
 
-private open class NullConfigKspTask : DefaultTask()
+private open class NullConfigKspTask : DefaultTask() {
+
+    @Suppress("FunctionOnlyReturningConstant")
+    fun getKspConfig(): Any? = null
+}
 
 private open class FakeKspConfig(
     objects: ObjectFactory,
