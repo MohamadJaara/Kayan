@@ -39,16 +39,72 @@ internal fun Task.consumesDeclaredSourceDirectories(sourceDirectories: Set<File>
     return sourceDirectories.intersects(kspDeclaredSourceDirectories())
 }
 
-internal fun Task.isKspTask(): Boolean =
-    name.startsWith(KSP_TASK_NAME_PREFIX) && methodOrNull("getKspConfig", 0) != null
+internal fun Task.isKspTask(): Boolean {
+    if (!name.startsWith(KSP_TASK_NAME_PREFIX)) {
+        return false
+    }
+
+    if (methodOrNull(KSP_CONFIG_GETTER_NAME, 0) == null) {
+        reportKspIntrospectionIssue(
+            methodName = KSP_CONFIG_GETTER_NAME,
+            detail = "Expected a KSP task to expose $KSP_CONFIG_GETTER_NAME(), but it was missing.",
+        )
+        return false
+    }
+
+    return true
+}
 
 private fun Task.kspDeclaredSourceDirectories(): Set<File> {
-    val kspConfig = invokeNoArgOrNull("getKspConfig") ?: return emptySet()
+    val kspConfig = invokeKspMethodOrReport(target = this, methodName = KSP_CONFIG_GETTER_NAME) ?: return emptySet()
 
-    return setOf("getSourceRoots", "getCommonSourceRoots", "getJavaSourceRoots")
+    return KSP_SOURCE_ROOT_GETTERS
         .flatMapTo(linkedSetOf()) { getterName ->
-            kspConfig.invokeNoArgOrNull(getterName).declaredDirectories()
+            invokeKspMethodOrReport(target = kspConfig, methodName = getterName)?.declaredDirectories().orEmpty()
         }
+}
+
+private fun Task.invokeKspMethodOrReport(
+    target: Any,
+    methodName: String,
+): Any? {
+    val method = target.methodOrNull(methodName, 0)
+    if (method == null) {
+        reportKspIntrospectionIssue(
+            methodName = methodName,
+            detail = "Unable to inspect KSP source roots because ${target.javaClass.name} is missing $methodName().",
+        )
+        return null
+    }
+
+    return runCatching {
+        method.invoke(target)
+    }.getOrElse { error ->
+        reportKspIntrospectionIssue(
+            methodName = methodName,
+            detail = "Unable to inspect KSP source roots because $methodName() on ${target.javaClass.name} failed.",
+            cause = error,
+        )
+        null
+    } ?: run {
+        reportKspIntrospectionIssue(
+            methodName = methodName,
+            detail = "Unable to inspect KSP source roots because $methodName() on ${target.javaClass.name} returned null.",
+        )
+        null
+    }
+}
+
+private fun Task.reportKspIntrospectionIssue(
+    methodName: String,
+    detail: String,
+    cause: Throwable? = null,
+) {
+    val message =
+        "$detail Task '$name' may be using an unsupported KSP version or API shape; " +
+            "Kayan will skip automatic KSP dependency wiring for this task. Missing method: $methodName."
+
+    kspTaskDiagnosticReporter(this, message, cause)
 }
 
 private fun Any?.declaredDirectories(): Set<File> = when (this) {
@@ -69,4 +125,14 @@ private fun File.normalizedAbsoluteFile(): File = absoluteFile.normalize()
 
 private fun Set<File>.intersects(other: Set<File>): Boolean = any(other::contains)
 
+internal var kspTaskDiagnosticReporter: (Task, String, Throwable?) -> Unit = { task, message, cause ->
+    if (cause == null) {
+        task.logger.warn(message)
+    } else {
+        task.logger.warn(message, cause)
+    }
+}
+
+private const val KSP_CONFIG_GETTER_NAME: String = "getKspConfig"
+private val KSP_SOURCE_ROOT_GETTERS: Set<String> = linkedSetOf("getSourceRoots", "getCommonSourceRoots", "getJavaSourceRoots")
 private const val KSP_TASK_NAME_PREFIX: String = "ksp"

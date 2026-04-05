@@ -10,8 +10,10 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 import java.lang.reflect.Proxy
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -85,9 +87,16 @@ class KspTaskDependencyWiringTest {
         val project = ProjectBuilder.builder().build()
         val matchingDirectory = createTempDirectory(prefix = "fake-ksp-source-roots").toFile()
         val task = project.tasks.register("kspPretender", NonKspTask::class.java).get()
+        val diagnostics = captureKspDiagnostics()
 
-        assertFalse(task.isKspTask())
-        assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        withCapturedKspDiagnostics(diagnostics) {
+            assertFalse(task.isKspTask())
+            assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        }
+
+        assertEquals(2, diagnostics.size)
+        assertTrue(diagnostics.all { it.contains("Task 'kspPretender'") })
+        assertTrue(diagnostics.all { "getKspConfig" in it })
     }
 
     @Test
@@ -103,9 +112,16 @@ class KspTaskDependencyWiringTest {
         val project = ProjectBuilder.builder().build()
         val matchingDirectory = createTempDirectory(prefix = "null-ksp-config").toFile()
         val task = project.tasks.register("kspBrokenJvm", NullConfigKspTask::class.java).get()
+        val diagnostics = captureKspDiagnostics()
 
-        assertTrue(task.isKspTask())
-        assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        withCapturedKspDiagnostics(diagnostics) {
+            assertTrue(task.isKspTask())
+            assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        }
+
+        assertEquals(1, diagnostics.size)
+        assertTrue("Task 'kspBrokenJvm'" in diagnostics.single())
+        assertTrue("getKspConfig" in diagnostics.single())
     }
 
     @Test
@@ -151,6 +167,25 @@ class KspTaskDependencyWiringTest {
 
         assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
     }
+
+    @Test
+    fun reportsMissingSourceRootGetterOnKspConfig() {
+        val project = ProjectBuilder.builder().build()
+        val matchingDirectory = createTempDirectory(prefix = "missing-getter-root").toFile()
+        val task = project.tasks.register("kspMissingGetterJvm", FlexibleKspTask::class.java).get()
+        val diagnostics = captureKspDiagnostics()
+
+        task.configHolder = MissingCommonAndJavaRootsKspConfig(sourceRoots = matchingDirectory)
+
+        withCapturedKspDiagnostics(diagnostics) {
+            assertTrue(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        }
+
+        assertEquals(2, diagnostics.size)
+        assertTrue(diagnostics.any { "getCommonSourceRoots" in it })
+        assertTrue(diagnostics.any { "getJavaSourceRoots" in it })
+        assertTrue(diagnostics.all { "Task 'kspMissingGetterJvm'" in it })
+    }
 }
 
 private open class FakeKspTask : DefaultTask() {
@@ -195,6 +230,12 @@ private class FlexibleKspConfig(
     fun getJavaSourceRoots(): Any? = javaSourceRoots
 }
 
+private class MissingCommonAndJavaRootsKspConfig(
+    private val sourceRoots: Any?,
+) {
+    fun getSourceRoots(): Any? = sourceRoots
+}
+
 private fun kotlinSourceSet(sourceDirectorySet: org.gradle.api.file.SourceDirectorySet): KotlinSourceSet =
     Proxy.newProxyInstance(
         KotlinSourceSet::class.java.classLoader,
@@ -209,3 +250,24 @@ private fun kotlinSourceSet(sourceDirectorySet: org.gradle.api.file.SourceDirect
 
 private fun taskDependencyNames(task: org.gradle.api.Task): Set<String> =
     task.taskDependencies.getDependencies(null).map { it.name }.toSet()
+
+private fun captureKspDiagnostics(): MutableList<String> = CopyOnWriteArrayList()
+
+private fun withCapturedKspDiagnostics(
+    diagnostics: MutableList<String>,
+    block: () -> Unit,
+) {
+    val previousReporter = kspTaskDiagnosticReporter
+    kspTaskDiagnosticReporter = { _, message, cause ->
+        diagnostics += if (cause == null) {
+            message
+        } else {
+            "$message (${cause::class.java.simpleName})"
+        }
+    }
+    try {
+        block()
+    } finally {
+        kspTaskDiagnosticReporter = previousReporter
+    }
+}
