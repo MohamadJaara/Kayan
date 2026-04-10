@@ -1,7 +1,7 @@
 [versions]
 agp = "8.13.2"
 kotlin = "2.3.20"
-serialization = "1.10.0"
+serialization = "1.11.0"
 android-minSdk = "21"
 android-compileSdk = "36"
 vanniktechMavenPublish = "0.36.0"
