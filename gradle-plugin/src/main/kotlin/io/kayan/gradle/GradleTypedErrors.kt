@@ -407,6 +407,13 @@ internal sealed interface GenerationError : KayanGradleError {
         override fun message(): String = "Failed to create directory: $path"
     }
 
+    data class DirectoryCleanupFailure(
+        val path: String,
+        override val cause: Throwable?,
+    ) : GenerationError {
+        override fun message(): String = "Failed to clean directory: $path"
+    }
+
     data class FileWriteFailure(
         val path: String,
         override val cause: Throwable,

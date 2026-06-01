@@ -266,6 +266,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         ).bind()
 
         val outputRoot = outputDir.get().asFile
+        cleanOutputDirectoryEither(outputRoot).bind()
         val packagePath = inputs.packageName.replace('.', File.separatorChar)
         val outputFile = File(outputRoot, "$packagePath/${inputs.className}.kt")
         val parent = outputFile.parentFile
@@ -279,6 +280,26 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         when (writeResult) {
             is Either.Left -> raise(GenerationError.FileWriteFailure(outputFile.path, writeResult.value))
             is Either.Right -> writeResult.value
+        }
+    }
+
+    private fun cleanOutputDirectoryEither(
+        outputRoot: File,
+    ): Either<GenerationError, Unit> = either {
+        if (!outputRoot.exists()) {
+            return@either
+        }
+
+        val cleanupResult = Either.catch {
+            outputRoot.deleteRecursively()
+        }
+        when (cleanupResult) {
+            is Either.Left -> raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, cleanupResult.value))
+            is Either.Right -> {
+                if (!cleanupResult.value) {
+                    raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, null))
+                }
+            }
         }
     }
 }

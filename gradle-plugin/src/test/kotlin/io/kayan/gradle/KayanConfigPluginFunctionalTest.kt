@@ -6,6 +6,7 @@ import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KayanConfigPluginFunctionalTest {
@@ -504,7 +505,7 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
-    fun rewritesExistingGeneratedFileWithoutCleaningOutputDirectory() {
+    fun cleansOutputDirectoryBeforeWritingGeneratedSource() {
         val projectDir = createProject(
             buildScript = buildScript(
                 kayanBlock = """
@@ -529,12 +530,14 @@ class KayanConfigPluginFunctionalTest {
                 val bundleId: String = KayanConfig.BUNDLE_ID
             """.trimIndent(),
         )
+        val staleFile = File(projectDir, "build/generated/kayan/kotlin/sample/old/OldKayanConfig.kt")
+        staleFile.parentFile.mkdirs()
+        staleFile.writeText("stale content")
         val generatedFile = File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt")
-        generatedFile.parentFile.mkdirs()
-        generatedFile.writeText("stale content")
 
         gradleRunner(projectDir, "generateKayanConfig").build()
 
+        assertFalse(staleFile.exists())
         assertTrue(generatedFile.exists())
         assertTrue(generatedFile.readText().contains("public object KayanConfig"))
     }
