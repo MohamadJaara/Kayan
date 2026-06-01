@@ -1,0 +1,5 @@
+ignore:
+  - "sample/**"
+  - "site/**"
+  - "gradle-plugin/src/test/**"
+  - "**/build/**"

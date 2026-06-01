@@ -80,19 +80,24 @@ tasks.register("checkPublicApiDocs") {
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.named("test"))
 
+    val coverageClassExcludes = listOf(
+        "io/kayan/ConfigError*.class",
+        "io/kayan/DiagnosticContext.class",
+        "io/kayan/KayanError.class",
+        "io/kayan/PathSegment*.class",
+        "io/kayan/SchemaError*.class",
+        "io/kayan/gradle/BuildTimeAccessError*.class",
+        "io/kayan/gradle/GenerationError*.class",
+        "io/kayan/gradle/KayanGradleError*.class",
+        "io/kayan/gradle/PluginConfigurationError*.class",
+    )
+
     classDirectories.setFrom(
-        fileTree(layout.buildDirectory.dir("classes/kotlin/main")) {
-            exclude(
-                "io/kayan/ConfigError*.class",
-                "io/kayan/DiagnosticContext.class",
-                "io/kayan/KayanError.class",
-                "io/kayan/PathSegment*.class",
-                "io/kayan/SchemaError*.class",
-                "io/kayan/gradle/GenerationError*.class",
-                "io/kayan/gradle/KayanGradleError*.class",
-                "io/kayan/gradle/PluginConfigurationError*.class",
-            )
-        }
+        sourceSets.main.get().output.classesDirs.map { classesDir ->
+            fileTree(classesDir) {
+                exclude(coverageClassExcludes)
+            }
+        },
     )
 
     reports {
