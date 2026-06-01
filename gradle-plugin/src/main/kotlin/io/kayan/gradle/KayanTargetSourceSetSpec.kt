@@ -34,6 +34,7 @@ public abstract class KayanTargetSourceSetSpec {
 @ExperimentalKayanGenerationApi
 public abstract class KayanTargetSourceSetContainer {
     internal val entries: MutableList<KayanTargetSourceSetSpec> = mutableListOf()
+    private val entryListeners: MutableList<(KayanTargetSourceSetMapping) -> Unit> = mutableListOf()
 
     @get:Inject
     internal abstract val objects: ObjectFactory
@@ -44,14 +45,14 @@ public abstract class KayanTargetSourceSetContainer {
             this.sourceSetName.set(sourceSetName)
             this.targetName.set(targetName)
         }
-        entries += requireValidEntry(entry)
+        addEntry(entry)
     }
 
     /** Configures one target mapping entry with a Gradle [Action]. */
     public fun sourceSet(action: Action<in KayanTargetSourceSetSpec>) {
         val entry = objects.newInstance(KayanTargetSourceSetSpec::class.java)
         action.execute(entry)
-        entries += requireValidEntry(entry)
+        addEntry(entry)
     }
 
     /**
@@ -117,6 +118,33 @@ public abstract class KayanTargetSourceSetContainer {
         return entry
     }
 
+    internal fun whenEntryAdded(action: (KayanTargetSourceSetMapping) -> Unit) {
+        entryListeners += action
+        entries.map(KayanTargetSourceSetSpec::toMapping).forEach(action)
+    }
+
+    private fun addEntry(entry: KayanTargetSourceSetSpec) {
+        val validEntry = requireValidEntry(entry)
+        val mapping = validEntry.toMapping()
+        val duplicate = entries
+            .map(KayanTargetSourceSetSpec::toMapping)
+            .firstOrNull { existingMapping -> existingMapping.sourceSetName == mapping.sourceSetName }
+
+        if (duplicate == mapping) {
+            return
+        }
+        if (duplicate != null) {
+            throw PluginConfigurationError.DuplicateTargetSourceSet(
+                sourceSetName = mapping.sourceSetName,
+                firstTargetName = duplicate.targetName,
+                duplicateTargetName = mapping.targetName,
+            ).toGradleException()
+        }
+
+        entries += validEntry
+        entryListeners.forEach { listener -> listener(mapping) }
+    }
+
     private companion object {
         private val conventionalSourceSets: Map<String, String> = linkedMapOf(
             "android" to "androidMain",
@@ -127,3 +155,9 @@ public abstract class KayanTargetSourceSetContainer {
         )
     }
 }
+
+@OptIn(ExperimentalKayanGenerationApi::class)
+private fun KayanTargetSourceSetSpec.toMapping(): KayanTargetSourceSetMapping = KayanTargetSourceSetMapping(
+    sourceSetName = requireNotNull(sourceSetName.orNull).trim(),
+    targetName = requireNotNull(targetName.orNull).trim(),
+)

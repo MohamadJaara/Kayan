@@ -54,13 +54,22 @@ internal fun targetSourceGenerationsEither(
     }
 
     entriesBySourceSet.map { (sourceSetName, targetName) ->
-        TargetSourceGeneration(
-            sourceSetName = sourceSetName,
-            targetName = targetName,
-            taskName = "generateKayan${sourceSetName.asTaskNameSegment()}Config",
-        )
+        targetSourceGeneration(sourceSetName, targetName)
     }
 }
+
+internal fun targetSourceGeneration(mapping: KayanTargetSourceSetMapping): TargetSourceGeneration =
+    targetSourceGeneration(
+        sourceSetName = mapping.sourceSetName.trim(),
+        targetName = mapping.targetName.trim(),
+    )
+
+private fun targetSourceGeneration(sourceSetName: String, targetName: String): TargetSourceGeneration =
+    TargetSourceGeneration(
+        sourceSetName = sourceSetName,
+        targetName = targetName,
+        taskName = "generateKayan${sourceSetName.asTaskNameSegment()}Config",
+    )
 
 internal fun validateConfiguredSourceSetsEither(
     availableSourceSets: Set<String>,

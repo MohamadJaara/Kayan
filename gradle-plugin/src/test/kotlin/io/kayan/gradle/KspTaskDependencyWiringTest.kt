@@ -41,21 +41,26 @@ class KspTaskDependencyWiringTest {
     }
 
     @Test
-    fun detectsKspTasksWhoseSourceRootsAreDeclaredThroughProvidersOfFileTrees() {
+    fun wiresCommonKspTaskNamesWithoutInspectingProviderBackedSourceRoots() {
         val project = ProjectBuilder.builder().build()
         val matchingDirectory = createTempDirectory(prefix = "ksp-source-roots").toFile()
-        val unrelatedDirectory = createTempDirectory(prefix = "ksp-source-roots").toFile()
+        val sourceDirectorySet = project.objects.sourceDirectorySet("jvmMain", "jvmMain").apply {
+            srcDir(matchingDirectory)
+        }
+        val sourceSet = kotlinSourceSet(sourceDirectorySet)
+        val generateTask = project.tasks.register("generateKayanJvmMainConfig", GenerateKayanConfigTask::class.java)
         val task = project.tasks.register("kspKotlinJvm", FakeKspTask::class.java).get()
 
         task.kspConfig.sourceRoots.from(
             project.provider {
-                listOf(project.objects.fileTree().from(matchingDirectory))
+                error("source roots should not be queried during dependency wiring")
             },
         )
 
-        assertTrue(task.isKspTask())
-        assertTrue(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
-        assertFalse(task.consumesDeclaredSourceDirectories(setOf(unrelatedDirectory)))
+        project.wireKspTaskDependencies(sourceSet, generateTask)
+
+        assertTrue("generateKayanJvmMainConfig" in taskDependencyNames(task))
+        assertTrue(task.consumesNamedKotlinSourceSet("jvmMain"))
     }
 
     @Test
@@ -158,6 +163,7 @@ class KspTaskDependencyWiringTest {
             error("boom")
         }
         val task = project.tasks.register("kspUnsupportedJvm", FlexibleKspTask::class.java).get()
+        val diagnostics = captureKspDiagnostics()
 
         task.configHolder = FlexibleKspConfig(
             sourceRoots = failingProvider,
@@ -165,7 +171,25 @@ class KspTaskDependencyWiringTest {
             javaSourceRoots = null,
         )
 
-        assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        withCapturedKspDiagnostics(diagnostics) {
+            assertFalse(task.consumesDeclaredSourceDirectories(setOf(matchingDirectory)))
+        }
+
+        assertTrue(diagnostics.any { "provider-backed KSP source roots" in it })
+    }
+
+    @Test
+    fun matchesKnownKspTaskNamesToKotlinSourceSetNames() {
+        val project = ProjectBuilder.builder().build()
+        val jvmTask = project.tasks.register("kspKotlinJvm", FakeKspTask::class.java).get()
+        val metadataTask = project.tasks.register("kspCommonMainKotlinMetadata", FakeKspTask::class.java).get()
+        val mainTask = project.tasks.register("kspKotlin", FakeKspTask::class.java).get()
+        val unrelatedTask = project.tasks.register("kspKotlinIosArm64", FakeKspTask::class.java).get()
+
+        assertTrue(jvmTask.consumesNamedKotlinSourceSet("jvmMain"))
+        assertTrue(metadataTask.consumesNamedKotlinSourceSet("commonMain"))
+        assertTrue(mainTask.consumesNamedKotlinSourceSet("main"))
+        assertFalse(unrelatedTask.consumesNamedKotlinSourceSet("jvmMain"))
     }
 
     @Test
@@ -241,13 +265,21 @@ private fun kotlinSourceSet(sourceDirectorySet: org.gradle.api.file.SourceDirect
     ) { _, method, _ ->
         when (method.name) {
             "getKotlin" -> sourceDirectorySet
+            "getName" -> sourceDirectorySet.name
             "toString" -> "FakeKotlinSourceSet"
             else -> error("Unexpected KotlinSourceSet method: ${method.name}")
         }
     } as KotlinSourceSet
 
 private fun taskDependencyNames(task: org.gradle.api.Task): Set<String> =
-    task.taskDependencies.getDependencies(null).map { it.name }.toSet()
+    task.dependsOn.mapNotNullTo(linkedSetOf()) { dependency ->
+        when (dependency) {
+            is org.gradle.api.Task -> dependency.name
+            is org.gradle.api.tasks.TaskProvider<*> -> dependency.name
+            is String -> dependency
+            else -> null
+        }
+    }
 
 private fun captureKspDiagnostics(): MutableList<String> = CopyOnWriteArrayList()
 

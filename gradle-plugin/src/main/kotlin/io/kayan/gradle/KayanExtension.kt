@@ -216,6 +216,11 @@ public abstract class KayanExtension {
             )
         }
 
+    @OptIn(ExperimentalKayanGenerationApi::class)
+    internal fun whenTargetSourceSetMappingAdded(action: (KayanTargetSourceSetMapping) -> Unit) {
+        targetSourceSetContainer.whenEntryAdded(action)
+    }
+
     private fun resolvedBuildValueProvider(jsonKey: String, targetName: String?): Provider<ResolvedBuildValue> {
         val normalizedTargetName = targetName?.let { requireConfigured(it, "targetName") }
         val request = BuildValueRequest(jsonKey = jsonKey, targetName = normalizedTargetName)

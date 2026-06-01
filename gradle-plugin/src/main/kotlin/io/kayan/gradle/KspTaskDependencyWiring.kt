@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package io.kayan.gradle
 
 import org.gradle.api.Project
@@ -26,7 +28,8 @@ internal fun Project.wireKspTaskDependencies(
 private fun Task.consumesKotlinSourceSet(sourceSet: KotlinSourceSet): Boolean {
     val sourceDirectories = sourceSet.kotlin.srcDirs.map(File::normalizedAbsoluteFile).toSet()
 
-    return consumesDeclaredSourceDirectories(sourceDirectories)
+    return consumesNamedKotlinSourceSet(sourceSet.name) ||
+        consumesDeclaredSourceDirectories(sourceDirectories)
 }
 
 internal fun Task.consumesDeclaredSourceDirectories(sourceDirectories: Set<File>): Boolean {
@@ -51,11 +54,21 @@ internal fun Task.isKspTask(): Boolean = when {
     else -> true
 }
 
+internal fun Task.consumesNamedKotlinSourceSet(sourceSetName: String): Boolean {
+    if (!isKspTask()) {
+        return false
+    }
+
+    return name in sourceSetName.kspTaskNameCandidates()
+}
+
 private fun Task.kspDeclaredSourceDirectories(): Set<File> {
     val kspConfig = invokeKspMethodOrReport(target = this, methodName = KSP_CONFIG_GETTER_NAME) ?: return emptySet()
 
     return KSP_SOURCE_ROOT_GETTERS.flatMapTo(linkedSetOf()) { getterName ->
-        invokeKspMethodOrReport(target = kspConfig, methodName = getterName)?.declaredDirectories().orEmpty()
+        invokeKspMethodOrReport(target = kspConfig, methodName = getterName)
+            ?.declaredDirectories(task = this, methodName = getterName)
+            .orEmpty()
     }
 }
 
@@ -99,18 +112,62 @@ private fun Task.reportKspIntrospectionIssue(methodName: String, detail: String,
     kspTaskDiagnosticReporter(this, message, cause)
 }
 
-private fun Any?.declaredDirectories(): Set<File> = when (this) {
+private fun Task.reportKspSourceRootIssue(detail: String, cause: Throwable? = null) {
+    val message =
+        "$detail Task '$name' may be using an unsupported KSP version or API shape; " +
+            "Kayan will skip automatic KSP dependency wiring for this task."
+
+    kspTaskDiagnosticReporter(this, message, cause)
+}
+
+private fun Any?.declaredDirectories(task: Task, methodName: String): Set<File> = when (this) {
     null -> emptySet()
-    is Provider<*> -> runCatching { get() }.getOrNull().declaredDirectories()
+
+    is Provider<*> -> {
+        task.reportKspSourceRootIssue(
+            detail = "Unable to inspect provider-backed KSP source roots from ${javaClass.name} during configuration.",
+        )
+        emptySet()
+    }
+
     is Directory -> setOf(asFile.normalizedAbsoluteFile())
+
     is File -> setOf(normalizedAbsoluteFile())
+
     is SourceDirectorySet -> srcDirs.mapTo(linkedSetOf(), File::normalizedAbsoluteFile)
+
     is ConfigurableFileTree -> setOf(dir.normalizedAbsoluteFile())
-    is ConfigurableFileCollection -> from.flatMapTo(linkedSetOf(), Any?::declaredDirectories)
+
+    is ConfigurableFileCollection -> from.flatMapTo(linkedSetOf()) { entry ->
+        entry.declaredDirectories(task = task, methodName = methodName)
+    }
+
     is FileCollection -> files.filter(File::isDirectory).mapTo(linkedSetOf(), File::normalizedAbsoluteFile)
-    is Iterable<*> -> flatMapTo(linkedSetOf(), Any?::declaredDirectories)
-    is Array<*> -> flatMapTo(linkedSetOf(), Any?::declaredDirectories)
+
+    is Iterable<*> -> flatMapTo(linkedSetOf()) { entry ->
+        entry.declaredDirectories(task = task, methodName = methodName)
+    }
+
+    is Array<*> -> flatMapTo(linkedSetOf()) { entry ->
+        entry.declaredDirectories(task = task, methodName = methodName)
+    }
+
     else -> emptySet()
+}
+
+private fun String.kspTaskNameCandidates(): Set<String> {
+    val sourceSetSegment = asTaskNameSegment()
+    val targetSegment = removeSuffix("Main").asTaskNameSegment()
+
+    return buildSet {
+        add("ksp${sourceSetSegment}KotlinMetadata")
+        if (this@kspTaskNameCandidates == "main") {
+            add("kspKotlin")
+        }
+        if (endsWith("Main") && this@kspTaskNameCandidates != "commonMain") {
+            add("kspKotlin$targetSegment")
+        }
+    }
 }
 
 private fun File.normalizedAbsoluteFile(): File = absoluteFile.normalize()

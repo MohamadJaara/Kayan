@@ -104,41 +104,27 @@ public class KayanConfigPlugin : Plugin<Project> {
         generationTaskRegistrar: GenerationTaskRegistrar,
     ) {
         project.pluginManager.withPlugin(KOTLIN_MULTIPLATFORM_PLUGIN_ID) {
-            project.afterEvaluate {
-                configureEvaluatedTargetSourceGeneration(
-                    project = project,
-                    extension = extension,
-                    generationTaskRegistrar = generationTaskRegistrar,
-                )
-            }
-        }
-    }
+            val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
+            extension.whenTargetSourceSetMappingAdded { mapping ->
+                val generation = targetSourceGeneration(mapping)
+                val targetTask = generationTaskRegistrar.registerTargetGenerateTask(generation)
 
-    private fun configureEvaluatedTargetSourceGeneration(
-        project: Project,
-        extension: KayanExtension,
-        generationTaskRegistrar: GenerationTaskRegistrar,
-    ) {
-        val configuredGenerations = targetSourceGenerationsEither(
-            extension.targetSourceSetMappings(),
-        ).getOrThrowGradle()
-        if (configuredGenerations.isEmpty()) {
-            return
-        }
+                targetTask.configure { task ->
+                    task.doFirst {
+                        validateConfiguredSourceSetsEither(
+                            availableSourceSets = kotlinExtension.sourceSets
+                                .map { sourceSet -> sourceSet.name }
+                                .toSet(),
+                            configuredGenerations = listOf(generation),
+                        ).getOrThrowGradle()
+                    }
+                }
 
-        val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
-        validateConfiguredSourceSetsEither(
-            availableSourceSets = kotlinExtension.sourceSets.map { sourceSet -> sourceSet.name }.toSet(),
-            configuredGenerations = configuredGenerations,
-        ).getOrThrowGradle()
-
-        configuredGenerations.forEach { generation ->
-            val targetTask = generationTaskRegistrar.registerTargetGenerateTask(generation)
-
-            kotlinExtension.sourceSets.matching { sourceSet ->
-                sourceSet.name == generation.sourceSetName
-            }.configureEach { sourceSet ->
-                sourceSet.registerGeneratedKayanSources(project, targetTask)
+                kotlinExtension.sourceSets.matching { sourceSet ->
+                    sourceSet.name == generation.sourceSetName
+                }.configureEach { sourceSet ->
+                    sourceSet.registerGeneratedKayanSources(project, targetTask)
+                }
             }
         }
     }
@@ -173,18 +159,8 @@ public class KayanConfigPlugin : Plugin<Project> {
                     androidComponentsExtension = project.extensions.findByName(ANDROID_COMPONENTS_EXTENSION_NAME),
                     generationResolver = androidFlavorGenerationResolver,
                 ).getOrThrowGradle()
-
-                project.afterEvaluate {
-                    configureEvaluatedAndroidSourceGeneration(androidFlavorGenerationResolver)
-                }
             }
         }
-    }
-
-    private fun configureEvaluatedAndroidSourceGeneration(
-        androidFlavorGenerationResolver: AndroidFlavorSourceGenerationResolver,
-    ) {
-        androidFlavorGenerationResolver.finalizeConfigurationEither().getOrThrowGradle()
     }
 
     internal companion object {
