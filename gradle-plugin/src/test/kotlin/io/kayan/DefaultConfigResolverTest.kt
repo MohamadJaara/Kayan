@@ -823,6 +823,35 @@ class DefaultConfigResolverTest {
     }
 
     @Test
+    fun rejectsEnumValuesThatNormalizeToInvalidKotlinIdentifier() {
+        val error = assertFailsWith<ConfigValidationException> {
+            resolver.resolve(
+                defaultConfigJson = """
+                    {
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod",
+                          "release_stage": "1"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                customConfigJson = null,
+                defaultConfigSourceName = "base.json",
+            )
+        }
+
+        assertMessageContains(
+            error,
+            "Invalid value for key 'release_stage'",
+            "source 'base.json'",
+            "path '$.flavors.prod.release_stage'",
+            "Enum values must normalize to a valid Kotlin identifier.",
+        )
+    }
+
+    @Test
     fun explicitNullOverridesLowerPrecedenceValuesForNullableKeys() {
         val resolved = resolver.resolve(
             defaultConfigJson = """

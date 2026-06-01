@@ -23,6 +23,18 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         override fun message(): String = "Kayan requires `$propertyName` to be configured."
     }
 
+    data class InvalidPackageName(val packageName: String) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String = "Kayan packageName '$packageName' must be a valid Kotlin package name."
+    }
+
+    data class InvalidClassName(val className: String) : PluginConfigurationError {
+        override val cause: Throwable? = null
+
+        override fun message(): String = "Kayan className '$className' must be a valid Kotlin identifier."
+    }
+
     data object MissingSchemaEntries : PluginConfigurationError {
         override val cause: Throwable? = null
 

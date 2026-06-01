@@ -38,10 +38,10 @@ internal abstract class ExportKayanSchemaTask : DefaultTask() {
 
     private fun exportEither(): Either<KayanGradleError, Unit> = either {
         val schema = requireSchemaEither(schemaEntries.orNull.orEmpty()).bind()
-        val generatedTypeName = generatedTypeName(
+        val generatedTypeName = generatedTypeNameEither(
             packageName = packageName.orNull,
             className = className.orNull,
-        )
+        ).bind()
         val generatedJsonSchema = Either.catch {
             KayanSchemaExportGenerator.generateJsonSchema(schema)
         }
@@ -67,11 +67,20 @@ internal abstract class ExportKayanSchemaTask : DefaultTask() {
         writeEither(markdownSchemaOutputFile.asFile.get(), markdownSchema).bind()
     }
 
-    private fun generatedTypeName(packageName: String?, className: String?): String? {
+    private fun generatedTypeNameEither(
+        packageName: String?,
+        className: String?,
+    ): Either<PluginConfigurationError, String?> = either {
         val normalizedPackageName = packageName?.trim().orEmpty().ifBlank { null }
         val normalizedClassName = className?.trim().orEmpty().ifBlank { null }
+        if (normalizedPackageName != null) {
+            requirePackageNameEither(normalizedPackageName).bind()
+        }
+        if (normalizedClassName != null) {
+            requireClassNameEither(normalizedClassName).bind()
+        }
 
-        return when {
+        when {
             normalizedPackageName != null && normalizedClassName != null -> {
                 "$normalizedPackageName.$normalizedClassName"
             }

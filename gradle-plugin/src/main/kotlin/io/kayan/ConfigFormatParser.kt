@@ -44,7 +44,18 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
                 )
             }
 
-            val rootNode = toConfigNode(root)
+            val rootNode = try {
+                toConfigNode(root)
+            } catch (error: IllegalArgumentException) {
+                raise(
+                    ConfigError.InvalidConfigSyntax(
+                        sourceName = sourceName,
+                        formatName = formatName,
+                        detail = error.message,
+                        cause = error,
+                    ),
+                )
+            }
             rootNode as? ConfigNode.ObjectNode ?: raise(
                 ConfigError.InvalidType(
                     subject = "configuration root",
@@ -70,7 +81,10 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
             element.booleanOrNull?.let { ConfigNode.BooleanNode(it) }
                 ?: element.intOrNull?.let { ConfigNode.IntNode(it) }
                 ?: element.longOrNull?.let { ConfigNode.LongNode(it) }
-                ?: element.doubleOrNull?.let { ConfigNode.DoubleNode(it) }
+                ?: element.doubleOrNull?.let { value ->
+                    require(value.isFinite()) { "Unsupported non-finite JSON number '${element.contentOrNull}'." }
+                    ConfigNode.DoubleNode(value)
+                }
                 ?: ConfigNode.StringNode(requireNotNull(element.contentOrNull))
         }
     }

@@ -121,7 +121,7 @@ internal class YamlConfigFormatParser : ConfigFormatParser {
             throw YAMLException("Unsupported YAML floating-point literal '$rawValue'.")
         }
 
-        return normalized.toDoubleOrNull()?.let(ConfigNode::DoubleNode)
+        return normalized.toDoubleOrNull()?.takeIf(Double::isFinite)?.let(ConfigNode::DoubleNode)
             ?: throw YAMLException("Unsupported YAML floating-point literal '$rawValue'.")
     }
 

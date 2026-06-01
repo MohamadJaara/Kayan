@@ -34,6 +34,24 @@ class GenerateKayanConfigSupportTest {
     }
 
     @Test
+    fun requirePackageNameRejectsInvalidKotlinPackageNames() {
+        val error = assertFailsWith<GradleException> {
+            requirePackageNameEither("sample.1config").getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(error, "packageName 'sample.1config' must be a valid Kotlin package name")
+    }
+
+    @Test
+    fun requireClassNameRejectsInvalidKotlinIdentifiers() {
+        val error = assertFailsWith<GradleException> {
+            requireClassNameEither("class").getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(error, "className 'class' must be a valid Kotlin identifier")
+    }
+
+    @Test
     fun requireSchemaRejectsEmptyEntries() {
         val error = assertFailsWith<GradleException> {
             requireSchema(emptyList())

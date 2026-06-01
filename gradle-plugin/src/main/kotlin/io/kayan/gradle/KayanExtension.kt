@@ -14,6 +14,8 @@ import io.kayan.ConfigValueKind
 import io.kayan.KayanValidationMode
 import io.kayan.SchemaError
 import io.kayan.closeKeyMatches
+import io.kayan.isKotlinIdentifier
+import io.kayan.isKotlinQualifiedName
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -701,6 +703,8 @@ internal data class KayanSchemaEntrySpec(
             }
             if (spec.propertyName.isBlank()) {
                 add(SchemaError.BlankPropertyName(entryIndex))
+            } else if (!isKotlinIdentifier(spec.propertyName)) {
+                add(SchemaError.InvalidPropertyName(entryIndex, spec.jsonKey, spec.propertyName))
             }
             if (spec.required && spec.nullable) {
                 add(SchemaError.RequiredAndNullable(entryIndex, spec.jsonKey))
@@ -710,6 +714,9 @@ internal data class KayanSchemaEntrySpec(
             }
             if (spec.kind == ConfigValueKind.ENUM && spec.enumTypeName.isNullOrBlank()) {
                 add(SchemaError.MissingEnumType(entryIndex, spec.jsonKey))
+            }
+            if (spec.enumTypeName != null && !isKotlinQualifiedName(spec.enumTypeName)) {
+                add(SchemaError.InvalidEnumTypeName(entryIndex, spec.jsonKey, spec.enumTypeName))
             }
             if (spec.adapterClassName != null && spec.adapterClassName.isBlank()) {
                 add(SchemaError.BlankAdapterClassName(entryIndex))

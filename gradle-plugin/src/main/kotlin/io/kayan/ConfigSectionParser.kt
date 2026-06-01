@@ -396,6 +396,15 @@ internal class ConfigSectionParser(private val parser: ConfigFormatParser) {
                 ),
             )
         }
+        if (!isKotlinIdentifier(normalized)) {
+            raise(
+                ConfigError.InvalidEnumValue(
+                    jsonKey = jsonKey,
+                    context = context,
+                    detail = "Enum values must normalize to a valid Kotlin identifier.",
+                ),
+            )
+        }
 
         normalized
     }

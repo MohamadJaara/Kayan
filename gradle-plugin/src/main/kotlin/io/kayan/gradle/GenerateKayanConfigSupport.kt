@@ -16,6 +16,8 @@ import io.kayan.DefaultConfigResolver
 import io.kayan.KayanValidationMode
 import io.kayan.ResolvedConfigsByFlavor
 import io.kayan.ResolvedFlavorConfig
+import io.kayan.isKotlinIdentifier
+import io.kayan.isKotlinQualifiedName
 import io.kayan.parserFor
 import io.kayan.resolveConfigFormatEither
 import org.gradle.api.GradleException
@@ -117,6 +119,22 @@ internal fun requireConfiguredEither(value: String?, propertyName: String): Eith
 
 internal fun requireConfigured(value: String?, propertyName: String): String =
     requireConfiguredEither(value, propertyName).getOrElse { throw it.toGradleException() }
+
+internal fun requirePackageNameEither(value: String?): Either<PluginConfigurationError, String> = either {
+    val packageName = requireConfiguredEither(value, "packageName").bind()
+    if (!isKotlinQualifiedName(packageName)) {
+        raise(PluginConfigurationError.InvalidPackageName(packageName))
+    }
+    packageName
+}
+
+internal fun requireClassNameEither(value: String?): Either<PluginConfigurationError, String> = either {
+    val className = requireConfiguredEither(value, "className").bind()
+    if (!isKotlinIdentifier(className)) {
+        raise(PluginConfigurationError.InvalidClassName(className))
+    }
+    className
+}
 
 internal fun requireSchemaEither(serializedEntries: List<String>): Either<KayanGradleError, io.kayan.ConfigSchema> {
     if (serializedEntries.isEmpty()) {

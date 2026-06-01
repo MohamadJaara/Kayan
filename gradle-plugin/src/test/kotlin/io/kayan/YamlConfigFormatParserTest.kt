@@ -103,4 +103,26 @@ class YamlConfigFormatParserTest {
             is Either.Right -> fail("Expected a YAML syntax error.")
         }
     }
+
+    @Test
+    fun parseRootEitherRejectsNonFiniteNumbers() {
+        when (
+            val result = parser.parseRootEither(
+                configText = """
+                    flavors:
+                      prod:
+                        bundle_id: com.example.prod
+                    rollout_ratio: 1e309
+                """.trimIndent(),
+                sourceName = "default.yaml",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidConfigSyntax>(result.value)
+                assertEquals("YAML", error.formatName)
+            }
+
+            is Either.Right -> fail("Expected a YAML syntax error.")
+        }
+    }
 }

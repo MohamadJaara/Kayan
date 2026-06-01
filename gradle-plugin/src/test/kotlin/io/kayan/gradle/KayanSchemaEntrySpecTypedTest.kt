@@ -71,7 +71,7 @@ class KayanSchemaEntrySpecTypedTest {
         val serializedEntry = """
             {
               "jsonKey": "",
-              "propertyName": "",
+              "propertyName": "1_INVALID",
               "kind": "${ConfigValueKind.STRING.name}",
               "required": true,
               "nullable": true,
@@ -83,13 +83,38 @@ class KayanSchemaEntrySpecTypedTest {
         when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(serializedEntry))) {
             is Either.Left -> {
                 assertTrue(result.value.any { it is SchemaError.BlankJsonKey })
-                assertTrue(result.value.any { it is SchemaError.BlankPropertyName })
+                assertTrue(result.value.any { it is SchemaError.InvalidPropertyName })
                 assertTrue(result.value.any { it is SchemaError.RequiredAndNullable })
                 assertTrue(result.value.any { it is SchemaError.EnumTypeOnNonEnum })
                 assertTrue(result.value.any { it is SchemaError.BlankAdapterClassName })
             }
 
             is Either.Right -> fail("Expected accumulated schema validation errors.")
+        }
+    }
+
+    @Test
+    fun toSchemaEitherRejectsInvalidEnumTypeName() {
+        val serializedEntry = KayanSchemaEntrySpec(
+            jsonKey = "release_stage",
+            propertyName = "RELEASE_STAGE",
+            kind = ConfigValueKind.ENUM,
+            required = false,
+            nullable = false,
+            enumTypeName = "sample.1Stage",
+        ).serialize()
+
+        when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(serializedEntry))) {
+            is Either.Left -> {
+                val error = assertIs<SchemaError.InvalidEnumTypeName>(
+                    result.value.first { it is SchemaError.InvalidEnumTypeName },
+                )
+
+                assertEquals("release_stage", error.jsonKey)
+                assertEquals("sample.1Stage", error.enumTypeName)
+            }
+
+            is Either.Right -> fail("Expected invalid enum type schema validation error.")
         }
     }
 

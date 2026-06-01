@@ -229,12 +229,12 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     private fun loadGenerationInputsEither(): Either<KayanGradleError, GenerationInputs> = either {
         val mode = declarationMode.orNull ?: KayanDeclarationMode.OBJECT
         GenerationInputs(
-            packageName = requireConfiguredEither(packageName.orNull, "packageName").bind(),
+            packageName = requirePackageNameEither(packageName.orNull).bind(),
             flavor = requireConfiguredEither(flavor.orNull, "flavor").bind(),
             targetName = loadTargetNameEither(target.orNull, mode).bind(),
             generatedTargetNames = generatedTargetNames.orNull.orEmpty().map(String::trim).filter(String::isNotEmpty)
                 .distinct(),
-            className = requireConfiguredEither(className.orNull, "className").bind(),
+            className = requireClassNameEither(className.orNull).bind(),
             schema = requireSchemaEither(schemaEntries.orNull.orEmpty()).bind(),
             baseFile = requireExistingFileEither(baseConfigFile.asFile.get(), "base").bind(),
             customFile = customConfigFile.asFile.orNull?.let { file ->

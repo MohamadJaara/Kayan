@@ -41,6 +41,13 @@ internal sealed interface SchemaError : KayanError {
         override fun message(): String = "Config definition propertyName must not be blank."
     }
 
+    data class InvalidPropertyName(val entryIndex: Int, val jsonKey: String, val propertyName: String) : SchemaError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Config definition '$jsonKey' propertyName '$propertyName' must be a valid Kotlin identifier."
+    }
+
     data class RequiredAndNullable(val entryIndex: Int, val jsonKey: String) : SchemaError {
         override val cause: Throwable? = null
 
@@ -57,6 +64,13 @@ internal sealed interface SchemaError : KayanError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition '$jsonKey' must declare enumTypeName for enum values."
+    }
+
+    data class InvalidEnumTypeName(val entryIndex: Int, val jsonKey: String, val enumTypeName: String) : SchemaError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Config definition '$jsonKey' enumTypeName '$enumTypeName' must be a valid Kotlin qualified name."
     }
 
     data class BlankAdapterClassName(val entryIndex: Int) : SchemaError {

@@ -174,6 +174,9 @@ public data class ConfigDefinition(
     init {
         require(jsonKey.isNotBlank()) { "Config definition jsonKey must not be blank." }
         require(propertyName.isNotBlank()) { "Config definition propertyName must not be blank." }
+        require(isKotlinIdentifier(propertyName)) {
+            "Config definition '$jsonKey' propertyName must be a valid Kotlin identifier."
+        }
         require(!required || !nullable) {
             "Config definition '$jsonKey' cannot be both required and nullable."
         }
@@ -182,6 +185,9 @@ public data class ConfigDefinition(
         }
         require(kind != ConfigValueKind.ENUM || !enumTypeName.isNullOrBlank()) {
             "Config definition '$jsonKey' must declare enumTypeName for enum values."
+        }
+        require(enumTypeName == null || isKotlinQualifiedName(enumTypeName)) {
+            "Config definition '$jsonKey' enumTypeName must be a valid Kotlin qualified name."
         }
         require(adapterClassName == null || adapterClassName.isNotBlank()) {
             "Config definition adapterClassName must not be blank."

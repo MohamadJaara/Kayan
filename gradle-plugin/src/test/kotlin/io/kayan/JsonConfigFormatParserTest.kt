@@ -3,6 +3,7 @@ package io.kayan
 import arrow.core.Either
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.fail
 
 class JsonConfigFormatParserTest {
@@ -48,6 +49,32 @@ class JsonConfigFormatParserTest {
                     result.value.entries.getValue("unquoted_number"),
                 )
             }
+        }
+    }
+
+    @Test
+    fun parseRootEitherRejectsNonFiniteNumbers() {
+        when (
+            val result = parser.parseRootEither(
+                configText = """
+                    {
+                      "flavors": {
+                        "dev": {
+                          "bundle_id": "com.example.dev"
+                        }
+                      },
+                      "rollout_ratio": 1e309
+                    }
+                """.trimIndent(),
+                sourceName = "default.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidConfigSyntax>(result.value)
+                assertEquals("JSON", error.formatName)
+            }
+
+            is Either.Right -> fail("Expected a JSON syntax error.")
         }
     }
 }
