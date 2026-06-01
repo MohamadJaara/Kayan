@@ -210,6 +210,9 @@ public class ConfigSchema(
     init {
         require(this.entries.isNotEmpty()) { "Config schema must contain at least one definition." }
         require(this.entries.size == byJsonKey.size) { "Config schema contains duplicate jsonKey values." }
+        require(this.entries.none { it.jsonKey in RESERVED_JSON_KEYS }) {
+            "Config schema contains reserved jsonKey values."
+        }
         require(
             this.entries.size == this.entries.map(ConfigDefinition::propertyName).toSet().size
         ) { "Config schema contains duplicate propertyName values." }
@@ -217,6 +220,13 @@ public class ConfigSchema(
 
     /** Returns the declared schema entry for [jsonKey], or `null` when the key is unknown. */
     public fun definitionFor(jsonKey: String): ConfigDefinition? = byJsonKey[jsonKey]
+
+    internal companion object {
+        val RESERVED_JSON_KEYS: Set<String> = setOf(
+            DefaultConfigResolver.FLAVORS_KEY,
+            DefaultConfigResolver.TARGETS_KEY,
+        )
+    }
 }
 
 /**

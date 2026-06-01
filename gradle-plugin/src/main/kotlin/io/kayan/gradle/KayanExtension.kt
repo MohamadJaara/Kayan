@@ -747,6 +747,13 @@ internal data class KayanSchemaEntrySpec(
                 ?.let { duplicates ->
                     add(SchemaError.DuplicateJsonKeys(duplicates))
                 }
+            specs.map(KayanSchemaEntrySpec::jsonKey)
+                .filter { it in ConfigSchema.RESERVED_JSON_KEYS }
+                .distinct()
+                .takeIf { it.isNotEmpty() }
+                ?.let { reservedKeys ->
+                    add(SchemaError.ReservedJsonKeys(reservedKeys))
+                }
             duplicateValues(specs.map(KayanSchemaEntrySpec::propertyName))
                 .takeIf { it.isNotEmpty() }
                 ?.let { duplicates ->

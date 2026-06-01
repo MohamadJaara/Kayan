@@ -126,4 +126,38 @@ class KayanSchemaEntrySpecTypedTest {
             is Either.Right -> fail("Expected duplicate schema validation errors.")
         }
     }
+
+    @Test
+    fun toSchemaEitherRejectsReservedJsonKeys() {
+        val targets = KayanSchemaEntrySpec(
+            jsonKey = "targets",
+            propertyName = "TARGETS",
+            kind = ConfigValueKind.STRING,
+            required = false,
+            nullable = false,
+        ).serialize()
+        val flavors = KayanSchemaEntrySpec(
+            jsonKey = "flavors",
+            propertyName = "FLAVORS",
+            kind = ConfigValueKind.STRING,
+            required = false,
+            nullable = false,
+        ).serialize()
+
+        when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(targets, flavors))) {
+            is Either.Left -> {
+                val reservedJsonKeys = assertIs<SchemaError.ReservedJsonKeys>(
+                    result.value.first { it is SchemaError.ReservedJsonKeys }
+                )
+
+                assertEquals(listOf("targets", "flavors"), reservedJsonKeys.jsonKeys)
+                assertEquals(
+                    "Config schema contains reserved jsonKey values: 'targets', 'flavors'.",
+                    reservedJsonKeys.message(),
+                )
+            }
+
+            is Either.Right -> fail("Expected reserved jsonKey schema validation error.")
+        }
+    }
 }

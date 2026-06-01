@@ -106,6 +106,15 @@ internal sealed interface SchemaError : KayanError {
             "Config schema contains duplicate jsonKey values: ${jsonKeys.joinToString { "'$it'" }}."
     }
 
+    data class ReservedJsonKeys(
+        val jsonKeys: List<String>,
+    ) : SchemaError {
+        override val cause: Throwable? = null
+
+        override fun message(): String =
+            "Config schema contains reserved jsonKey values: ${jsonKeys.joinToString { "'$it'" }}."
+    }
+
     data class DuplicatePropertyNames(
         val propertyNames: List<String>,
     ) : SchemaError {
