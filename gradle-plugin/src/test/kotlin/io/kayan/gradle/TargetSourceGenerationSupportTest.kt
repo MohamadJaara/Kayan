@@ -70,4 +70,47 @@ class TargetSourceGenerationSupportTest {
             "configured value ''",
         )
     }
+
+    @Test
+    fun rejectsDuplicateSourceSetMappingsWithDifferentTargets() {
+        val error = assertFailsWith<GradleException> {
+            targetSourceGenerationsEither(
+                listOf(
+                    KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                    KayanTargetSourceSetMapping(sourceSetName = " iosMain ", targetName = "apple"),
+                ),
+            ).getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(
+            error,
+            "source set 'iosMain'",
+            "'ios'",
+            "'apple'",
+            "only resolve one target",
+        )
+    }
+
+    @Test
+    fun validatesConfiguredSourceSetNamesAgainstAvailableSourceSets() {
+        val error = assertFailsWith<GradleException> {
+            validateConfiguredSourceSetsEither(
+                availableSourceSets = setOf("commonMain", "jvmMain"),
+                configuredGenerations = listOf(
+                    TargetSourceGeneration(
+                        sourceSetName = "appleMain",
+                        targetName = "apple",
+                        taskName = "generateKayanAppleMainConfig",
+                    ),
+                ),
+            ).getOrElse { throw it.toGradleException() }
+        }
+
+        assertMessageContains(
+            error,
+            "could not find Kotlin source set 'appleMain'",
+            "'commonMain'",
+            "'jvmMain'",
+        )
+    }
 }

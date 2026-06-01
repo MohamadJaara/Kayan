@@ -793,6 +793,44 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun failsTargetGenerationWhenConfiguredSourceSetDoesNotExist() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    targets {
+                        sourceSet(sourceSetName = "appleMain", targetName = "apple")
+                    }
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod",
+                      "targets": {
+                        "apple": {
+                          "bundle_id": "com.example.apple"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            commonSource = "package sample",
+        )
+
+        val result = gradleRunner(projectDir, "generateKayanAppleMainConfig").buildAndFail()
+
+        assertTrue(
+            result.output.contains("Kayan target source generation could not find Kotlin source set 'appleMain'."),
+        )
+        assertTrue(result.output.contains("'commonMain'"))
+        assertTrue(result.output.contains("'jvmMain'"))
+    }
+
+    @Test
     fun failsOnTypeMismatches() {
         val projectDir = createProject(
             buildScript = buildScript(
