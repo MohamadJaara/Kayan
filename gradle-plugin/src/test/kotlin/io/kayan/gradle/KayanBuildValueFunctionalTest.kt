@@ -148,7 +148,7 @@ class KayanBuildValueFunctionalTest {
 
                     dependencies {
                         if (isSearchEnabled) {
-                            implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
+                            implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
                         }
                     }
 
@@ -179,7 +179,7 @@ class KayanBuildValueFunctionalTest {
         val result = gradleRunner(projectDir, "printImplementationDependencies").build()
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printImplementationDependencies")?.outcome)
-        assertTrue(result.output.contains("implementationDependencies=org.jetbrains.kotlin:kotlin-stdlib:2.3.20"))
+        assertTrue(result.output.contains("implementationDependencies=org.jetbrains.kotlin:kotlin-stdlib:2.3.21"))
     }
 
     @Test
@@ -400,7 +400,7 @@ class KayanBuildValueFunctionalTest {
                 import org.gradle.api.tasks.TaskAction
 
                 plugins {
-                    kotlin("jvm") version "2.3.20"
+                    kotlin("jvm") version "2.3.21"
                     id("io.github.mohamadjaara.kayan")
                 }
 
@@ -498,7 +498,7 @@ class KayanBuildValueFunctionalTest {
         import org.gradle.api.tasks.TaskAction
 
         plugins {
-            kotlin("jvm") version "2.3.20"
+            kotlin("jvm") version "2.3.21"
             id("io.github.mohamadjaara.kayan")
         }
 

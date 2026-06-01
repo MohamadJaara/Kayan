@@ -15,7 +15,7 @@ class KayanConfigPluginFunctionalTest {
         val projectDir = createMultiProject(
             rootBuildScript = """
                 plugins {
-                    kotlin("jvm") version "2.3.20" apply false
+                    kotlin("jvm") version "2.3.21" apply false
                     id("io.github.mohamadjaara.kayan")
                 }
 
@@ -1289,7 +1289,7 @@ class KayanConfigPluginFunctionalTest {
         }
 
         plugins {
-            kotlin("multiplatform") version "2.3.20"
+            kotlin("multiplatform") version "2.3.21"
             id("io.github.mohamadjaara.kayan")
         }
 
@@ -1319,7 +1319,7 @@ class KayanConfigPluginFunctionalTest {
 
     private fun jvmBuildScript(kayanBlock: String, schemaBlock: String = ""): String = """
         plugins {
-            kotlin("jvm") version "2.3.20"
+            kotlin("jvm") version "2.3.21"
             id("io.github.mohamadjaara.kayan")
         }
 

@@ -10,6 +10,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    implementation(libs.kotlinpoet)
+}
+
 dependencyLocking {
     lockAllConfigurations()
 }

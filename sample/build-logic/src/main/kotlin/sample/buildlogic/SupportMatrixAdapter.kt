@@ -1,5 +1,8 @@
 package sample.buildlogic
 
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.TypeName
+
 private data class SupportRegionSpec(
     val code: String,
     val links: List<String>,
@@ -12,7 +15,7 @@ private data class SupportMatrixSpec(
 
 object SupportMatrixAdapter {
     val rawKind: String = "STRING_LIST_MAP"
-    val kotlinType: String = "sample.SupportMatrix"
+    val kotlinType: TypeName = ClassName.bestGuess("sample.SupportMatrix")
 
     fun parse(rawValue: Any): Any {
         val rawMap = rawValue as? Map<*, *> ?: error("Expected a map of region codes to support links.")

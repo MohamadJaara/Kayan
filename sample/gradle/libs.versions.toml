@@ -1,7 +1,8 @@
 [versions]
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 compose = "1.10.3"
 composeMaterial3 = "1.10.0-alpha05"
+kotlinpoet = "2.2.0"
 
 [libraries]
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }
@@ -9,6 +10,7 @@ compose-material3 = { module = "org.jetbrains.compose.material3:material3", vers
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlinpoet = { module = "com.squareup:kotlinpoet-jvm", version.ref = "kotlinpoet" }
 
 [plugins]
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
