@@ -7,7 +7,6 @@ import arrow.core.getOrElse
 import arrow.core.raise.either
 import io.kayan.gradle.ExperimentalKayanGradleApi
 
-@Suppress("TooManyFunctions")
 /**
  * Default JVM implementation of [ConfigResolver].
  *
@@ -16,6 +15,7 @@ import io.kayan.gradle.ExperimentalKayanGradleApi
  * constructor assumes JSON input; the format-aware constructor is intended for
  * callers that already know whether the source is JSON or YAML.
  */
+@Suppress("TooManyFunctions")
 public class DefaultConfigResolver : ConfigResolver {
     private val parser: ConfigFormatParser
 
@@ -42,10 +42,7 @@ public class DefaultConfigResolver : ConfigResolver {
         this.parser = parser
     }
 
-    override fun parse(
-        configJson: String,
-        schema: ConfigSchema,
-    ): AppConfigFile = parseEither(
+    override fun parse(configJson: String, schema: ConfigSchema): AppConfigFile = parseEither(
         configJson = configJson,
         schema = schema,
         sourceName = DEFAULT_PARSE_SOURCE_NAME,
@@ -53,16 +50,13 @@ public class DefaultConfigResolver : ConfigResolver {
     ).getOrElse { throw it.toConfigValidationException() }
 
     /** Parses [configJson] using the supplied [validationMode]. */
-    public fun parse(
-        configJson: String,
-        schema: ConfigSchema,
-        validationMode: KayanValidationMode,
-    ): AppConfigFile = parseEither(
-        configJson = configJson,
-        schema = schema,
-        sourceName = DEFAULT_PARSE_SOURCE_NAME,
-        validationMode = validationMode,
-    ).getOrElse { throw it.toConfigValidationException() }
+    public fun parse(configJson: String, schema: ConfigSchema, validationMode: KayanValidationMode): AppConfigFile =
+        parseEither(
+            configJson = configJson,
+            schema = schema,
+            sourceName = DEFAULT_PARSE_SOURCE_NAME,
+            validationMode = validationMode,
+        ).getOrElse { throw it.toConfigValidationException() }
 
     /**
      * Parses [configJson] and reports diagnostics against the supplied [sourceName].
@@ -70,11 +64,7 @@ public class DefaultConfigResolver : ConfigResolver {
      * Use this overload when error messages should mention a real file name or a
      * domain-specific label instead of the default placeholder source name.
      */
-    public fun parse(
-        configJson: String,
-        schema: ConfigSchema,
-        sourceName: String,
-    ): AppConfigFile = parseEither(
+    public fun parse(configJson: String, schema: ConfigSchema, sourceName: String): AppConfigFile = parseEither(
         configJson = configJson,
         schema = schema,
         sourceName = sourceName,

@@ -3,9 +3,7 @@ package io.kayan
 import arrow.core.Either
 import arrow.core.raise.either
 
-internal class ConfigSectionParser(
-    private val parser: ConfigFormatParser,
-) {
+internal class ConfigSectionParser(private val parser: ConfigFormatParser) {
     fun parseEither(
         configJson: String,
         schema: ConfigSchema,
@@ -402,11 +400,9 @@ internal class ConfigSectionParser(
         normalized
     }
 
-    private fun StringBuilder.shouldInsertEnumSeparator(
-        character: Char,
-        previous: Char?,
-    ): Boolean = character.isUpperCase() &&
-        isNotEmpty() &&
-        previous?.isLowerCase() == true &&
-        last() != '_'
+    private fun StringBuilder.shouldInsertEnumSeparator(character: Char, previous: Char?): Boolean =
+        character.isUpperCase() &&
+            isNotEmpty() &&
+            previous?.isLowerCase() == true &&
+            last() != '_'
 }

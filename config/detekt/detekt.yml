@@ -57,16 +57,6 @@ naming:
 
 ktlint:
   active: true
-  BlankLineBetweenWhenConditions:
-    active: false
-  ClassSignature:
-    active: false
-  FunctionSignature:
-    active: false
-  FunctionExpressionBody:
-    active: false
-  Kdoc:
-    active: false
   NoBlankLineBeforeRbrace:
     active: true
   NoBlankLineInList:
@@ -75,10 +65,4 @@ ktlint:
     active: true
   NoWildcardImports:
     # Intentionally disabled to avoid duplicate violations with style.WildcardImport.
-    active: false
-  PropertyName:
-    active: false
-  TrailingCommaOnCallSite:
-    active: false
-  TrailingCommaOnDeclarationSite:
     active: false

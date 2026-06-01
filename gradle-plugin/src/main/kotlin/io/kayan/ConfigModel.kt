@@ -140,9 +140,7 @@ public sealed interface ConfigValue {
      *
      * @property kind The schema kind of the nullable value.
      */
-    public data class NullValue(
-        override val kind: ConfigValueKind,
-    ) : ConfigValue
+    public data class NullValue(override val kind: ConfigValueKind) : ConfigValue
 }
 
 /**
@@ -199,9 +197,7 @@ public data class ConfigDefinition(
  *
  * @property entries The schema entries, preserved in declaration order.
  */
-public class ConfigSchema(
-    entries: List<ConfigDefinition>,
-) {
+public class ConfigSchema(entries: List<ConfigDefinition>) {
     /** The definitions included in this schema, preserved in declaration order. */
     public val entries: List<ConfigDefinition> = entries.toList()
 
@@ -214,7 +210,7 @@ public class ConfigSchema(
             "Config schema contains reserved jsonKey values."
         }
         require(
-            this.entries.size == this.entries.map(ConfigDefinition::propertyName).toSet().size
+            this.entries.size == this.entries.map(ConfigDefinition::propertyName).toSet().size,
         ) { "Config schema contains duplicate propertyName values." }
     }
 
@@ -254,10 +250,7 @@ public data class ConfigSection(
  * @property defaults The top-level default values.
  * @property flavors The flavor-specific overrides keyed by flavor name.
  */
-public data class AppConfigFile(
-    val defaults: ConfigSection,
-    val flavors: Map<String, ConfigSection>,
-)
+public data class AppConfigFile(val defaults: ConfigSection, val flavors: Map<String, ConfigSection>)
 
 /**
  * Final values for one flavor after defaults, optional overrides, and optional
@@ -291,23 +284,16 @@ public data class ResolvedFlavorConfig(
  *
  * @property flavors The resolved configs for each flavor.
  */
-public data class ResolvedConfigsByFlavor(
-    val flavors: Map<String, ResolvedFlavorConfig>,
-)
+public data class ResolvedConfigsByFlavor(val flavors: Map<String, ResolvedFlavorConfig>)
 
 /** Public exception type used when resolver operations fail validation or parsing. */
-public class ConfigValidationException(
-    message: String,
-    cause: Throwable? = null,
-) : IllegalArgumentException(message, cause)
+public class ConfigValidationException(message: String, cause: Throwable? = null) :
+    IllegalArgumentException(message, cause)
 
 /** Parses config documents and resolves them into typed, flavor-specific results. */
 public interface ConfigResolver {
     /** Parses a single config document into defaults and flavor sections without applying custom overrides. */
-    public fun parse(
-        configJson: String,
-        schema: ConfigSchema,
-    ): AppConfigFile
+    public fun parse(configJson: String, schema: ConfigSchema): AppConfigFile
 
     /** Resolves the base document and optional custom override document into final values by flavor. */
     public fun resolve(

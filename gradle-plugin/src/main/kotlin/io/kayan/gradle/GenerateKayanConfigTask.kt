@@ -283,9 +283,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         }
     }
 
-    private fun cleanOutputDirectoryEither(
-        outputRoot: File,
-    ): Either<GenerationError, Unit> = either {
+    private fun cleanOutputDirectoryEither(outputRoot: File): Either<GenerationError, Unit> = either {
         if (!outputRoot.exists()) {
             return@either
         }
@@ -295,6 +293,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         }
         when (cleanupResult) {
             is Either.Left -> raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, cleanupResult.value))
+
             is Either.Right -> {
                 if (!cleanupResult.value) {
                     raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, null))
@@ -306,59 +305,57 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
 private fun GenerateKayanConfigTask.resolveDeclarationNullabilityEither(
     inputs: GenerationInputs,
-): Either<KayanGradleError, Map<ConfigDefinition, Boolean>> =
-    when {
-        inputs.declarationMode == KayanDeclarationMode.OBJECT -> emptyMap<ConfigDefinition, Boolean>().right()
-        else -> {
-            val targetNames = inputs.generatedTargetNames.ifEmpty {
-                listOfNotNull(inputs.targetName)
-            }
-            if (targetNames.isEmpty()) {
-                emptyMap<ConfigDefinition, Boolean>().right()
-            } else {
-                resolveTargetDeclarationNullabilityEither(
-                    schema = inputs.schema,
-                    flavorName = inputs.flavor,
-                    targetNames = targetNames,
-                    baseFile = inputs.baseFile,
-                    customFile = inputs.customFile,
-                    configFormat = inputs.configFormat,
-                    validationMode = inputs.validationMode,
-                )
-            }
+): Either<KayanGradleError, Map<ConfigDefinition, Boolean>> = when {
+    inputs.declarationMode == KayanDeclarationMode.OBJECT -> emptyMap<ConfigDefinition, Boolean>().right()
+
+    else -> {
+        val targetNames = inputs.generatedTargetNames.ifEmpty {
+            listOfNotNull(inputs.targetName)
+        }
+        if (targetNames.isEmpty()) {
+            emptyMap<ConfigDefinition, Boolean>().right()
+        } else {
+            resolveTargetDeclarationNullabilityEither(
+                schema = inputs.schema,
+                flavorName = inputs.flavor,
+                targetNames = targetNames,
+                baseFile = inputs.baseFile,
+                customFile = inputs.customFile,
+                configFormat = inputs.configFormat,
+                validationMode = inputs.validationMode,
+            )
         }
     }
+}
 
 private fun GenerateKayanConfigTask.resolveFlavorForEither(
     inputs: GenerationInputs,
-): Either<KayanGradleError, ResolvedFlavorConfig?> =
-    if (!inputs.declarationMode.requiresResolvedFlavor()) {
-        null.right()
-    } else {
-        resolveConfigEither(
-            schema = inputs.schema,
-            baseFile = inputs.baseFile,
-            customFile = inputs.customFile,
-            configFormat = inputs.configFormat,
-            validationMode = inputs.validationMode,
-            targetName = inputs.targetName,
-        ).flatMap { resolved ->
-            requireResolvedFlavorEither(resolved, inputs.flavor)
-        }
+): Either<KayanGradleError, ResolvedFlavorConfig?> = if (!inputs.declarationMode.requiresResolvedFlavor()) {
+    null.right()
+} else {
+    resolveConfigEither(
+        schema = inputs.schema,
+        baseFile = inputs.baseFile,
+        customFile = inputs.customFile,
+        configFormat = inputs.configFormat,
+        validationMode = inputs.validationMode,
+        targetName = inputs.targetName,
+    ).flatMap { resolved ->
+        requireResolvedFlavorEither(resolved, inputs.flavor)
     }
+}
 
 private fun createBuildscriptClasspathLoader(
     buildscriptClasspath: ConfigurableFileCollection,
     parentClassLoader: ClassLoader,
-): URLClassLoader? =
-    buildscriptClasspath.files
-        .takeIf { it.isNotEmpty() }
-        ?.let { files ->
-            URLClassLoader(
-                files.map { it.toURI().toURL() }.toTypedArray(),
-                parentClassLoader,
-            )
-        }
+): URLClassLoader? = buildscriptClasspath.files
+    .takeIf { it.isNotEmpty() }
+    ?.let { files ->
+        URLClassLoader(
+            files.map { it.toURI().toURL() }.toTypedArray(),
+            parentClassLoader,
+        )
+    }
 
 private fun validateAdapterEither(
     definition: ConfigDefinition,
@@ -405,10 +402,7 @@ private fun reflectiveTypeNamePropertyEither(
         ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "TypeName").left()
 }
 
-private fun reflectiveRawKindProperty(
-    adapterClass: Class<*>,
-    instance: Any,
-): ConfigValueKind? {
+private fun reflectiveRawKindProperty(adapterClass: Class<*>, instance: Any): ConfigValueKind? {
     val rawValue = Either.catch {
         adapterClass.getMethod(getterName("rawKind")).invoke(instance)
     }.getOrElse {

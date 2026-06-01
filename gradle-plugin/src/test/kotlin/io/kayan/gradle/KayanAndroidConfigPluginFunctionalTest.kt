@@ -510,9 +510,8 @@ class KayanAndroidConfigPluginFunctionalTest {
         }
     }
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withPluginClasspath()
-            .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
+        .withProjectDir(projectDir)
+        .withPluginClasspath()
+        .withArguments(*tasks, "--stacktrace")
 }

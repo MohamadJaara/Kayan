@@ -15,32 +15,30 @@ import java.io.StringReader
 internal class YamlConfigFormatParser : ConfigFormatParser {
     override val formatName: String = "YAML"
 
-    override fun parseRootEither(
-        configText: String,
-        sourceName: String,
-    ): Either<ConfigError, ConfigNode.ObjectNode> = either {
-        val rootNode = try {
-            parseDocument(configText)
-        } catch (error: YAMLException) {
-            raise(
-                ConfigError.InvalidConfigSyntax(
-                    sourceName = sourceName,
-                    formatName = formatName,
-                    detail = error.message,
-                    cause = error,
+    override fun parseRootEither(configText: String, sourceName: String): Either<ConfigError, ConfigNode.ObjectNode> =
+        either {
+            val rootNode = try {
+                parseDocument(configText)
+            } catch (error: YAMLException) {
+                raise(
+                    ConfigError.InvalidConfigSyntax(
+                        sourceName = sourceName,
+                        formatName = formatName,
+                        detail = error.message,
+                        cause = error,
+                    ),
+                )
+            }
+
+            rootNode as? ConfigNode.ObjectNode ?: raise(
+                ConfigError.InvalidType(
+                    subject = "configuration root",
+                    expectedType = "object",
+                    actualType = rootNode.describeType(),
+                    context = DiagnosticContext(sourceName = sourceName),
                 ),
             )
         }
-
-        rootNode as? ConfigNode.ObjectNode ?: raise(
-            ConfigError.InvalidType(
-                subject = "configuration root",
-                expectedType = "object",
-                actualType = rootNode.describeType(),
-                context = DiagnosticContext(sourceName = sourceName),
-            ),
-        )
-    }
 
     private fun parseDocument(configText: String): ConfigNode {
         val loaderOptions = LoaderOptions().apply {
@@ -80,10 +78,15 @@ internal class YamlConfigFormatParser : ConfigFormatParser {
 
     private fun toScalarNode(node: ScalarNode): ConfigNode = when (node.tag) {
         Tag.STR -> ConfigNode.StringNode(node.value)
+
         Tag.BOOL -> parseBooleanNode(node.value)
+
         Tag.INT -> parseIntegerNode(node.value)
+
         Tag.FLOAT -> parseDoubleNode(node.value)
+
         Tag.NULL -> ConfigNode.NullNode
+
         else -> throw YAMLException(
             "Unsupported YAML scalar tag '${node.tag.value}'. Quote the value if it should be treated as a string.",
         )

@@ -41,32 +41,31 @@ internal fun inferConfigFormatEither(sourceName: String): Either<ConfigError, Co
 internal fun validateConfigFormatEither(
     sourceName: String,
     configuredFormat: ConfigFormat,
-): Either<ConfigError, ConfigFormat> =
-    when (val inferredFormat = inferConfigFormatEither(sourceName)) {
-        is Either.Left -> inferredFormat
-        is Either.Right -> {
-            if (inferredFormat.value == configuredFormat) {
-                configuredFormat.right()
-            } else {
-                ConfigError.ConfigFormatMismatch(
-                    sourceName = sourceName,
-                    configuredFormat = configuredFormat,
-                    actualFormat = inferredFormat.value,
-                ).left()
-            }
+): Either<ConfigError, ConfigFormat> = when (val inferredFormat = inferConfigFormatEither(sourceName)) {
+    is Either.Left -> inferredFormat
+
+    is Either.Right -> {
+        if (inferredFormat.value == configuredFormat) {
+            configuredFormat.right()
+        } else {
+            ConfigError.ConfigFormatMismatch(
+                sourceName = sourceName,
+                configuredFormat = configuredFormat,
+                actualFormat = inferredFormat.value,
+            ).left()
         }
     }
+}
 
 internal fun resolveConfigFormatEither(
     baseSourceName: String,
     customSourceName: String?,
     configuredFormat: ConfigFormat,
-): Either<ConfigError, ConfigFormat> =
-    if (configuredFormat == ConfigFormat.AUTO) {
-        autoDetectedConfigFormatEither(baseSourceName, customSourceName)
-    } else {
-        explicitConfigFormatEither(baseSourceName, customSourceName, configuredFormat)
-    }
+): Either<ConfigError, ConfigFormat> = if (configuredFormat == ConfigFormat.AUTO) {
+    autoDetectedConfigFormatEither(baseSourceName, customSourceName)
+} else {
+    explicitConfigFormatEither(baseSourceName, customSourceName, configuredFormat)
+}
 
 private fun explicitConfigFormatEither(
     baseSourceName: String,
@@ -75,6 +74,7 @@ private fun explicitConfigFormatEither(
 ): Either<ConfigError, ConfigFormat> =
     when (val baseFormat = validateConfigFormatEither(baseSourceName, configuredFormat)) {
         is Either.Left -> baseFormat
+
         is Either.Right -> when (
             val customFormat = customSourceName?.let {
                 validateConfigFormatEither(it, configuredFormat)
@@ -89,26 +89,28 @@ private fun explicitConfigFormatEither(
 private fun autoDetectedConfigFormatEither(
     baseSourceName: String,
     customSourceName: String?,
-): Either<ConfigError, ConfigFormat> =
-    when (val baseFormat = inferConfigFormatEither(baseSourceName)) {
-        is Either.Left -> baseFormat
-        is Either.Right -> {
-            val customFormat = customSourceName?.let(::inferConfigFormatEither)
-            when (customFormat) {
-                null -> baseFormat
-                is Either.Left -> customFormat
-                is Either.Right -> {
-                    if (customFormat.value != baseFormat.value) {
-                        ConfigError.MixedConfigFormats(
-                            baseSourceName = baseSourceName,
-                            baseFormat = baseFormat.value,
-                            customSourceName = customSourceName,
-                            customFormat = customFormat.value,
-                        ).left()
-                    } else {
-                        baseFormat.value.right()
-                    }
+): Either<ConfigError, ConfigFormat> = when (val baseFormat = inferConfigFormatEither(baseSourceName)) {
+    is Either.Left -> baseFormat
+
+    is Either.Right -> {
+        val customFormat = customSourceName?.let(::inferConfigFormatEither)
+        when (customFormat) {
+            null -> baseFormat
+
+            is Either.Left -> customFormat
+
+            is Either.Right -> {
+                if (customFormat.value != baseFormat.value) {
+                    ConfigError.MixedConfigFormats(
+                        baseSourceName = baseSourceName,
+                        baseFormat = baseFormat.value,
+                        customSourceName = customSourceName,
+                        customFormat = customFormat.value,
+                    ).left()
+                } else {
+                    baseFormat.value.right()
                 }
             }
         }
     }
+}

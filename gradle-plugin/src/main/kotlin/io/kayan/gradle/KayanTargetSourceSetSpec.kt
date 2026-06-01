@@ -39,10 +39,7 @@ public abstract class KayanTargetSourceSetContainer {
     internal abstract val objects: ObjectFactory
 
     /** Adds a target-specific mapping from [sourceSetName] to [targetName]. */
-    public fun sourceSet(
-        sourceSetName: String,
-        targetName: String,
-    ) {
+    public fun sourceSet(sourceSetName: String, targetName: String) {
         val entry = objects.newInstance(KayanTargetSourceSetSpec::class.java).apply {
             this.sourceSetName.set(sourceSetName)
             this.targetName.set(targetName)

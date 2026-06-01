@@ -20,10 +20,7 @@ import io.kayan.ConfigValueKind
 import io.kayan.ExperimentalKayanApi
 import io.kayan.ResolvedFlavorConfig
 
-internal data class RenderedCustomProperty(
-    val typeName: TypeName,
-    val expression: String?,
-)
+internal data class RenderedCustomProperty(val typeName: TypeName, val expression: String?)
 
 internal enum class KayanDeclarationMode {
     OBJECT,
@@ -98,14 +95,17 @@ internal object KayanConfigGenerator {
         declarationNullable: Boolean?,
     ): Either<GenerationError, PropertySpec> = when (declarationMode) {
         KayanDeclarationMode.EXPECT -> buildExpectProperty(definition, renderedCustomProperty, declarationNullable)
+
         KayanDeclarationMode.OBJECT,
-        KayanDeclarationMode.ACTUAL ->
+        KayanDeclarationMode.ACTUAL,
+        ->
             if (renderedCustomProperty != null) {
                 buildCustomProperty(definition, renderedCustomProperty, declarationMode, declarationNullable)
             } else {
                 when (value) {
                     null,
-                    is ConfigValue.NullValue -> either {
+                    is ConfigValue.NullValue,
+                    -> either {
                         validateDeclarationNullability(declarationNullable, definition).bind()
                         buildNullableProperty(
                             definition = definition,
@@ -147,8 +147,10 @@ internal object KayanConfigGenerator {
                 declarationMode = declarationMode,
                 typeName = when (declarationMode) {
                     KayanDeclarationMode.OBJECT -> typeName.copy(nullable = true)
+
                     KayanDeclarationMode.EXPECT,
-                    KayanDeclarationMode.ACTUAL -> effectiveTypeName(
+                    KayanDeclarationMode.ACTUAL,
+                    -> effectiveTypeName(
                         definition = definition,
                         declarationMode = declarationMode,
                         customTypeName = typeName,
@@ -185,55 +187,63 @@ internal object KayanConfigGenerator {
         value: ConfigValue,
         declarationMode: KayanDeclarationMode,
         declarationNullable: Boolean?,
-    ): PropertySpec =
-        builtInPropertyInitializer(definition, value)?.let { initializer ->
-            when (value) {
-                is ConfigValue.StringValue,
-                is ConfigValue.BooleanValue,
-                is ConfigValue.IntValue,
-                is ConfigValue.LongValue,
-                is ConfigValue.DoubleValue ->
-                    buildScalarBuiltInProperty(
-                        definition = definition,
-                        declarationMode = declarationMode,
-                        declarationNullable = declarationNullable,
-                        initializer = initializer,
-                    )
+    ): PropertySpec = builtInPropertyInitializer(definition, value)?.let { initializer ->
+        when (value) {
+            is ConfigValue.StringValue,
+            is ConfigValue.BooleanValue,
+            is ConfigValue.IntValue,
+            is ConfigValue.LongValue,
+            is ConfigValue.DoubleValue,
+            ->
+                buildScalarBuiltInProperty(
+                    definition = definition,
+                    declarationMode = declarationMode,
+                    declarationNullable = declarationNullable,
+                    initializer = initializer,
+                )
 
-                is ConfigValue.StringMapValue,
-                is ConfigValue.StringListValue,
-                is ConfigValue.StringListMapValue,
-                is ConfigValue.EnumValue ->
-                    buildRenderedBuiltInProperty(
-                        definition = definition,
-                        declarationMode = declarationMode,
-                        declarationNullable = declarationNullable,
-                        initializer = initializer,
-                    )
+            is ConfigValue.StringMapValue,
+            is ConfigValue.StringListValue,
+            is ConfigValue.StringListMapValue,
+            is ConfigValue.EnumValue,
+            ->
+                buildRenderedBuiltInProperty(
+                    definition = definition,
+                    declarationMode = declarationMode,
+                    declarationNullable = declarationNullable,
+                    initializer = initializer,
+                )
 
-                is ConfigValue.NullValue -> error("Null values should be handled before built-in property rendering.")
-            }
-        } ?: error("Null values should be handled before built-in property rendering.")
+            is ConfigValue.NullValue -> error("Null values should be handled before built-in property rendering.")
+        }
+    } ?: error("Null values should be handled before built-in property rendering.")
 
-    private fun builtInPropertyInitializer(
-        definition: ConfigDefinition,
-        value: ConfigValue,
-    ): CodeBlock? = when (value) {
-        is ConfigValue.StringValue -> CodeBlock.of("%S", value.value)
-        is ConfigValue.BooleanValue -> CodeBlock.of("%L", value.value)
-        is ConfigValue.IntValue -> CodeBlock.of("%L", value.value)
-        is ConfigValue.LongValue -> CodeBlock.of("%LL", value.value)
-        is ConfigValue.DoubleValue -> CodeBlock.of("%L", value.value)
-        is ConfigValue.StringMapValue -> renderStringMap(value.value)
-        is ConfigValue.StringListValue -> renderStringList(value.value)
-        is ConfigValue.StringListMapValue -> renderStringListMap(value.value)
-        is ConfigValue.EnumValue -> CodeBlock.of(
-            "%L.%L",
-            requireNotNull(definition.enumTypeName),
-            value.value,
-        )
-        is ConfigValue.NullValue -> null
-    }
+    private fun builtInPropertyInitializer(definition: ConfigDefinition, value: ConfigValue): CodeBlock? =
+        when (value) {
+            is ConfigValue.StringValue -> CodeBlock.of("%S", value.value)
+
+            is ConfigValue.BooleanValue -> CodeBlock.of("%L", value.value)
+
+            is ConfigValue.IntValue -> CodeBlock.of("%L", value.value)
+
+            is ConfigValue.LongValue -> CodeBlock.of("%LL", value.value)
+
+            is ConfigValue.DoubleValue -> CodeBlock.of("%L", value.value)
+
+            is ConfigValue.StringMapValue -> renderStringMap(value.value)
+
+            is ConfigValue.StringListValue -> renderStringList(value.value)
+
+            is ConfigValue.StringListMapValue -> renderStringListMap(value.value)
+
+            is ConfigValue.EnumValue -> CodeBlock.of(
+                "%L.%L",
+                requireNotNull(definition.enumTypeName),
+                value.value,
+            )
+
+            is ConfigValue.NullValue -> null
+        }
 
     private fun buildScalarBuiltInProperty(
         definition: ConfigDefinition,
@@ -309,14 +319,15 @@ private const val EXPECT_KDOC: String =
 
 private fun KayanDeclarationMode.requiredResolvedFlavorOrNull(
     resolvedFlavorConfig: ResolvedFlavorConfig?,
-): ResolvedFlavorConfig? =
-    when (this) {
-        KayanDeclarationMode.EXPECT -> null
-        KayanDeclarationMode.OBJECT,
-        KayanDeclarationMode.ACTUAL -> requireNotNull(resolvedFlavorConfig) {
-            "resolvedFlavorConfig is required when declarationMode is $this."
-        }
+): ResolvedFlavorConfig? = when (this) {
+    KayanDeclarationMode.EXPECT -> null
+
+    KayanDeclarationMode.OBJECT,
+    KayanDeclarationMode.ACTUAL,
+    -> requireNotNull(resolvedFlavorConfig) {
+        "resolvedFlavorConfig is required when declarationMode is $this."
     }
+}
 
 private fun KayanDeclarationMode.objectModifier(): KModifier? = when (this) {
     KayanDeclarationMode.OBJECT -> null
@@ -345,43 +356,48 @@ private fun effectiveTypeName(
     declarationNullable: Boolean? = null,
 ): TypeName = when (declarationMode) {
     KayanDeclarationMode.OBJECT -> customTypeName ?: typeNameFor(definition)
+
     KayanDeclarationMode.EXPECT,
-    KayanDeclarationMode.ACTUAL -> declaredTypeName(
+    KayanDeclarationMode.ACTUAL,
+    -> declaredTypeName(
         definition = definition,
         renderedCustomProperty = customTypeName?.let { RenderedCustomProperty(it, null) },
         declarationNullable = declarationNullable,
     )
 }
 
-private fun kdocFor(
-    declarationMode: KayanDeclarationMode,
-    resolvedFlavorConfig: ResolvedFlavorConfig?,
-): String = when (declarationMode) {
-    KayanDeclarationMode.OBJECT ->
-        "Generated by the Kayan Gradle plugin for flavor `${requireNotNull(resolvedFlavorConfig).flavorName}`.\n"
+private fun kdocFor(declarationMode: KayanDeclarationMode, resolvedFlavorConfig: ResolvedFlavorConfig?): String =
+    when (declarationMode) {
+        KayanDeclarationMode.OBJECT ->
+            "Generated by the Kayan Gradle plugin for flavor `${requireNotNull(resolvedFlavorConfig).flavorName}`.\n"
 
-    KayanDeclarationMode.EXPECT -> EXPECT_KDOC
+        KayanDeclarationMode.EXPECT -> EXPECT_KDOC
 
-    KayanDeclarationMode.ACTUAL -> buildString {
-        val requiredResolvedFlavor = requireNotNull(resolvedFlavorConfig)
-        append("Generated by the Kayan Gradle plugin for flavor `")
-        append(requiredResolvedFlavor.flavorName)
-        append('`')
-        requiredResolvedFlavor.targetName?.let { targetName ->
-            append(" and target `")
-            append(targetName)
+        KayanDeclarationMode.ACTUAL -> buildString {
+            val requiredResolvedFlavor = requireNotNull(resolvedFlavorConfig)
+            append("Generated by the Kayan Gradle plugin for flavor `")
+            append(requiredResolvedFlavor.flavorName)
             append('`')
+            requiredResolvedFlavor.targetName?.let { targetName ->
+                append(" and target `")
+                append(targetName)
+                append('`')
+            }
+            append(".\n")
         }
-        append(".\n")
     }
-}
 
 private fun typeNameFor(definition: ConfigDefinition): TypeName = when (definition.kind) {
     ConfigValueKind.STRING -> String::class.asTypeName()
+
     ConfigValueKind.BOOLEAN -> Boolean::class.asTypeName()
+
     ConfigValueKind.INT -> Int::class.asTypeName()
+
     ConfigValueKind.LONG -> Long::class.asTypeName()
+
     ConfigValueKind.DOUBLE -> Double::class.asTypeName()
+
     ConfigValueKind.STRING_MAP -> KayanTypeNames.parameterized(
         Map::class.asClassName(),
         String::class.asTypeName(),
@@ -405,15 +421,14 @@ private fun typeNameFor(definition: ConfigDefinition): TypeName = when (definiti
     ConfigValueKind.ENUM -> KayanTypeNames.bestGuess(requireNotNull(definition.enumTypeName))
 }
 
-private fun renderStringMap(values: Map<String, String>): CodeBlock =
-    values.entries
-        .sortedBy { it.key }
-        .toCodeBlock(prefix = "mapOf(") { builder, (key, entryValue), isFirst ->
-            if (!isFirst) {
-                builder.add(", ")
-            }
-            builder.add("%S to %S", key, entryValue)
+private fun renderStringMap(values: Map<String, String>): CodeBlock = values.entries
+    .sortedBy { it.key }
+    .toCodeBlock(prefix = "mapOf(") { builder, (key, entryValue), isFirst ->
+        if (!isFirst) {
+            builder.add(", ")
         }
+        builder.add("%S to %S", key, entryValue)
+    }
 
 private fun renderStringList(values: List<String>): CodeBlock =
     values.toCodeBlock(prefix = "listOf(") { builder, value, isFirst ->
@@ -423,15 +438,14 @@ private fun renderStringList(values: List<String>): CodeBlock =
         builder.add("%S", value)
     }
 
-private fun renderStringListMap(values: Map<String, List<String>>): CodeBlock =
-    values.entries
-        .sortedBy { it.key }
-        .toCodeBlock(prefix = "mapOf(") { builder, (key, entries), isFirst ->
-            if (!isFirst) {
-                builder.add(", ")
-            }
-            builder.add("%S to %L", key, renderStringList(entries))
+private fun renderStringListMap(values: Map<String, List<String>>): CodeBlock = values.entries
+    .sortedBy { it.key }
+    .toCodeBlock(prefix = "mapOf(") { builder, (key, entries), isFirst ->
+        if (!isFirst) {
+            builder.add(", ")
         }
+        builder.add("%S to %L", key, renderStringList(entries))
+    }
 
 private fun <T> Iterable<T>.toCodeBlock(
     prefix: String,

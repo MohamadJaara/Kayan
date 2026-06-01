@@ -18,10 +18,7 @@ import kotlinx.serialization.json.longOrNull
 internal interface ConfigFormatParser {
     val formatName: String
 
-    fun parseRootEither(
-        configText: String,
-        sourceName: String,
-    ): Either<ConfigError, ConfigNode.ObjectNode>
+    fun parseRootEither(configText: String, sourceName: String): Either<ConfigError, ConfigNode.ObjectNode>
 }
 
 internal class JsonConfigFormatParser : ConfigFormatParser {
@@ -32,33 +29,31 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
 
     override val formatName: String = "JSON"
 
-    override fun parseRootEither(
-        configText: String,
-        sourceName: String,
-    ): Either<ConfigError, ConfigNode.ObjectNode> = either {
-        val root = try {
-            json.parseToJsonElement(configText)
-        } catch (error: SerializationException) {
-            raise(
-                ConfigError.InvalidConfigSyntax(
-                    sourceName = sourceName,
-                    formatName = formatName,
-                    detail = error.message,
-                    cause = error,
+    override fun parseRootEither(configText: String, sourceName: String): Either<ConfigError, ConfigNode.ObjectNode> =
+        either {
+            val root = try {
+                json.parseToJsonElement(configText)
+            } catch (error: SerializationException) {
+                raise(
+                    ConfigError.InvalidConfigSyntax(
+                        sourceName = sourceName,
+                        formatName = formatName,
+                        detail = error.message,
+                        cause = error,
+                    ),
+                )
+            }
+
+            val rootNode = toConfigNode(root)
+            rootNode as? ConfigNode.ObjectNode ?: raise(
+                ConfigError.InvalidType(
+                    subject = "configuration root",
+                    expectedType = "object",
+                    actualType = rootNode.describeType(),
+                    context = DiagnosticContext(sourceName = sourceName),
                 ),
             )
         }
-
-        val rootNode = toConfigNode(root)
-        rootNode as? ConfigNode.ObjectNode ?: raise(
-            ConfigError.InvalidType(
-                subject = "configuration root",
-                expectedType = "object",
-                actualType = rootNode.describeType(),
-                context = DiagnosticContext(sourceName = sourceName),
-            ),
-        )
-    }
 
     private fun toConfigNode(element: JsonElement): ConfigNode = when (element) {
         is JsonObject -> ConfigNode.ObjectNode(

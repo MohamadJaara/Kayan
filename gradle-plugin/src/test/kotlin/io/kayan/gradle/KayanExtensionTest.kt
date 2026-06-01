@@ -391,8 +391,5 @@ class KayanExtensionTest {
         return RootChildProjects(root = root, child = child)
     }
 
-    private data class RootChildProjects(
-        val root: Project,
-        val child: Project,
-    )
+    private data class RootChildProjects(val root: Project, val child: Project)
 }

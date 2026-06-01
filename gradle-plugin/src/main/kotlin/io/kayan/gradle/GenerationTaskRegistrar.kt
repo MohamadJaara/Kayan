@@ -4,26 +4,24 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 
+@OptIn(ExperimentalKayanGenerationApi::class)
 internal class GenerationTaskRegistrar(
     private val project: Project,
     private val extension: KayanExtension,
     private val exportSchemaTask: TaskProvider<out Task>,
 ) {
-    fun registerDefaultGenerateTask(): TaskProvider<GenerateKayanConfigTask> =
-        registerGenerateTask(
-            spec = GenerationSpec(
-                taskName = "generateKayanConfig",
-                description = "Generates a typed Kayan config object for the configured flavor.",
-                outputDirectory = "generated/kayan/kotlin",
-                kotlinPluginApplied = false,
-                declarationMode = KayanDeclarationMode.OBJECT,
-                useConventions = true,
-            ),
-        )
+    fun registerDefaultGenerateTask(): TaskProvider<GenerateKayanConfigTask> = registerGenerateTask(
+        spec = GenerationSpec(
+            taskName = "generateKayanConfig",
+            description = "Generates a typed Kayan config object for the configured flavor.",
+            outputDirectory = "generated/kayan/kotlin",
+            kotlinPluginApplied = false,
+            declarationMode = KayanDeclarationMode.OBJECT,
+            useConventions = true,
+        ),
+    )
 
-    fun registerTargetGenerateTask(
-        generation: TargetSourceGeneration,
-    ): TaskProvider<GenerateKayanConfigTask> =
+    fun registerTargetGenerateTask(generation: TargetSourceGeneration): TaskProvider<GenerateKayanConfigTask> =
         registerGenerateTask(
             spec = GenerationSpec(
                 taskName = generation.taskName,
@@ -60,21 +58,18 @@ internal class GenerationTaskRegistrar(
 
     private fun registerAndroidFlavorGenerationTask(
         generation: AndroidFlavorSourceGeneration,
-    ): TaskProvider<GenerateKayanConfigTask> =
-        registerGenerateTask(
-            spec = GenerationSpec(
-                taskName = generation.taskName,
-                description = "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'.",
-                outputDirectory = "generated/kayan/kotlin/android/${generation.flavorName}",
-                flavorName = generation.flavorName,
-                kotlinPluginApplied = true,
-                declarationMode = KayanDeclarationMode.OBJECT,
-            ),
-        )
+    ): TaskProvider<GenerateKayanConfigTask> = registerGenerateTask(
+        spec = GenerationSpec(
+            taskName = generation.taskName,
+            description = "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'.",
+            outputDirectory = "generated/kayan/kotlin/android/${generation.flavorName}",
+            flavorName = generation.flavorName,
+            kotlinPluginApplied = true,
+            declarationMode = KayanDeclarationMode.OBJECT,
+        ),
+    )
 
-    private fun registerGenerateTask(
-        spec: GenerationSpec,
-    ): TaskProvider<GenerateKayanConfigTask> =
+    private fun registerGenerateTask(spec: GenerationSpec): TaskProvider<GenerateKayanConfigTask> =
         project.tasks.register(spec.taskName, GenerateKayanConfigTask::class.java) { task ->
             task.group = "code generation"
             task.description = spec.description
@@ -94,9 +89,7 @@ internal class GenerationTaskRegistrar(
             task.configureCommonInputs(spec.outputDirectory)
         }
 
-    private fun GenerateKayanConfigTask.configureCommonInputs(
-        outputDirectory: String,
-    ) {
+    private fun GenerateKayanConfigTask.configureCommonInputs(outputDirectory: String) {
         packageName.set(extension.packageName)
         className.set(extension.className)
         baseConfigFile.set(extension.baseConfigFile)

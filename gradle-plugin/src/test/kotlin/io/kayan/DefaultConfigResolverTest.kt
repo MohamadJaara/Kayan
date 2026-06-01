@@ -111,7 +111,7 @@ class DefaultConfigResolverTest {
             regionalSupportLinks,
             releaseStage,
             supportEmail,
-        )
+        ),
     )
 
     @Test
@@ -132,7 +132,7 @@ class DefaultConfigResolverTest {
 
         assertEquals(
             ConfigValue.BooleanValue(true),
-            resolved.flavors.getValue("prod")[onboardingEnabled]
+            resolved.flavors.getValue("prod")[onboardingEnabled],
         )
     }
 

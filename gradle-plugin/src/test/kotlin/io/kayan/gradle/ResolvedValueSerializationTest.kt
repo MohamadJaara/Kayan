@@ -218,11 +218,7 @@ class ResolvedValueSerializationTest {
         )
     }
 
-    private fun assertRoundTrip(
-        definition: ConfigDefinition,
-        value: ConfigValue?,
-        expected: ResolvedBuildValue,
-    ) {
+    private fun assertRoundTrip(definition: ConfigDefinition, value: ConfigValue?, expected: ResolvedBuildValue) {
         val actual = deserializeResolvedBuildValue(
             jsonKey = definition.jsonKey,
             serialized = serializeResolvedBuildValue(definition, value),

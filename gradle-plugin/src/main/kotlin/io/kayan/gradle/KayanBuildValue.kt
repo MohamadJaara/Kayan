@@ -25,9 +25,7 @@ import org.gradle.api.provider.Provider
  * rather than an enum instance.
  */
 @ExperimentalKayanGradleApi
-public class KayanBuildValue internal constructor(
-    private val valueProvider: Provider<ResolvedBuildValue>,
-) {
+public class KayanBuildValue internal constructor(private val valueProvider: Provider<ResolvedBuildValue>) {
     /** Returns the resolved value as a non-null string, including enum normalized constant names. */
     public fun asString(): String = readValue(
         requestedType = "String",
@@ -239,14 +237,12 @@ public class KayanBuildValue internal constructor(
             allowedKinds = allowedKinds,
         ).getOrElse { throw it.toGradleException() }
 
-    private fun <T> readNullableValue(
-        requestedType: String,
-        allowedKinds: Set<ConfigValueKind>,
-    ): T? = valueProvider.get()
-        .requireNullableValueEither<T>(
-            requestedType = requestedType,
-            allowedKinds = allowedKinds,
-        ).getOrElse { throw it.toGradleException() }
+    private fun <T> readNullableValue(requestedType: String, allowedKinds: Set<ConfigValueKind>): T? =
+        valueProvider.get()
+            .requireNullableValueEither<T>(
+                requestedType = requestedType,
+                allowedKinds = allowedKinds,
+            ).getOrElse { throw it.toGradleException() }
 
     private fun <T : Any> mapValue(
         requestedType: String,
@@ -286,12 +282,11 @@ public class KayanBuildValue internal constructor(
     private fun ResolvedBuildValue.requireKindEither(
         requestedType: String,
         allowedKinds: Set<ConfigValueKind>,
-    ): Either<BuildTimeAccessError, Unit> =
-        if (kind in allowedKinds) {
-            Unit.right()
-        } else {
-            BuildTimeAccessError.ValueKindMismatch(jsonKey, kind, requestedType).left()
-        }
+    ): Either<BuildTimeAccessError, Unit> = if (kind in allowedKinds) {
+        Unit.right()
+    } else {
+        BuildTimeAccessError.ValueKindMismatch(jsonKey, kind, requestedType).left()
+    }
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> ResolvedBuildValue.requireRuntimeTypeEither(
@@ -300,12 +295,17 @@ public class KayanBuildValue internal constructor(
     ): Either<BuildTimeAccessError, T> {
         val typedValue = when (kind) {
             ConfigValueKind.STRING,
-            ConfigValueKind.ENUM -> value as? String
+            ConfigValueKind.ENUM,
+            -> value as? String
 
             ConfigValueKind.BOOLEAN -> value as? Boolean
+
             ConfigValueKind.INT -> value as? Int
+
             ConfigValueKind.LONG -> value as? Long
+
             ConfigValueKind.DOUBLE -> value as? Double
+
             ConfigValueKind.STRING_LIST -> (value as? List<*>)?.takeIf { entries ->
                 entries.all { it is String }
             }
@@ -329,6 +329,5 @@ public class KayanBuildValue internal constructor(
         ).left()
     }
 
-    private fun Any.runtimeTypeName(): String =
-        this::class.qualifiedName ?: this::class.simpleName ?: javaClass.name
+    private fun Any.runtimeTypeName(): String = this::class.qualifiedName ?: this::class.simpleName ?: javaClass.name
 }

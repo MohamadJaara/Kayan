@@ -205,9 +205,7 @@ private open class NullConfigKspTask : DefaultTask() {
     fun getKspConfig(): Any? = null
 }
 
-private open class FakeKspConfig(
-    objects: ObjectFactory,
-) {
+private open class FakeKspConfig(objects: ObjectFactory) {
     @get:InputFiles
     val sourceRoots: ConfigurableFileCollection = objects.fileCollection()
 
@@ -232,9 +230,7 @@ private class FlexibleKspConfig(
     fun getJavaSourceRoots(): Any? = javaSourceRoots
 }
 
-private class MissingCommonAndJavaRootsKspConfig(
-    private val sourceRoots: Any?,
-) {
+private class MissingCommonAndJavaRootsKspConfig(private val sourceRoots: Any?) {
     fun getSourceRoots(): Any? = sourceRoots
 }
 
@@ -255,10 +251,7 @@ private fun taskDependencyNames(task: org.gradle.api.Task): Set<String> =
 
 private fun captureKspDiagnostics(): MutableList<String> = CopyOnWriteArrayList()
 
-private fun withCapturedKspDiagnostics(
-    diagnostics: MutableList<String>,
-    block: () -> Unit,
-) {
+private fun withCapturedKspDiagnostics(diagnostics: MutableList<String>, block: () -> Unit) {
     val previousReporter = kspTaskDiagnosticReporter
     kspTaskDiagnosticReporter = { _, message, cause ->
         diagnostics += if (cause == null) {

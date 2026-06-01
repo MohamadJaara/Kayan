@@ -59,6 +59,7 @@ internal abstract class ExportKayanSchemaTask : DefaultTask() {
             is Either.Left -> raise(
                 GenerationError.SourceGenerationFailure("Markdown schema", generatedMarkdownSchema.value),
             )
+
             is Either.Right -> generatedMarkdownSchema.value
         }
 
@@ -66,10 +67,7 @@ internal abstract class ExportKayanSchemaTask : DefaultTask() {
         writeEither(markdownSchemaOutputFile.asFile.get(), markdownSchema).bind()
     }
 
-    private fun generatedTypeName(
-        packageName: String?,
-        className: String?,
-    ): String? {
+    private fun generatedTypeName(packageName: String?, className: String?): String? {
         val normalizedPackageName = packageName?.trim().orEmpty().ifBlank { null }
         val normalizedClassName = className?.trim().orEmpty().ifBlank { null }
 
@@ -79,14 +77,12 @@ internal abstract class ExportKayanSchemaTask : DefaultTask() {
             }
 
             normalizedClassName != null -> normalizedClassName
+
             else -> null
         }
     }
 
-    private fun writeEither(
-        outputFile: File,
-        content: String,
-    ): Either<GenerationError, Unit> = either {
+    private fun writeEither(outputFile: File, content: String): Either<GenerationError, Unit> = either {
         val parent = outputFile.parentFile
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             raise(GenerationError.DirectoryCreationFailure(parent.path))

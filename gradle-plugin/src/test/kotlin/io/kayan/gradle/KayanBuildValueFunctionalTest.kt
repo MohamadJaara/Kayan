@@ -491,10 +491,7 @@ class KayanBuildValueFunctionalTest {
         return projectDir
     }
 
-    private fun buildScript(
-        buildLogic: String,
-        kayanConfiguration: String = "",
-    ): String = """
+    private fun buildScript(buildLogic: String, kayanConfiguration: String = ""): String = """
         import org.gradle.api.DefaultTask
         import org.gradle.api.provider.Property
         import org.gradle.api.tasks.Input
@@ -527,11 +524,10 @@ class KayanBuildValueFunctionalTest {
         $buildLogic
     """.trimIndent()
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withPluginClasspath()
-            .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
+        .withProjectDir(projectDir)
+        .withPluginClasspath()
+        .withArguments(*tasks, "--stacktrace")
 
     private fun configurationCacheContains(projectDir: File, needle: String): Boolean {
         val cacheDir = File(projectDir, ".gradle/configuration-cache")
@@ -545,26 +541,25 @@ class KayanBuildValueFunctionalTest {
             .any { file -> fileContainsBytes(file, needleBytes) }
     }
 
-    private fun fileContainsBytes(file: File, needle: ByteArray): Boolean =
-        runCatching {
-            val bytes = file.readBytes()
-            if (needle.isEmpty() || bytes.size < needle.size) {
-                return@runCatching false
-            }
+    private fun fileContainsBytes(file: File, needle: ByteArray): Boolean = runCatching {
+        val bytes = file.readBytes()
+        if (needle.isEmpty() || bytes.size < needle.size) {
+            return@runCatching false
+        }
 
-            for (start in 0..bytes.size - needle.size) {
-                var matches = true
-                for (index in needle.indices) {
-                    if (bytes[start + index] != needle[index]) {
-                        matches = false
-                        break
-                    }
-                }
-                if (matches) {
-                    return@runCatching true
+        for (start in 0..bytes.size - needle.size) {
+            var matches = true
+            for (index in needle.indices) {
+                if (bytes[start + index] != needle[index]) {
+                    matches = false
+                    break
                 }
             }
+            if (matches) {
+                return@runCatching true
+            }
+        }
 
-            false
-        }.getOrDefault(false)
+        false
+    }.getOrDefault(false)
 }

@@ -109,16 +109,11 @@ class AndroidFlavorSourceGenerationSupportTest {
         ).getOrElse { throw it.toGradleException() }
     }
 
-    private class FakeAndroidExtension(
-        private val productFlavors: List<FakeProductFlavor>,
-    ) {
+    private class FakeAndroidExtension(private val productFlavors: List<FakeProductFlavor>) {
         fun getProductFlavors(): List<FakeProductFlavor> = productFlavors
     }
 
-    private class FakeProductFlavor(
-        private val name: String,
-        private val dimension: String?,
-    ) {
+    private class FakeProductFlavor(private val name: String, private val dimension: String?) {
         fun getName(): String = name
 
         fun getDimension(): String? = dimension

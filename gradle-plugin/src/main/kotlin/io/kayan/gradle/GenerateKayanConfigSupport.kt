@@ -43,21 +43,20 @@ internal data class LoadedCustomAdapter(
     val renderKotlin: (ConfigDefinition, Any) -> Either<GenerationError, String>,
 )
 
-internal fun loadedTypedAdapter(adapter: BuildTimeConfigAdapter<Any>): LoadedCustomAdapter =
-    LoadedCustomAdapter(
-        rawKind = adapter.rawKind,
-        kotlinType = adapter.kotlinType,
-        parse = { definition, rawValue ->
-            runAdapterStepEither(definition, "parse") {
-                adapter.parse(rawValue)
-            }
-        },
-        renderKotlin = { definition, value ->
-            runAdapterStepEither(definition, "render") {
-                adapter.renderKotlin(value)
-            }
-        },
-    )
+internal fun loadedTypedAdapter(adapter: BuildTimeConfigAdapter<Any>): LoadedCustomAdapter = LoadedCustomAdapter(
+    rawKind = adapter.rawKind,
+    kotlinType = adapter.kotlinType,
+    parse = { definition, rawValue ->
+        runAdapterStepEither(definition, "parse") {
+            adapter.parse(rawValue)
+        }
+    },
+    renderKotlin = { definition, value ->
+        runAdapterStepEither(definition, "render") {
+            adapter.renderKotlin(value)
+        }
+    },
+)
 
 internal fun loadedReflectiveAdapter(
     className: String,
@@ -66,65 +65,60 @@ internal fun loadedReflectiveAdapter(
     kotlinType: TypeName,
     parseMethod: Method,
     renderMethod: Method,
-): LoadedCustomAdapter =
-    LoadedCustomAdapter(
-        rawKind = rawKind,
-        kotlinType = kotlinType,
-        parse = { definition, rawValue ->
-            reflectiveAdapterStepEither(
+): LoadedCustomAdapter = LoadedCustomAdapter(
+    rawKind = rawKind,
+    kotlinType = kotlinType,
+    parse = { definition, rawValue ->
+        reflectiveAdapterStepEither(
+            definition = definition,
+            action = "parse",
+        ) {
+            invokeAdapterMethodEither(parseMethod, instance, rawValue, className, "parse")
+        }
+    },
+    renderKotlin = { definition, value ->
+        when (
+            val rendered = reflectiveAdapterStepEither(
                 definition = definition,
-                action = "parse",
+                action = "render",
             ) {
-                invokeAdapterMethodEither(parseMethod, instance, rawValue, className, "parse")
+                invokeAdapterMethodEither(renderMethod, instance, value, className, "renderKotlin")
             }
-        },
-        renderKotlin = { definition, value ->
-            when (
-                val rendered = reflectiveAdapterStepEither(
+        ) {
+            is Either.Left -> rendered
+
+            is Either.Right -> (rendered.value as? String)?.right()
+                ?: GenerationError.AdapterStepFailure(
                     definition = definition,
                     action = "render",
-                ) {
-                    invokeAdapterMethodEither(renderMethod, instance, value, className, "renderKotlin")
-                }
-            ) {
-                is Either.Left -> rendered
-                is Either.Right -> (rendered.value as? String)?.right()
-                    ?: GenerationError.AdapterStepFailure(
-                        definition = definition,
-                        action = "render",
-                        cause = GenerationError.AdapterRenderReturnWrongType(className).toGradleException(),
-                    ).left()
-            }
-        },
-    )
+                    cause = GenerationError.AdapterRenderReturnWrongType(className).toGradleException(),
+                ).left()
+        }
+    },
+)
 
 internal fun reflectiveAdapterStepEither(
     definition: ConfigDefinition,
     action: String,
     block: () -> Either<GenerationError, Any>,
-): Either<GenerationError, Any> =
-    when (val result = block()) {
-        is Either.Left -> GenerationError.AdapterStepFailure(
-            definition = definition,
-            action = action,
-            cause = result.value.toGradleException(),
-        ).left()
-        is Either.Right -> result.value.right()
-    }
+): Either<GenerationError, Any> = when (val result = block()) {
+    is Either.Left -> GenerationError.AdapterStepFailure(
+        definition = definition,
+        action = action,
+        cause = result.value.toGradleException(),
+    ).left()
 
-internal fun requireConfiguredEither(
-    value: String?,
-    propertyName: String,
-): Either<PluginConfigurationError, String> =
+    is Either.Right -> result.value.right()
+}
+
+internal fun requireConfiguredEither(value: String?, propertyName: String): Either<PluginConfigurationError, String> =
     value?.trim().takeUnless { it.isNullOrEmpty() }?.right()
         ?: PluginConfigurationError.MissingRequiredProperty(propertyName).left()
 
 internal fun requireConfigured(value: String?, propertyName: String): String =
     requireConfiguredEither(value, propertyName).getOrElse { throw it.toGradleException() }
 
-internal fun requireSchemaEither(
-    serializedEntries: List<String>,
-): Either<KayanGradleError, io.kayan.ConfigSchema> {
+internal fun requireSchemaEither(serializedEntries: List<String>): Either<KayanGradleError, io.kayan.ConfigSchema> {
     if (serializedEntries.isEmpty()) {
         return PluginConfigurationError.MissingSchemaEntries.left()
     }
@@ -138,10 +132,7 @@ internal fun requireSchemaEither(
 internal fun requireSchema(serializedEntries: List<String>): io.kayan.ConfigSchema =
     requireSchemaEither(serializedEntries).getOrElse { throw it.toGradleException() }
 
-internal fun requireExistingFileEither(
-    file: File,
-    label: String,
-): Either<PluginConfigurationError, File> =
+internal fun requireExistingFileEither(file: File, label: String): Either<PluginConfigurationError, File> =
     if (file.exists()) {
         file.right()
     } else {
@@ -194,15 +185,14 @@ internal fun resolveConfig(
     configFormat: ConfigFormat = ConfigFormat.AUTO,
     validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
     targetName: String? = null,
-): ResolvedConfigsByFlavor =
-    resolveConfigEither(
-        schema = schema,
-        baseFile = baseFile,
-        customFile = customFile,
-        configFormat = configFormat,
-        validationMode = validationMode,
-        targetName = targetName,
-    ).getOrElse { throw it.toGradleException() }
+): ResolvedConfigsByFlavor = resolveConfigEither(
+    schema = schema,
+    baseFile = baseFile,
+    customFile = customFile,
+    configFormat = configFormat,
+    validationMode = validationMode,
+    targetName = targetName,
+).getOrElse { throw it.toGradleException() }
 
 internal fun requireResolvedFlavorEither(
     resolved: ResolvedConfigsByFlavor,
@@ -210,10 +200,7 @@ internal fun requireResolvedFlavorEither(
 ): Either<GenerationError, ResolvedFlavorConfig> =
     resolved.flavors[flavorName]?.right() ?: GenerationError.MissingResolvedFlavor(flavorName).left()
 
-internal fun requireResolvedFlavor(
-    resolved: ResolvedConfigsByFlavor,
-    flavorName: String,
-): ResolvedFlavorConfig =
+internal fun requireResolvedFlavor(resolved: ResolvedConfigsByFlavor, flavorName: String): ResolvedFlavorConfig =
     requireResolvedFlavorEither(resolved, flavorName).getOrElse { throw it.toGradleException() }
 
 internal fun resolveTargetDeclarationNullabilityEither(
@@ -265,32 +252,24 @@ internal fun <T> runAdapterStepEither(
     definition: ConfigDefinition,
     action: String,
     block: () -> T,
-): Either<GenerationError, T> =
-    when (val result = Either.catch(block)) {
-        is Either.Left -> GenerationError.AdapterStepFailure(definition, action, result.value).left()
-        is Either.Right -> result.value.right()
-    }
+): Either<GenerationError, T> = when (val result = Either.catch(block)) {
+    is Either.Left -> GenerationError.AdapterStepFailure(definition, action, result.value).left()
+    is Either.Right -> result.value.right()
+}
 
-internal fun <T> runAdapterStep(
-    definition: ConfigDefinition,
-    action: String,
-    block: () -> T,
-): T = runAdapterStepEither(definition, action, block).getOrElse { throw it.toGradleException() }
+internal fun <T> runAdapterStep(definition: ConfigDefinition, action: String, block: () -> T): T =
+    runAdapterStepEither(definition, action, block).getOrElse { throw it.toGradleException() }
 
 internal fun requireRenderedExpressionEither(
     definition: ConfigDefinition,
     rendered: String,
-): Either<GenerationError, String> =
-    if (rendered.isBlank()) {
-        GenerationError.BlankRenderedExpression(definition).left()
-    } else {
-        rendered.right()
-    }
+): Either<GenerationError, String> = if (rendered.isBlank()) {
+    GenerationError.BlankRenderedExpression(definition).left()
+} else {
+    rendered.right()
+}
 
-internal fun requireRenderedExpression(
-    definition: ConfigDefinition,
-    rendered: String,
-): String =
+internal fun requireRenderedExpression(definition: ConfigDefinition, rendered: String): String =
     requireRenderedExpressionEither(definition, rendered).getOrElse { throw it.toGradleException() }
 
 internal fun ConfigValue.toRawValueEither(): Either<GenerationError, Any> = when (this) {
@@ -306,24 +285,18 @@ internal fun ConfigValue.toRawValueEither(): Either<GenerationError, Any> = when
     is ConfigValue.NullValue -> GenerationError.NullRawValue.left()
 }
 
-internal fun ConfigValue.toRawValue(): Any =
-    toRawValueEither().getOrElse { error(it.message()) }
+internal fun ConfigValue.toRawValue(): Any = toRawValueEither().getOrElse { error(it.message()) }
 
 internal fun reflectiveSingleArgumentMethodEither(
     adapterClass: Class<*>,
     methodName: String,
     className: String,
-): Either<GenerationError, Method> =
-    adapterClass.methods
-        .firstOrNull { method -> method.name == methodName && method.parameterCount == 1 }
-        ?.right()
-        ?: GenerationError.ReflectiveMethodMissing(className, methodName).left()
+): Either<GenerationError, Method> = adapterClass.methods
+    .firstOrNull { method -> method.name == methodName && method.parameterCount == 1 }
+    ?.right()
+    ?: GenerationError.ReflectiveMethodMissing(className, methodName).left()
 
-internal fun reflectiveSingleArgumentMethod(
-    adapterClass: Class<*>,
-    methodName: String,
-    className: String,
-): Method =
+internal fun reflectiveSingleArgumentMethod(adapterClass: Class<*>, methodName: String, className: String): Method =
     reflectiveSingleArgumentMethodEither(adapterClass, methodName, className)
         .getOrElse { throw it.toGradleException() }
 
@@ -345,6 +318,7 @@ internal fun invokeAdapterMethodEither(
                 cause = result.value,
             ),
         )
+
         is Either.Right -> result.value
     }
 
@@ -363,9 +337,8 @@ internal fun invokeAdapterMethod(
     argument: Any,
     className: String,
     methodName: String,
-): Any =
-    invokeAdapterMethodEither(method, instance, argument, className, methodName)
-        .getOrElse { throw it.toGradleException() }
+): Any = invokeAdapterMethodEither(method, instance, argument, className, methodName)
+    .getOrElse { throw it.toGradleException() }
 
 internal fun readFileEither(file: File): Either<GenerationError, String> =
     when (val result = Either.catch { file.readText() }) {

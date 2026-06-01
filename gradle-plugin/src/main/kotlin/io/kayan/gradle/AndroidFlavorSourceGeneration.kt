@@ -8,10 +8,7 @@ import java.util.Locale
 
 private val taskNameSegmentSeparator: Regex = Regex("[^A-Za-z0-9]+")
 
-internal data class AndroidFlavorSourceGeneration(
-    val flavorName: String,
-    val taskName: String,
-)
+internal data class AndroidFlavorSourceGeneration(val flavorName: String, val taskName: String)
 
 internal fun androidFlavorSourceGenerationsEither(
     configuredFlavors: List<String>,
@@ -93,21 +90,18 @@ private fun Any.androidProductFlavorDimensions(): Map<String, String?> {
     }
 }
 
-private fun Any.readStringProperty(getterName: String): String? =
-    readStringPropertyOrNull(getterName)
+private fun Any.readStringProperty(getterName: String): String? = readStringPropertyOrNull(getterName)
 
-private fun Any.invokeNoArg(methodName: String): Any? =
-    invokeNoArgOrNull(methodName)
+private fun Any.invokeNoArg(methodName: String): Any? = invokeNoArgOrNull(methodName)
 
-internal fun String.asTaskNameSegment(): String =
-    split(taskNameSegmentSeparator)
-        .filter(String::isNotBlank)
-        .joinToString(separator = "") { segment ->
-            segment.replaceFirstChar { character ->
-                if (character.isLowerCase()) {
-                    character.titlecase(Locale.ROOT)
-                } else {
-                    character.toString()
-                }
+internal fun String.asTaskNameSegment(): String = split(taskNameSegmentSeparator)
+    .filter(String::isNotBlank)
+    .joinToString(separator = "") { segment ->
+        segment.replaceFirstChar { character ->
+            if (character.isLowerCase()) {
+                character.titlecase(Locale.ROOT)
+            } else {
+                character.toString()
             }
         }
+    }

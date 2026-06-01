@@ -29,6 +29,7 @@ class JsonConfigFormatParserTest {
             )
         ) {
             is Either.Left -> fail("Expected JSON to parse successfully.")
+
             is Either.Right -> {
                 assertEquals(
                     ConfigNode.StringNode(""),

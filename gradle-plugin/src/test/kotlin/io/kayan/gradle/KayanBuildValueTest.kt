@@ -212,11 +212,7 @@ class KayanBuildValueTest {
         )
     }
 
-    private fun buildValue(
-        jsonKey: String,
-        kind: ConfigValueKind,
-        rawValue: Any?,
-    ): KayanBuildValue {
+    private fun buildValue(jsonKey: String, kind: ConfigValueKind, rawValue: Any?): KayanBuildValue {
         val project = ProjectBuilder.builder().build()
 
         return KayanBuildValue(

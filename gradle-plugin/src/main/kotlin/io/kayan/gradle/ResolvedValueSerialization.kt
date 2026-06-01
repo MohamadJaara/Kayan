@@ -23,19 +23,13 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.long
 
-internal fun serializeResolvedBuildValue(
-    definition: ConfigDefinition,
-    value: ConfigValue?,
-): String =
+internal fun serializeResolvedBuildValue(definition: ConfigDefinition, value: ConfigValue?): String =
     resolvedValueJson.encodeToString(
         JsonObject.serializer(),
         serializeResolvedValue(definition, value),
     )
 
-internal fun deserializeResolvedBuildValue(
-    jsonKey: String,
-    serialized: String,
-): ResolvedBuildValue =
+internal fun deserializeResolvedBuildValue(jsonKey: String, serialized: String): ResolvedBuildValue =
     deserializeResolvedBuildValueEither(jsonKey, serialized).getOrElse { throw it.toGradleException() }
 
 internal fun deserializeResolvedBuildValueEither(
@@ -75,17 +69,12 @@ private fun deserializeResolvedValueEither(
     ).right()
 }
 
-private fun serializeResolvedValue(
-    definition: ConfigDefinition,
-    value: ConfigValue?,
-): JsonObject = buildJsonObject {
+private fun serializeResolvedValue(definition: ConfigDefinition, value: ConfigValue?): JsonObject = buildJsonObject {
     put("kind", JsonPrimitive((value?.kind ?: definition.kind).name))
     put("value", value.toJsonElement())
 }
 
-private fun JsonObject.requireKindEither(
-    jsonKey: String,
-): Either<BuildTimeAccessError, ConfigValueKind> {
+private fun JsonObject.requireKindEither(jsonKey: String): Either<BuildTimeAccessError, ConfigValueKind> {
     val rawKind = (get("kind") as? JsonPrimitive)?.contentOrNull
         ?: return BuildTimeAccessError.MissingResolvedValueField(jsonKey, "kind").left()
 
@@ -96,25 +85,30 @@ private fun JsonObject.requireKindEither(
     }
 }
 
-private fun JsonElement.toRawValueEither(
-    jsonKey: String,
-    kind: ConfigValueKind,
-): Either<BuildTimeAccessError, Any?> {
+private fun JsonElement.toRawValueEither(jsonKey: String, kind: ConfigValueKind): Either<BuildTimeAccessError, Any?> {
     if (this is JsonNull) {
         return null.right()
     }
 
     return when (kind) {
         ConfigValueKind.STRING,
-        ConfigValueKind.ENUM -> (this as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.contentOrNull
+        ConfigValueKind.ENUM,
+        -> (this as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.contentOrNull
             ?.right()
             ?: invalidResolvedValueType(jsonKey, kind, "string").left()
+
         ConfigValueKind.BOOLEAN -> decodePrimitiveEither(jsonKey, kind, "boolean") { boolean }
+
         ConfigValueKind.INT -> decodePrimitiveEither(jsonKey, kind, "int") { int }
+
         ConfigValueKind.LONG -> decodePrimitiveEither(jsonKey, kind, "long") { long }
+
         ConfigValueKind.DOUBLE -> decodePrimitiveEither(jsonKey, kind, "double") { double }
+
         ConfigValueKind.STRING_LIST -> decodeStringListEither(jsonKey, this)
+
         ConfigValueKind.STRING_MAP -> decodeStringMapEither(jsonKey, this)
+
         ConfigValueKind.STRING_LIST_MAP -> decodeStringListMapEither(jsonKey, this)
     }
 }
@@ -126,10 +120,7 @@ private fun invalidResolvedValueType(
 ): BuildTimeAccessError.InvalidResolvedValueEncoding =
     BuildTimeAccessError.InvalidResolvedValueEncoding(jsonKey, kind, expectedShape)
 
-private fun decodeStringListEither(
-    jsonKey: String,
-    element: JsonElement,
-): Either<BuildTimeAccessError, List<String>> {
+private fun decodeStringListEither(jsonKey: String, element: JsonElement): Either<BuildTimeAccessError, List<String>> {
     val entries = element as? JsonArray
         ?: return invalidResolvedValueType(jsonKey, ConfigValueKind.STRING_LIST, "array of strings").left()
 
@@ -220,12 +211,19 @@ private val resolvedValueJson: Json = Json {
 
 private fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
     null,
-    is ConfigValue.NullValue -> JsonNull
+    is ConfigValue.NullValue,
+    -> JsonNull
+
     is ConfigValue.StringValue -> JsonPrimitive(value)
+
     is ConfigValue.BooleanValue -> JsonPrimitive(value)
+
     is ConfigValue.IntValue -> JsonPrimitive(value)
+
     is ConfigValue.LongValue -> JsonPrimitive(value)
+
     is ConfigValue.DoubleValue -> JsonPrimitive(value)
+
     is ConfigValue.StringMapValue -> buildJsonObject {
         value.entries
             .sortedBy { it.key }
@@ -233,7 +231,9 @@ private fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
                 put(key, JsonPrimitive(entryValue))
             }
     }
+
     is ConfigValue.StringListValue -> JsonArray(value.map(::JsonPrimitive))
+
     is ConfigValue.StringListMapValue -> buildJsonObject {
         value.entries
             .sortedBy { it.key }
@@ -241,5 +241,6 @@ private fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
                 put(key, JsonArray(entries.map(::JsonPrimitive)))
             }
     }
+
     is ConfigValue.EnumValue -> JsonPrimitive(value)
 }

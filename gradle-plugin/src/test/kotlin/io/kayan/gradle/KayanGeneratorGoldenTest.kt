@@ -92,7 +92,7 @@ class KayanGeneratorGoldenTest {
             releaseStage,
             supportEmail,
             environment,
-        )
+        ),
     )
 
     private val resolvedFlavorConfig = ResolvedFlavorConfig(
@@ -108,19 +108,19 @@ class KayanGeneratorGoldenTest {
                 listOf(
                     "https://example.com/help",
                     "https://example.com/docs",
-                )
+                ),
             ),
             supportLabels to ConfigValue.StringMapValue(
                 mapOf(
                     "region" to "eu",
                     "channel" to "stable",
-                )
+                ),
             ),
             regionalSupportLinks to ConfigValue.StringListMapValue(
                 mapOf(
                     "example.de" to listOf("sha-c"),
                     "example.com" to listOf("sha-a", "sha-b"),
-                )
+                ),
             ),
             releaseStage to ConfigValue.EnumValue("BETA"),
             supportEmail to ConfigValue.NullValue(ConfigValueKind.STRING),
@@ -138,13 +138,13 @@ class KayanGeneratorGoldenTest {
                     "${'$'}brandName",
                     "${'$'}{System.getProperty(\"user.home\")}",
                     "line1\nline2\rline3\t${'$'}tail",
-                )
+                ),
             ),
             supportLabels to ConfigValue.StringMapValue(
                 mapOf(
                     "${'$'}only" to "quote \" slash \\ dollar ${'$'}",
                     "key-${'$'}{env}" to "value ${'$'}channel",
-                )
+                ),
             ),
             regionalSupportLinks to ConfigValue.StringListMapValue(
                 mapOf(
@@ -152,7 +152,7 @@ class KayanGeneratorGoldenTest {
                         "item ${'$'}{index}",
                         "mix ${'$'}brand / ${'$'}{expr} / ${'$'}${'$'}",
                     ),
-                )
+                ),
             ),
         ),
     )
@@ -206,20 +206,19 @@ class KayanGeneratorGoldenTest {
         assertGoldenFile("/golden/SCHEMA.md", actual)
     }
 
-    private fun generateKotlin(
-        resolvedFlavorConfig: ResolvedFlavorConfig = this.resolvedFlavorConfig,
-    ): String = KayanConfigGenerator.generate(
-        packageName = "sample.config",
-        className = "KayanConfig",
-        schema = schema,
-        resolvedFlavorConfig = resolvedFlavorConfig,
-        renderedCustomProperties = mapOf(
-            environment to RenderedCustomProperty(
-                typeName = bestGuessTypeName("sample.Environment"),
-                expression = "sample.Environment.PROD",
-            )
-        ),
-    )
+    private fun generateKotlin(resolvedFlavorConfig: ResolvedFlavorConfig = this.resolvedFlavorConfig): String =
+        KayanConfigGenerator.generate(
+            packageName = "sample.config",
+            className = "KayanConfig",
+            schema = schema,
+            resolvedFlavorConfig = resolvedFlavorConfig,
+            renderedCustomProperties = mapOf(
+                environment to RenderedCustomProperty(
+                    typeName = bestGuessTypeName("sample.Environment"),
+                    expression = "sample.Environment.PROD",
+                ),
+            ),
+        )
 
     private fun assertGoldenFile(resourcePath: String, actual: String) {
         File("build/tmp/golden-actual").mkdirs()

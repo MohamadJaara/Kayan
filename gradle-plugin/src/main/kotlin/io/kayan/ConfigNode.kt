@@ -1,33 +1,19 @@
 package io.kayan
 
 internal sealed interface ConfigNode {
-    data class ObjectNode(
-        val entries: Map<String, ConfigNode>,
-    ) : ConfigNode
+    data class ObjectNode(val entries: Map<String, ConfigNode>) : ConfigNode
 
-    data class ListNode(
-        val items: List<ConfigNode>,
-    ) : ConfigNode
+    data class ListNode(val items: List<ConfigNode>) : ConfigNode
 
-    data class StringNode(
-        val value: String,
-    ) : ConfigNode
+    data class StringNode(val value: String) : ConfigNode
 
-    data class BooleanNode(
-        val value: Boolean,
-    ) : ConfigNode
+    data class BooleanNode(val value: Boolean) : ConfigNode
 
-    data class IntNode(
-        val value: Int,
-    ) : ConfigNode
+    data class IntNode(val value: Int) : ConfigNode
 
-    data class LongNode(
-        val value: Long,
-    ) : ConfigNode
+    data class LongNode(val value: Long) : ConfigNode
 
-    data class DoubleNode(
-        val value: Double,
-    ) : ConfigNode
+    data class DoubleNode(val value: Double) : ConfigNode
 
     data object NullNode : ConfigNode
 }

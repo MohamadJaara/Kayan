@@ -1,9 +1,6 @@
 package io.kayan
 
-internal fun closeKeyMatches(
-    unknownKey: String,
-    candidates: List<String>,
-): List<String> {
+internal fun closeKeyMatches(unknownKey: String, candidates: List<String>): List<String> {
     val normalizedUnknownKey = unknownKey.lowercase()
     return candidates
         .map { candidate ->
@@ -17,11 +14,10 @@ internal fun closeKeyMatches(
         .map(Pair<String, Int>::first)
 }
 
-private fun suggestionThreshold(firstLength: Int, secondLength: Int): Int =
-    maxOf(
-        MIN_SUGGESTION_THRESHOLD,
-        minOf(MAX_SUGGESTION_THRESHOLD, maxOf(firstLength, secondLength) / LENGTH_DIVISOR),
-    )
+private fun suggestionThreshold(firstLength: Int, secondLength: Int): Int = maxOf(
+    MIN_SUGGESTION_THRESHOLD,
+    minOf(MAX_SUGGESTION_THRESHOLD, maxOf(firstLength, secondLength) / LENGTH_DIVISOR),
+)
 
 @Suppress("ReturnCount")
 private fun levenshteinDistance(first: String, second: String): Int {

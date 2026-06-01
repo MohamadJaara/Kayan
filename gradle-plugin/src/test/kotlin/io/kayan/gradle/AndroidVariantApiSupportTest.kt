@@ -329,9 +329,7 @@ class AndroidVariantApiSupportTest {
         )
     }
 
-    private class FakeAndroidComponentsExtension(
-        val variants: List<Any>,
-    ) {
+    private class FakeAndroidComponentsExtension(val variants: List<Any>) {
         fun selector(): FakeVariantSelector = FakeVariantSelector()
 
         fun onVariants(@Suppress("UNUSED_PARAMETER") selector: FakeVariantSelector, action: Action<Any>) {
@@ -381,30 +379,21 @@ class AndroidVariantApiSupportTest {
             (variantSources as? FakeVariantSources)?.registeredTaskNames().orEmpty()
     }
 
-    private class FakeVariantWithoutSources(
-        private val name: String,
-    ) {
+    private class FakeVariantWithoutSources(private val name: String) {
         fun getName(): String = name
     }
 
-    private class FakeVariantFlavor(
-        private val first: String,
-        private val second: String,
-    ) {
+    private class FakeVariantFlavor(private val first: String, private val second: String) {
         fun getFirst(): String = first
 
         fun getSecond(): String = second
     }
 
-    private class FakeNamedFlavor(
-        private val name: String,
-    ) {
+    private class FakeNamedFlavor(private val name: String) {
         fun getName(): String = name
     }
 
-    private class FakeFlavorNameFlavor(
-        private val flavorName: String,
-    ) {
+    private class FakeFlavorNameFlavor(private val flavorName: String) {
         fun getFlavorName(): String = flavorName
     }
 

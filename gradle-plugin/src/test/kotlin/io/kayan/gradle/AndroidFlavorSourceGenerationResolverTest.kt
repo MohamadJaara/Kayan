@@ -140,34 +140,23 @@ class AndroidFlavorSourceGenerationResolverTest {
     private fun <T> requireRight(result: arrow.core.Either<KayanGradleError, T>): T =
         result.getOrElse { throw it.toGradleException() }
 
-    private class FakeAndroidExtension(
-        private val productFlavors: List<FakeProductFlavor>,
-    ) {
+    private class FakeAndroidExtension(private val productFlavors: List<FakeProductFlavor>) {
         fun getProductFlavors(): List<FakeProductFlavor> = productFlavors
     }
 
-    private class FakeProductFlavor(
-        private val name: String,
-        private val dimension: String?,
-    ) {
+    private class FakeProductFlavor(private val name: String, private val dimension: String?) {
         fun getName(): String = name
 
         fun getDimension(): String? = dimension
     }
 
-    private class FakeVariant(
-        private val name: String,
-        private val productFlavors: List<FakeVariantFlavor>,
-    ) {
+    private class FakeVariant(private val name: String, private val productFlavors: List<FakeVariantFlavor>) {
         fun getName(): String = name
 
         fun getProductFlavors(): List<FakeVariantFlavor> = productFlavors
     }
 
-    private class FakeVariantFlavor(
-        private val first: String,
-        private val second: String,
-    ) {
+    private class FakeVariantFlavor(private val first: String, private val second: String) {
         fun getFirst(): String = first
 
         fun getSecond(): String = second

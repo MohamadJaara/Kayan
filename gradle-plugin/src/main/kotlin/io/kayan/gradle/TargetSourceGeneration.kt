@@ -7,11 +7,7 @@ import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
 
-internal data class TargetSourceGeneration(
-    val sourceSetName: String,
-    val targetName: String,
-    val taskName: String,
-)
+internal data class TargetSourceGeneration(val sourceSetName: String, val targetName: String, val taskName: String)
 
 internal fun targetSourceGenerationsEither(
     configuredMappings: List<KayanTargetSourceSetMapping>,

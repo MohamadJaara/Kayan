@@ -47,7 +47,7 @@ class KayanConfigGeneratorTest {
 
         val actual = generateSource(
             schema = ConfigSchema(
-                listOf(bundleId, brandName, supportLinks, releaseStage, environment)
+                listOf(bundleId, brandName, supportLinks, releaseStage, environment),
             ),
             resolvedValues = mapOf(
                 bundleId to ConfigValue.StringValue("com.example.prod"),
@@ -60,7 +60,7 @@ class KayanConfigGeneratorTest {
                 environment to RenderedCustomProperty(
                     typeName = bestGuessTypeName("sample.Environment"),
                     expression = "sample.Environment.PROD",
-                )
+                ),
             ),
         )
 
@@ -107,7 +107,7 @@ class KayanConfigGeneratorTest {
                 environment to RenderedCustomProperty(
                     typeName = bestGuessTypeName("sample.Environment"),
                     expression = null,
-                )
+                ),
             ),
         )
 
@@ -141,7 +141,7 @@ class KayanConfigGeneratorTest {
                         bestGuessTypeName("sample.Environment"),
                     ),
                     expression = "sample.Box(sample.Environment.PROD)",
-                )
+                ),
             ),
         )
 
@@ -174,19 +174,19 @@ class KayanConfigGeneratorTest {
                     linkedMapOf(
                         "region" to "eu",
                         "channel" to "stable",
-                    )
+                    ),
                 ),
                 supportLinks to ConfigValue.StringListValue(
                     listOf(
                         "https://example.com/help",
                         "https://example.com/docs",
-                    )
+                    ),
                 ),
                 regionalSupportLinks to ConfigValue.StringListMapValue(
                     linkedMapOf(
                         "example.de" to listOf("sha-c"),
                         "example.com" to listOf("sha-a", "sha-b"),
-                    )
+                    ),
                 ),
             ),
         )
@@ -338,8 +338,8 @@ class KayanConfigGeneratorTest {
                     jsonKey = "bundle_id",
                     propertyName = "BUNDLE_ID",
                     required = true,
-                )
-            )
+                ),
+            ),
         )
 
         val objectError = assertFailsWith<IllegalArgumentException> {
@@ -384,10 +384,7 @@ class KayanConfigGeneratorTest {
         renderedCustomProperties = renderedCustomProperties,
     )
 
-    private fun propertyLine(
-        source: String,
-        propertyName: String,
-    ): String {
+    private fun propertyLine(source: String, propertyName: String): String {
         val propertyPattern = Regex("""\b${Regex.escape(propertyName)}\s*:""")
         val lines = source.lineSequence().toList()
         val propertyIndex = lines.indexOfFirst { propertyPattern.containsMatchIn(it) }
@@ -411,10 +408,7 @@ class KayanConfigGeneratorTest {
         return declarationLines.joinToString(separator = " ")
     }
 
-    private fun assertMatchesDeclaration(
-        actual: String,
-        expectedPattern: String,
-    ) {
+    private fun assertMatchesDeclaration(actual: String, expectedPattern: String) {
         assertTrue(
             Regex(expectedPattern).matches(actual),
             "Expected <$actual> to match <$expectedPattern>.",

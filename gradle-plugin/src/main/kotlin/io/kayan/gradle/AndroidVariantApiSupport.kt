@@ -20,15 +20,14 @@ internal fun registerAndroidGeneratedSourcesEither(
     defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>?,
     configuredGenerations: List<AndroidFlavorSourceGeneration>,
     generationTasksByFlavor: Map<String, TaskProvider<GenerateKayanConfigTask>>,
-): Either<PluginConfigurationError, Unit> =
-    registerAndroidGeneratedSourcesEither(
-        androidComponentsExtension = androidComponentsExtension,
-        generationResolver = FixedAndroidVariantGenerationResolver(
-            defaultGenerateTask = defaultGenerateTask,
-            configuredGenerations = configuredGenerations,
-            generationTasksByFlavor = generationTasksByFlavor,
-        ),
-    )
+): Either<PluginConfigurationError, Unit> = registerAndroidGeneratedSourcesEither(
+    androidComponentsExtension = androidComponentsExtension,
+    generationResolver = FixedAndroidVariantGenerationResolver(
+        defaultGenerateTask = defaultGenerateTask,
+        configuredGenerations = configuredGenerations,
+        generationTasksByFlavor = generationTasksByFlavor,
+    ),
+)
 
 @Suppress("ReturnCount")
 internal fun registerAndroidGeneratedSourcesEither(
@@ -90,8 +89,7 @@ internal fun registerAndroidGeneratedSourcesEither(
 private fun registerVariantGeneratedSourcesEither(
     variant: Any,
     generateTask: TaskProvider<GenerateKayanConfigTask>,
-): Either<PluginConfigurationError, Unit> =
-    variant.registerGeneratedKotlinSourceDirectoryEither(generateTask)
+): Either<PluginConfigurationError, Unit> = variant.registerGeneratedKotlinSourceDirectoryEither(generateTask)
 
 @Suppress("ReturnCount")
 private fun Any.registerGeneratedKotlinSourceDirectoryEither(
@@ -137,8 +135,7 @@ internal fun Any.androidVariantFlavorNames(): Set<String> {
     }
 }
 
-private fun Any.variantName(): String =
-    readStringPropertyOrNull("getName").orEmpty().ifBlank { "<unknown>" }
+private fun Any.variantName(): String = readStringPropertyOrNull("getName").orEmpty().ifBlank { "<unknown>" }
 
 private class FixedAndroidVariantGenerationResolver(
     private val defaultGenerateTask: TaskProvider<GenerateKayanConfigTask>?,
@@ -147,22 +144,20 @@ private class FixedAndroidVariantGenerationResolver(
 ) : AndroidVariantGenerationResolver {
     override fun generationTaskForVariantEither(
         variant: Any,
-    ): Either<PluginConfigurationError, TaskProvider<GenerateKayanConfigTask>?> =
-        if (configuredGenerations.isEmpty()) {
-            defaultGenerateTask.right()
-        } else {
-            val flavorNames = variant.androidVariantFlavorNames()
-            configuredGenerations.firstOrNull { generation ->
-                generation.flavorName in flavorNames
-            }?.let { generation ->
-                generationTasksByFlavor[generation.flavorName]
-            }.right()
-        }
+    ): Either<PluginConfigurationError, TaskProvider<GenerateKayanConfigTask>?> = if (configuredGenerations.isEmpty()) {
+        defaultGenerateTask.right()
+    } else {
+        val flavorNames = variant.androidVariantFlavorNames()
+        configuredGenerations.firstOrNull { generation ->
+            generation.flavorName in flavorNames
+        }?.let { generation ->
+            generationTasksByFlavor[generation.flavorName]
+        }.right()
+    }
 }
 
-private class AndroidGeneratedSourceRegistrationException(
-    val error: PluginConfigurationError,
-) : GradleException(error.message(), error.cause)
+private class AndroidGeneratedSourceRegistrationException(val error: PluginConfigurationError) :
+    GradleException(error.message(), error.cause)
 
 private fun Throwable.unwrapReflectionFailure(): Throwable = when (this) {
     is InvocationTargetException -> targetException ?: this

@@ -12,9 +12,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 internal object KayanSchemaExportGenerator {
-    private const val flavorsKey: String = "flavors"
-    private const val targetsKey: String = "targets"
-    private const val jsonSchemaSpecUrl: String = "https://json-schema.org/draft/2020-12/schema"
+    private const val FLAVORS_KEY: String = "flavors"
+    private const val TARGETS_KEY: String = "targets"
+    private const val JSON_SCHEMA_SPEC_URL: String = "https://json-schema.org/draft/2020-12/schema"
 
     private val json: Json = Json {
         prettyPrint = true
@@ -29,17 +29,17 @@ internal object KayanSchemaExportGenerator {
         }
 
         val rootSchema = buildJsonObject {
-            put("\$schema", JsonPrimitive(jsonSchemaSpecUrl))
+            put("\$schema", JsonPrimitive(JSON_SCHEMA_SPEC_URL))
             put("title", JsonPrimitive("Kayan config schema"))
             put(
                 "description",
                 JsonPrimitive(
                     "Top-level keys act as defaults for every flavor. Optional target sections may refine values " +
-                        "per platform, and each flavor object accepts the same keys."
+                        "per platform, and each flavor object accepts the same keys.",
                 ),
             )
             put("type", JsonPrimitive("object"))
-            put("required", jsonArrayOf(flavorsKey))
+            put("required", jsonArrayOf(FLAVORS_KEY))
             put("additionalProperties", JsonPrimitive(false))
             put("properties", rootProperties(sectionProperties))
             put("\$defs", defs(sectionProperties))
@@ -48,10 +48,7 @@ internal object KayanSchemaExportGenerator {
         return json.encodeToString(JsonElement.serializer(), rootSchema) + "\n"
     }
 
-    fun generateMarkdown(
-        schema: ConfigSchema,
-        generatedTypeName: String?,
-    ): String = buildString {
+    fun generateMarkdown(schema: ConfigSchema, generatedTypeName: String?): String = buildString {
         appendLine("# Kayan Config Schema")
         appendLine()
         appendLine("Generated from `kayan { schema { ... } }`.")
@@ -93,15 +90,15 @@ internal object KayanSchemaExportGenerator {
                     append(" | ")
                     append(escapeMarkdownCell(notesFor(definition)))
                     append(" |")
-                }
+                },
             )
         }
     }
 
     private fun rootProperties(sectionProperties: JsonObject): JsonObject = buildJsonObject {
-        put(targetsKey, targetSectionProperty())
+        put(TARGETS_KEY, targetSectionProperty())
         put(
-            flavorsKey,
+            FLAVORS_KEY,
             buildJsonObject {
                 put("type", JsonPrimitive("object"))
                 put(
@@ -148,7 +145,7 @@ internal object KayanSchemaExportGenerator {
         sectionProperties.forEach { (jsonKey, propertySchema) ->
             put(jsonKey, propertySchema)
         }
-        put(targetsKey, targetSectionProperty())
+        put(TARGETS_KEY, targetSectionProperty())
     }
 
     private fun targetSectionProperty(): JsonObject = buildJsonObject {
@@ -210,10 +207,15 @@ internal object KayanSchemaExportGenerator {
     private fun basePropertySchema(definition: ConfigDefinition): JsonObject = buildJsonObject {
         when (definition.kind) {
             ConfigValueKind.STRING -> put("type", JsonPrimitive("string"))
+
             ConfigValueKind.BOOLEAN -> put("type", JsonPrimitive("boolean"))
+
             ConfigValueKind.INT -> put("type", JsonPrimitive("integer"))
+
             ConfigValueKind.LONG -> put("type", JsonPrimitive("integer"))
+
             ConfigValueKind.DOUBLE -> put("type", JsonPrimitive("number"))
+
             ConfigValueKind.STRING_MAP -> {
                 put("type", JsonPrimitive("object"))
                 put(

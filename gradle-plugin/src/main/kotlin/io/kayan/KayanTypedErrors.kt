@@ -7,85 +7,59 @@ internal sealed interface SchemaError : KayanError {
 
     fun message(): String
 
-    data class InvalidSerializedJson(
-        val entryIndex: Int,
-        val detail: String?,
-        override val cause: Throwable,
-    ) : SchemaError {
+    data class InvalidSerializedJson(val entryIndex: Int, val detail: String?, override val cause: Throwable) :
+        SchemaError {
         override fun message(): String = detail.orEmpty()
     }
 
-    data class InvalidSerializedRoot(
-        val entryIndex: Int,
-    ) : SchemaError {
+    data class InvalidSerializedRoot(val entryIndex: Int) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Invalid serialized Kayan schema entry."
     }
 
-    data class MissingRequiredField(
-        val entryIndex: Int,
-        val fieldName: String,
-    ) : SchemaError {
+    data class MissingRequiredField(val entryIndex: Int, val fieldName: String) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Missing required Kayan schema entry field '$fieldName'."
     }
 
-    data class InvalidEnumKind(
-        val entryIndex: Int,
-        val rawValue: String,
-        override val cause: Throwable,
-    ) : SchemaError {
+    data class InvalidEnumKind(val entryIndex: Int, val rawValue: String, override val cause: Throwable) :
+        SchemaError {
         override fun message(): String = "Invalid value '$rawValue' for Kayan schema entry field 'kind'."
     }
 
-    data class BlankJsonKey(
-        val entryIndex: Int,
-    ) : SchemaError {
+    data class BlankJsonKey(val entryIndex: Int) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition jsonKey must not be blank."
     }
 
-    data class BlankPropertyName(
-        val entryIndex: Int,
-    ) : SchemaError {
+    data class BlankPropertyName(val entryIndex: Int) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition propertyName must not be blank."
     }
 
-    data class RequiredAndNullable(
-        val entryIndex: Int,
-        val jsonKey: String,
-    ) : SchemaError {
+    data class RequiredAndNullable(val entryIndex: Int, val jsonKey: String) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition '$jsonKey' cannot be both required and nullable."
     }
 
-    data class EnumTypeOnNonEnum(
-        val entryIndex: Int,
-        val jsonKey: String,
-    ) : SchemaError {
+    data class EnumTypeOnNonEnum(val entryIndex: Int, val jsonKey: String) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition '$jsonKey' can only set enumTypeName for enum values."
     }
 
-    data class MissingEnumType(
-        val entryIndex: Int,
-        val jsonKey: String,
-    ) : SchemaError {
+    data class MissingEnumType(val entryIndex: Int, val jsonKey: String) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition '$jsonKey' must declare enumTypeName for enum values."
     }
 
-    data class BlankAdapterClassName(
-        val entryIndex: Int,
-    ) : SchemaError {
+    data class BlankAdapterClassName(val entryIndex: Int) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Config definition adapterClassName must not be blank."
@@ -97,42 +71,32 @@ internal sealed interface SchemaError : KayanError {
         override fun message(): String = "Config schema must contain at least one definition."
     }
 
-    data class DuplicateJsonKeys(
-        val jsonKeys: List<String>,
-    ) : SchemaError {
+    data class DuplicateJsonKeys(val jsonKeys: List<String>) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Config schema contains duplicate jsonKey values: ${jsonKeys.joinToString { "'$it'" }}."
     }
 
-    data class ReservedJsonKeys(
-        val jsonKeys: List<String>,
-    ) : SchemaError {
+    data class ReservedJsonKeys(val jsonKeys: List<String>) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Config schema contains reserved jsonKey values: ${jsonKeys.joinToString { "'$it'" }}."
     }
 
-    data class DuplicatePropertyNames(
-        val propertyNames: List<String>,
-    ) : SchemaError {
+    data class DuplicatePropertyNames(val propertyNames: List<String>) : SchemaError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Config schema contains duplicate propertyName values: ${propertyNames.joinToString { "'$it'" }}."
     }
 
-    data class UnexpectedDefinitionValidation(
-        override val cause: Throwable,
-    ) : SchemaError {
+    data class UnexpectedDefinitionValidation(override val cause: Throwable) : SchemaError {
         override fun message(): String = cause.message.orEmpty()
     }
 
-    data class UnexpectedSchemaValidation(
-        override val cause: Throwable,
-    ) : SchemaError {
+    data class UnexpectedSchemaValidation(override val cause: Throwable) : SchemaError {
         override fun message(): String = cause.message.orEmpty()
     }
 }
@@ -152,9 +116,7 @@ internal sealed interface ConfigError : KayanError {
         )
     }
 
-    data class UnsupportedConfigFormat(
-        val sourceName: String,
-    ) : ConfigError {
+    data class UnsupportedConfigFormat(val sourceName: String) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
             "Unsupported config format for source '$sourceName'. Supported extensions are .json, .yaml, and .yml.",
         )
@@ -183,11 +145,9 @@ internal sealed interface ConfigError : KayanError {
         )
     }
 
-    data class MissingRequiredFlavorsObject(
-        val context: DiagnosticContext,
-    ) : ConfigError {
+    data class MissingRequiredFlavorsObject(val context: DiagnosticContext) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
-            "Missing required '${DefaultConfigResolver.FLAVORS_KEY}' object in ${context.describe()}."
+            "Missing required '${DefaultConfigResolver.FLAVORS_KEY}' object in ${context.describe()}.",
         )
     }
 
@@ -198,15 +158,12 @@ internal sealed interface ConfigError : KayanError {
         val context: DiagnosticContext,
     ) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
-            "Invalid $subject in ${context.describe()}: expected $expectedType but found $actualType."
+            "Invalid $subject in ${context.describe()}: expected $expectedType but found $actualType.",
         )
     }
 
-    data class UnknownKey(
-        val jsonKey: String,
-        val context: DiagnosticContext,
-        val suggestions: List<String>,
-    ) : ConfigError {
+    data class UnknownKey(val jsonKey: String, val context: DiagnosticContext, val suggestions: List<String>) :
+        ConfigError {
         override fun toConfigValidationException(): ConfigValidationException {
             val suggestionMessage = when (suggestions.size) {
                 0 -> ""
@@ -215,7 +172,7 @@ internal sealed interface ConfigError : KayanError {
             }
 
             return ConfigValidationException(
-                "Unknown key '$jsonKey' in ${context.describe()}.$suggestionMessage"
+                "Unknown key '$jsonKey' in ${context.describe()}.$suggestionMessage",
             )
         }
     }
@@ -227,7 +184,7 @@ internal sealed interface ConfigError : KayanError {
     ) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
             "Flavor '$customFlavor' in ${customContext.describe()} does not exist in source " +
-                "'$defaultConfigSourceName'."
+                "'$defaultConfigSourceName'.",
         )
     }
 
@@ -238,7 +195,7 @@ internal sealed interface ConfigError : KayanError {
     ) : ConfigError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
             "Target '$customTarget' in ${customContext.describe()} does not exist in source " +
-                "'$defaultConfigSourceName'."
+                "'$defaultConfigSourceName'.",
         )
     }
 
@@ -250,7 +207,7 @@ internal sealed interface ConfigError : KayanError {
         override fun toConfigValidationException(): ConfigValidationException = ConfigValidationException(
             "Key '${definition.jsonKey}' in ${customContext.describe()} cannot be set from a custom config " +
                 "because the schema marks it as preventOverride. Define it only in source " +
-                "'$defaultConfigSourceName', either at the top level or inside its flavors or targets."
+                "'$defaultConfigSourceName', either at the top level or inside its flavors or targets.",
         )
     }
 
@@ -268,7 +225,7 @@ internal sealed interface ConfigError : KayanError {
                     }
                     .atKey(definition.jsonKey)
                     .path
-            }'."
+            }'.",
         )
 
         private fun resolutionLabel(): String =
@@ -300,6 +257,7 @@ internal data class DiagnosticContext(
             segments.forEach { segment ->
                 when (segment) {
                     is PathSegment.Index -> append("[${segment.value}]")
+
                     is PathSegment.Key -> {
                         if (DefaultConfigResolver.IDENTIFIER_SEGMENT.matches(segment.value)) {
                             append('.')
@@ -347,8 +305,7 @@ internal data class DiagnosticContext(
         append('\'')
     }
 
-    private fun escapeJsonPathKey(value: String): String =
-        value.replace("\\", "\\\\").replace("\"", "\\\"")
+    private fun escapeJsonPathKey(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"")
 }
 
 internal sealed interface PathSegment {

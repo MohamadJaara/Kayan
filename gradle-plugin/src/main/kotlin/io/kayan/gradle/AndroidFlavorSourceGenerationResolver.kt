@@ -20,24 +20,22 @@ internal class AndroidFlavorSourceGenerationResolver(
 ) : AndroidVariantGenerationResolver {
     private var resolvedState: ResolvedAndroidFlavorSourceGeneration? = null
 
-    fun finalizeConfigurationEither(): Either<PluginConfigurationError, Unit> =
-        resolvedStateEither().map { Unit }
+    fun finalizeConfigurationEither(): Either<PluginConfigurationError, Unit> = resolvedStateEither().map { Unit }
 
     override fun generationTaskForVariantEither(
         variant: Any,
-    ): Either<PluginConfigurationError, TaskProvider<GenerateKayanConfigTask>?> =
-        resolvedStateEither().map { state ->
-            if (state.configuredGenerations.isEmpty()) {
-                state.defaultGenerateTask
-            } else {
-                val flavorNames = variant.androidVariantFlavorNames()
-                state.configuredGenerations.firstOrNull { generation ->
-                    generation.flavorName in flavorNames
-                }?.let { generation ->
-                    state.generationTasksByFlavor[generation.flavorName]
-                }
+    ): Either<PluginConfigurationError, TaskProvider<GenerateKayanConfigTask>?> = resolvedStateEither().map { state ->
+        if (state.configuredGenerations.isEmpty()) {
+            state.defaultGenerateTask
+        } else {
+            val flavorNames = variant.androidVariantFlavorNames()
+            state.configuredGenerations.firstOrNull { generation ->
+                generation.flavorName in flavorNames
+            }?.let { generation ->
+                state.generationTasksByFlavor[generation.flavorName]
             }
         }
+    }
 
     private fun resolvedStateEither(): Either<PluginConfigurationError, ResolvedAndroidFlavorSourceGeneration> {
         resolvedState?.let { return it.right() }

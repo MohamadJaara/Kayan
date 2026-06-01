@@ -179,9 +179,7 @@ public abstract class KayanExtension {
      * deferred to the accessor calls on [KayanBuildValue].
      */
     @ExperimentalKayanGradleApi
-    public fun buildValue(jsonKey: String): KayanBuildValue {
-        return buildValue(jsonKey = jsonKey, targetName = null)
-    }
+    public fun buildValue(jsonKey: String): KayanBuildValue = buildValue(jsonKey = jsonKey, targetName = null)
 
     /**
      * Exposes a schema entry to Gradle build logic through typed accessors for one explicit target.
@@ -190,10 +188,7 @@ public abstract class KayanExtension {
      * precedence used for generated KMP target sources.
      */
     @ExperimentalKayanGradleApi
-    public fun buildValue(
-        jsonKey: String,
-        targetName: String?,
-    ): KayanBuildValue {
+    public fun buildValue(jsonKey: String, targetName: String?): KayanBuildValue {
         val schema = requireSchema(serializedSchemaEntries())
         validateSchemaKeyEither(schema, jsonKey).getOrElse { throw it.toGradleException() }
 
@@ -219,10 +214,7 @@ public abstract class KayanExtension {
             )
         }
 
-    private fun resolvedBuildValueProvider(
-        jsonKey: String,
-        targetName: String?,
-    ): Provider<ResolvedBuildValue> {
+    private fun resolvedBuildValueProvider(jsonKey: String, targetName: String?): Provider<ResolvedBuildValue> {
         val normalizedTargetName = targetName?.let { requireConfigured(it, "targetName") }
         val request = BuildValueRequest(jsonKey = jsonKey, targetName = normalizedTargetName)
 
@@ -297,10 +289,7 @@ internal fun deserializeInheritedRootEntriesEither(
     }
 }
 
-private fun validateSchemaKeyEither(
-    schema: ConfigSchema,
-    jsonKey: String,
-): Either<BuildTimeAccessError, Unit> {
+private fun validateSchemaKeyEither(schema: ConfigSchema, jsonKey: String): Either<BuildTimeAccessError, Unit> {
     if (schema.definitionFor(jsonKey) != null) {
         return Unit.right()
     }
@@ -309,10 +298,7 @@ private fun validateSchemaKeyEither(
     return BuildTimeAccessError.UnknownSchemaKey(jsonKey, suggestions).left()
 }
 
-private data class BuildValueRequest(
-    val jsonKey: String,
-    val targetName: String?,
-)
+private data class BuildValueRequest(val jsonKey: String, val targetName: String?)
 
 /**
  * Builder used inside `kayan { schema { ... } }` to declare config entries.
@@ -628,9 +614,8 @@ internal data class KayanSchemaEntrySpec(
             deserializeEither(serialized = serialized, entryIndex = 0)
                 .getOrElse { error(it.message()) }
 
-        fun toSchema(serializedEntries: List<String>): ConfigSchema =
-            toSchemaEither(serializedEntries)
-                .getOrElse { errors -> error(errors.first().message()) }
+        fun toSchema(serializedEntries: List<String>): ConfigSchema = toSchemaEither(serializedEntries)
+            .getOrElse { errors -> error(errors.first().message()) }
 
         internal fun deserializeEither(
             serialized: String,
@@ -675,9 +660,7 @@ internal data class KayanSchemaEntrySpec(
         }
 
         @Suppress("ReturnCount")
-        internal fun toSchemaEither(
-            serializedEntries: List<String>,
-        ): Either<NonEmptyList<SchemaError>, ConfigSchema> {
+        internal fun toSchemaEither(serializedEntries: List<String>): Either<NonEmptyList<SchemaError>, ConfigSchema> {
             val specErrors = mutableListOf<SchemaError>()
             val specs = mutableListOf<KayanSchemaEntrySpec>()
 
@@ -712,10 +695,7 @@ internal data class KayanSchemaEntrySpec(
             }
         }
 
-        private fun validateSpec(
-            entryIndex: Int,
-            spec: KayanSchemaEntrySpec,
-        ): List<SchemaError> = buildList {
+        private fun validateSpec(entryIndex: Int, spec: KayanSchemaEntrySpec): List<SchemaError> = buildList {
             if (spec.jsonKey.isBlank()) {
                 add(SchemaError.BlankJsonKey(entryIndex))
             }
@@ -736,9 +716,7 @@ internal data class KayanSchemaEntrySpec(
             }
         }
 
-        private fun validateSchema(
-            specs: List<KayanSchemaEntrySpec>,
-        ): List<SchemaError> = buildList {
+        private fun validateSchema(specs: List<KayanSchemaEntrySpec>): List<SchemaError> = buildList {
             if (specs.isEmpty()) {
                 add(SchemaError.EmptySchema)
             }
@@ -773,17 +751,13 @@ internal data class KayanSchemaEntrySpec(
                 .toList()
         }
 
-        private fun KayanSchemaEntrySpec.toConfigDefinitionEither(): Either<SchemaError, ConfigDefinition> =
-            try {
-                toConfigDefinition().right()
-            } catch (error: IllegalArgumentException) {
-                SchemaError.UnexpectedDefinitionValidation(error).left()
-            }
+        private fun KayanSchemaEntrySpec.toConfigDefinitionEither(): Either<SchemaError, ConfigDefinition> = try {
+            toConfigDefinition().right()
+        } catch (error: IllegalArgumentException) {
+            SchemaError.UnexpectedDefinitionValidation(error).left()
+        }
 
-        private fun JsonObject.requireString(
-            key: String,
-            entryIndex: Int,
-        ): Either<SchemaError, String> =
+        private fun JsonObject.requireString(key: String, entryIndex: Int): Either<SchemaError, String> =
             ((get(key) as? JsonPrimitive)?.content)?.right()
                 ?: SchemaError.MissingRequiredField(entryIndex, key).left()
 
@@ -791,10 +765,7 @@ internal data class KayanSchemaEntrySpec(
 
         private fun JsonObject.optionalBoolean(key: String): Boolean? = (get(key) as? JsonPrimitive)?.booleanOrNull
 
-        private fun JsonObject.requireBoolean(
-            key: String,
-            entryIndex: Int,
-        ): Either<SchemaError, Boolean> =
+        private fun JsonObject.requireBoolean(key: String, entryIndex: Int): Either<SchemaError, Boolean> =
             ((get(key) as? JsonPrimitive)?.booleanOrNull)?.right()
                 ?: SchemaError.MissingRequiredField(entryIndex, key).left()
     }

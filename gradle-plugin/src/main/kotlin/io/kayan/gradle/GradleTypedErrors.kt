@@ -17,9 +17,7 @@ internal sealed interface KayanGradleError : KayanError {
 }
 
 internal sealed interface PluginConfigurationError : KayanGradleError {
-    data class MissingRequiredProperty(
-        val propertyName: String,
-    ) : PluginConfigurationError {
+    data class MissingRequiredProperty(val propertyName: String) : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Kayan requires `$propertyName` to be configured."
@@ -34,9 +32,8 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
     data object MissingRootKayanConfiguration : PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Kayan root inheritance requires the root project to apply the " +
-                "`io.github.mohamadjaara.kayan` plugin and configure `kayanRoot { ... }`."
+        override fun message(): String = "Kayan root inheritance requires the root project to apply the " +
+            "`io.github.mohamadjaara.kayan` plugin and configure `kayanRoot { ... }`."
     }
 
     data object MissingRootSchemaEntries : PluginConfigurationError {
@@ -71,15 +68,12 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
     data object LocalSchemaEntriesNotSupportedWithRootInheritance : PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Kayan root inheritance does not support module-local schema entries. " +
-                "Define new keys in `kayanRoot { schema { ... } }` and consume them with `include(...)`."
+        override fun message(): String = "Kayan root inheritance does not support module-local schema entries. " +
+            "Define new keys in `kayanRoot { schema { ... } }` and consume them with `include(...)`."
     }
 
-    data class UnknownInheritedSchemaKey(
-        val jsonKey: String,
-        val suggestions: List<String>,
-    ) : PluginConfigurationError {
+    data class UnknownInheritedSchemaKey(val jsonKey: String, val suggestions: List<String>) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String {
@@ -93,20 +87,14 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         }
     }
 
-    data class InvalidInheritedSchemaEntry(
-        val entryIndex: Int,
-        val error: SchemaError,
-    ) : PluginConfigurationError {
+    data class InvalidInheritedSchemaEntry(val entryIndex: Int, val error: SchemaError) : PluginConfigurationError {
         override val cause: Throwable? = error.cause
 
         override fun message(): String =
             "Failed to deserialize inherited Kayan root schema entry #$entryIndex: ${error.message()}"
     }
 
-    data class MissingConfigFile(
-        val fileLabel: String,
-        val path: String,
-    ) : PluginConfigurationError {
+    data class MissingConfigFile(val fileLabel: String, val path: String) : PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Kayan $fileLabel config file does not exist: $path"
@@ -115,58 +103,43 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
     data object MissingKotlinPlugin : PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "The `io.github.mohamadjaara.kayan` plugin requires one of: " +
-                "`org.jetbrains.kotlin.multiplatform`, " +
-                "`org.jetbrains.kotlin.jvm`, or " +
-                "an Android plugin with Kotlin compilation support " +
-                "(`com.android.application` or `com.android.library`)."
+        override fun message(): String = "The `io.github.mohamadjaara.kayan` plugin requires one of: " +
+            "`org.jetbrains.kotlin.multiplatform`, " +
+            "`org.jetbrains.kotlin.jvm`, or " +
+            "an Android plugin with Kotlin compilation support " +
+            "(`com.android.application` or `com.android.library`)."
     }
 
-    data class UnsupportedConventionalTarget(
-        val targetName: String,
-        val supportedTargets: List<String>,
-    ) : PluginConfigurationError {
+    data class UnsupportedConventionalTarget(val targetName: String, val supportedTargets: List<String>) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Unsupported Kayan target '$targetName'. Use one of: " +
-                supportedTargets.joinToString { "'$it'" } +
-                ", or configure an explicit mapping with sourceSet(\"<sourceSet>\", \"$targetName\")."
+        override fun message(): String = "Unsupported Kayan target '$targetName'. Use one of: " +
+            supportedTargets.joinToString { "'$it'" } +
+            ", or configure an explicit mapping with sourceSet(\"<sourceSet>\", \"$targetName\")."
     }
 
-    data class BlankAndroidFlavorName(
-        val index: Int,
-    ) : PluginConfigurationError {
+    data class BlankAndroidFlavorName(val index: Int) : PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Kayan android flavor source generation requires non-blank flavor names. " +
-                "Invalid entry at index $index."
+        override fun message(): String = "Kayan android flavor source generation requires non-blank flavor names. " +
+            "Invalid entry at index $index."
     }
 
-    data class BlankTargetSourceSetName(
-        val index: Int,
-        val fieldName: String,
-        val configuredValue: String,
-    ) : PluginConfigurationError {
+    data class BlankTargetSourceSetName(val index: Int, val fieldName: String, val configuredValue: String) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Kayan target source generation requires non-blank Kotlin source set names. " +
-                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
+        override fun message(): String = "Kayan target source generation requires non-blank Kotlin source set names. " +
+            "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
     }
 
-    data class BlankTargetName(
-        val index: Int,
-        val fieldName: String,
-        val configuredValue: String,
-    ) : PluginConfigurationError {
+    data class BlankTargetName(val index: Int, val fieldName: String, val configuredValue: String) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Kayan target source generation requires non-blank target names. " +
-                "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
+        override fun message(): String = "Kayan target source generation requires non-blank target names. " +
+            "Invalid entry at index $index for field '$fieldName' with configured value '$configuredValue'."
     }
 
     data class DuplicateTargetSourceSet(
@@ -181,10 +154,8 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "'$firstTargetName' and '$duplicateTargetName'. A source set can only resolve one target."
     }
 
-    data class MissingKotlinSourceSet(
-        val sourceSetName: String,
-        val availableSourceSets: List<String>,
-    ) : PluginConfigurationError {
+    data class MissingKotlinSourceSet(val sourceSetName: String, val availableSourceSets: List<String>) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
@@ -192,10 +163,8 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "Available source sets: ${availableSourceSets.joinToString { "'$it'" }}."
     }
 
-    data class MissingAndroidProductFlavor(
-        val flavorName: String,
-        val availableFlavors: List<String>,
-    ) : PluginConfigurationError {
+    data class MissingAndroidProductFlavor(val flavorName: String, val availableFlavors: List<String>) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String {
@@ -210,10 +179,8 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
         }
     }
 
-    data class UnsupportedAndroidFlavorDimensions(
-        val dimensions: List<String>,
-        val configuredFlavors: List<String>,
-    ) : PluginConfigurationError {
+    data class UnsupportedAndroidFlavorDimensions(val dimensions: List<String>, val configuredFlavors: List<String>) :
+        PluginConfigurationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
@@ -222,19 +189,15 @@ internal sealed interface PluginConfigurationError : KayanGradleError {
                 "span multiple dimensions: ${dimensions.joinToString { "'$it'" }}."
     }
 
-    data class UnsupportedAndroidVariantApi(
-        val detail: String,
-        override val cause: Throwable? = null,
-    ) : PluginConfigurationError {
+    data class UnsupportedAndroidVariantApi(val detail: String, override val cause: Throwable? = null) :
+        PluginConfigurationError {
         override fun message(): String =
             "Kayan could not register Android generated sources through the Android Variant API. $detail"
     }
 }
 
 internal sealed interface GenerationError : KayanGradleError {
-    data class SchemaBuildFailure(
-        val errors: NonEmptyList<SchemaError>,
-    ) : GenerationError {
+    data class SchemaBuildFailure(val errors: NonEmptyList<SchemaError>) : GenerationError {
         override val cause: Throwable? = errors.first().cause
 
         override fun message(): String = errors.joinToString(
@@ -243,24 +206,18 @@ internal sealed interface GenerationError : KayanGradleError {
         ) { "- ${it.message()}" }
     }
 
-    data class ConfigResolutionFailure(
-        val error: ConfigError,
-    ) : GenerationError {
+    data class ConfigResolutionFailure(val error: ConfigError) : GenerationError {
         private val configValidationException = error.toConfigValidationException()
 
         override val cause: Throwable? = configValidationException
 
-        override fun message(): String =
-            "Failed to resolve Kayan config: ${configValidationException.message}"
+        override fun message(): String = "Failed to resolve Kayan config: ${configValidationException.message}"
     }
 
-    data class MissingResolvedFlavor(
-        val flavorName: String,
-    ) : GenerationError {
+    data class MissingResolvedFlavor(val flavorName: String) : GenerationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Configured Kayan flavor '$flavorName' was not found in the resolved config."
+        override fun message(): String = "Configured Kayan flavor '$flavorName' was not found in the resolved config."
     }
 
     data class MissingNonNullableTargetValue(
@@ -277,14 +234,11 @@ internal sealed interface GenerationError : KayanGradleError {
                 ". Provide a value for every generated target or mark the schema entry nullable."
     }
 
-    data class NonNullableDeclarationResolvedToNull(
-        val definition: ConfigDefinition,
-    ) : GenerationError {
+    data class NonNullableDeclarationResolvedToNull(val definition: ConfigDefinition) : GenerationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Key '${definition.jsonKey}' resolved to null for target generation " +
-                "but the generated declaration contract is non-null."
+        override fun message(): String = "Key '${definition.jsonKey}' resolved to null for target generation " +
+            "but the generated declaration contract is non-null."
     }
 
     data class AdapterStepFailure(
@@ -297,9 +251,7 @@ internal sealed interface GenerationError : KayanGradleError {
                 "${cause.message}"
     }
 
-    data class BlankRenderedExpression(
-        val definition: ConfigDefinition,
-    ) : GenerationError {
+    data class BlankRenderedExpression(val definition: ConfigDefinition) : GenerationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
@@ -313,10 +265,7 @@ internal sealed interface GenerationError : KayanGradleError {
         override fun message(): String = "Null config values do not have a raw adapter value."
     }
 
-    data class ReflectiveMethodMissing(
-        val className: String,
-        val methodName: String,
-    ) : GenerationError {
+    data class ReflectiveMethodMissing(val className: String, val methodName: String) : GenerationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
@@ -332,57 +281,38 @@ internal sealed interface GenerationError : KayanGradleError {
             "Failed to invoke '$methodName' on custom adapter '$className': ${cause.message}"
     }
 
-    data class AdapterReturnedNull(
-        val className: String,
-        val methodName: String,
-    ) : GenerationError {
+    data class AdapterReturnedNull(val className: String, val methodName: String) : GenerationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Custom adapter '$className' returned null from '$methodName'."
+        override fun message(): String = "Custom adapter '$className' returned null from '$methodName'."
     }
 
-    data class AdapterClassNotFound(
-        val className: String,
-    ) : GenerationError {
+    data class AdapterClassNotFound(val className: String) : GenerationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
             "Failed to load custom adapter class '$className'. Ensure it is on the Gradle build classpath."
     }
 
-    data class AdapterInstantiationFailure(
-        val className: String,
-        override val cause: Throwable,
-    ) : GenerationError {
+    data class AdapterInstantiationFailure(val className: String, override val cause: Throwable) : GenerationError {
         override fun message(): String =
             "Custom adapter class '$className' must be a Kotlin object or expose a public zero-argument constructor."
     }
 
-    data class MissingAdapterProperty(
-        val className: String,
-        val propertyName: String,
-        override val cause: Throwable,
-    ) : GenerationError {
-        override fun message(): String =
-            "Custom adapter '$className' must expose a '$propertyName' property or getter."
+    data class MissingAdapterProperty(val className: String, val propertyName: String, override val cause: Throwable) :
+        GenerationError {
+        override fun message(): String = "Custom adapter '$className' must expose a '$propertyName' property or getter."
     }
 
-    data class AdapterPropertyWrongType(
-        val className: String,
-        val propertyName: String,
-        val expectedType: String,
-    ) : GenerationError {
+    data class AdapterPropertyWrongType(val className: String, val propertyName: String, val expectedType: String) :
+        GenerationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Custom adapter '$className' must expose '$propertyName' as a $expectedType."
+        override fun message(): String = "Custom adapter '$className' must expose '$propertyName' as a $expectedType."
     }
 
-    data class AdapterRawKindMismatch(
-        val definition: ConfigDefinition,
-        val actualKind: ConfigValueKind,
-    ) : GenerationError {
+    data class AdapterRawKindMismatch(val definition: ConfigDefinition, val actualKind: ConfigValueKind) :
+        GenerationError {
         override val cause: Throwable? = null
 
         override fun message(): String =
@@ -390,57 +320,37 @@ internal sealed interface GenerationError : KayanGradleError {
                 "'$actualKind', but the schema expects '${definition.kind}'."
     }
 
-    data class AdapterRenderReturnWrongType(
-        val className: String,
-    ) : GenerationError {
+    data class AdapterRenderReturnWrongType(val className: String) : GenerationError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Custom adapter '$className' must return a String from renderKotlin."
+        override fun message(): String = "Custom adapter '$className' must return a String from renderKotlin."
     }
 
-    data class DirectoryCreationFailure(
-        val path: String,
-    ) : GenerationError {
+    data class DirectoryCreationFailure(val path: String) : GenerationError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Failed to create directory: $path"
     }
 
-    data class DirectoryCleanupFailure(
-        val path: String,
-        override val cause: Throwable?,
-    ) : GenerationError {
+    data class DirectoryCleanupFailure(val path: String, override val cause: Throwable?) : GenerationError {
         override fun message(): String = "Failed to clean directory: $path"
     }
 
-    data class FileWriteFailure(
-        val path: String,
-        override val cause: Throwable,
-    ) : GenerationError {
+    data class FileWriteFailure(val path: String, override val cause: Throwable) : GenerationError {
         override fun message(): String = "Failed to write file '$path': ${cause.message}"
     }
 
-    data class FileReadFailure(
-        val path: String,
-        override val cause: Throwable,
-    ) : GenerationError {
+    data class FileReadFailure(val path: String, override val cause: Throwable) : GenerationError {
         override fun message(): String = "Failed to read file '$path': ${cause.message}"
     }
 
-    data class SourceGenerationFailure(
-        val targetName: String,
-        override val cause: Throwable,
-    ) : GenerationError {
+    data class SourceGenerationFailure(val targetName: String, override val cause: Throwable) : GenerationError {
         override fun message(): String = "Failed to generate $targetName: ${cause.message}"
     }
 }
 
 internal sealed interface BuildTimeAccessError : KayanGradleError {
-    data class UnknownSchemaKey(
-        val jsonKey: String,
-        val suggestions: List<String>,
-    ) : BuildTimeAccessError {
+    data class UnknownSchemaKey(val jsonKey: String, val suggestions: List<String>) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
         override fun message(): String {
@@ -454,50 +364,33 @@ internal sealed interface BuildTimeAccessError : KayanGradleError {
         }
     }
 
-    data class MissingResolvedBuildValue(
-        val jsonKey: String,
-    ) : BuildTimeAccessError {
+    data class MissingResolvedBuildValue(val jsonKey: String) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Key '$jsonKey' was validated against the Kayan schema but was not resolved."
+        override fun message(): String = "Key '$jsonKey' was validated against the Kayan schema but was not resolved."
     }
 
-    data class ValueKindMismatch(
-        val jsonKey: String,
-        val actualKind: ConfigValueKind,
-        val requestedType: String,
-    ) : BuildTimeAccessError {
+    data class ValueKindMismatch(val jsonKey: String, val actualKind: ConfigValueKind, val requestedType: String) :
+        BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Key '$jsonKey' is $actualKind, cannot access as $requestedType"
+        override fun message(): String = "Key '$jsonKey' is $actualKind, cannot access as $requestedType"
     }
 
-    data class NullValueAccess(
-        val jsonKey: String,
-        val nullAccessorHint: String,
-    ) : BuildTimeAccessError {
+    data class NullValueAccess(val jsonKey: String, val nullAccessorHint: String) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Key '$jsonKey' is null; use $nullAccessorHint instead"
+        override fun message(): String = "Key '$jsonKey' is null; use $nullAccessorHint instead"
     }
 
-    data class DecodedValueTypeMismatch(
-        val jsonKey: String,
-        val requestedType: String,
-        val actualType: String,
-    ) : BuildTimeAccessError {
+    data class DecodedValueTypeMismatch(val jsonKey: String, val requestedType: String, val actualType: String) :
+        BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Key '$jsonKey' was decoded as $actualType, cannot access as $requestedType"
+        override fun message(): String = "Key '$jsonKey' was decoded as $actualType, cannot access as $requestedType"
     }
 
-    data class InvalidSerializedResolvedValuesJson(
-        override val cause: Throwable,
-    ) : BuildTimeAccessError {
+    data class InvalidSerializedResolvedValuesJson(override val cause: Throwable) : BuildTimeAccessError {
         override fun message(): String = "Invalid serialized resolved values JSON."
     }
 
@@ -507,31 +400,21 @@ internal sealed interface BuildTimeAccessError : KayanGradleError {
         override fun message(): String = "Serialized resolved values must be a JSON object."
     }
 
-    data class ResolvedValueNotAnObject(
-        val jsonKey: String,
-    ) : BuildTimeAccessError {
+    data class ResolvedValueNotAnObject(val jsonKey: String) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
         override fun message(): String = "Resolved value '$jsonKey' must be a JSON object."
     }
 
-    data class MissingResolvedValueField(
-        val jsonKey: String,
-        val fieldName: String,
-    ) : BuildTimeAccessError {
+    data class MissingResolvedValueField(val jsonKey: String, val fieldName: String) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Resolved value '$jsonKey' is missing required field '$fieldName'."
+        override fun message(): String = "Resolved value '$jsonKey' is missing required field '$fieldName'."
     }
 
-    data class UnsupportedResolvedValueKind(
-        val jsonKey: String,
-        val rawKind: String,
-        override val cause: Throwable,
-    ) : BuildTimeAccessError {
-        override fun message(): String =
-            "Resolved value '$jsonKey' has unsupported kind '$rawKind'."
+    data class UnsupportedResolvedValueKind(val jsonKey: String, val rawKind: String, override val cause: Throwable) :
+        BuildTimeAccessError {
+        override fun message(): String = "Resolved value '$jsonKey' has unsupported kind '$rawKind'."
     }
 
     data class InvalidResolvedValueEncoding(
@@ -541,13 +424,10 @@ internal sealed interface BuildTimeAccessError : KayanGradleError {
     ) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
-        override fun message(): String =
-            "Resolved value '$jsonKey' for kind '$kind' must be encoded as $expectedShape."
+        override fun message(): String = "Resolved value '$jsonKey' for kind '$kind' must be encoded as $expectedShape."
     }
 
-    data class InvalidResolvedValueEntry(
-        val detail: String,
-    ) : BuildTimeAccessError {
+    data class InvalidResolvedValueEntry(val detail: String) : BuildTimeAccessError {
         override val cause: Throwable? = null
 
         override fun message(): String = detail

@@ -113,10 +113,10 @@ class KayanSchemaEntrySpecTypedTest {
         when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(first, second))) {
             is Either.Left -> {
                 val duplicateJsonKeys = assertIs<SchemaError.DuplicateJsonKeys>(
-                    result.value.first { it is SchemaError.DuplicateJsonKeys }
+                    result.value.first { it is SchemaError.DuplicateJsonKeys },
                 )
                 val duplicatePropertyNames = assertIs<SchemaError.DuplicatePropertyNames>(
-                    result.value.first { it is SchemaError.DuplicatePropertyNames }
+                    result.value.first { it is SchemaError.DuplicatePropertyNames },
                 )
 
                 assertEquals(listOf("bundle_id"), duplicateJsonKeys.jsonKeys)
@@ -147,7 +147,7 @@ class KayanSchemaEntrySpecTypedTest {
         when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(targets, flavors))) {
             is Either.Left -> {
                 val reservedJsonKeys = assertIs<SchemaError.ReservedJsonKeys>(
-                    result.value.first { it is SchemaError.ReservedJsonKeys }
+                    result.value.first { it is SchemaError.ReservedJsonKeys },
                 )
 
                 assertEquals(listOf("targets", "flavors"), reservedJsonKeys.jsonKeys)

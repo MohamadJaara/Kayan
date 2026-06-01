@@ -46,7 +46,7 @@ class GenerateKayanConfigSupportTypedTest {
                       },
                       "unknown_key": true
                     }
-                """.trimIndent()
+                """.trimIndent(),
             )
         }
         val schema = requireSchema(listOf(bundleIdEntry().serialize()))
@@ -81,7 +81,7 @@ class GenerateKayanConfigSupportTypedTest {
                         }
                       }
                     }
-                """.trimIndent()
+                """.trimIndent(),
             )
         }
         val customFile = File(tempDir, "custom-overrides.json").apply {
@@ -91,7 +91,7 @@ class GenerateKayanConfigSupportTypedTest {
                       "flavors": {},
                       "api_secret": "secret"
                     }
-                """.trimIndent()
+                """.trimIndent(),
             )
         }
         val schema = requireSchema(

@@ -158,16 +158,15 @@ class KayanConfigValueSourceTest {
         jsonKey: String,
         customFile: File? = null,
         targetName: String? = null,
-    ): ResolvedBuildValue =
-        deserializeResolvedBuildValue(
+    ): ResolvedBuildValue = deserializeResolvedBuildValue(
+        jsonKey = jsonKey,
+        serialized = resolveSerializedWithValueSource(
+            baseFile = baseFile,
+            customFile = customFile,
             jsonKey = jsonKey,
-            serialized = resolveSerializedWithValueSource(
-                baseFile = baseFile,
-                customFile = customFile,
-                jsonKey = jsonKey,
-                targetName = targetName,
-            ),
-        )
+            targetName = targetName,
+        ),
+    )
 
     private fun resolveSerializedWithValueSource(
         baseFile: File,

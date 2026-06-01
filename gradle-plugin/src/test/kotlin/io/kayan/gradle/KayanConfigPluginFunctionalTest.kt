@@ -303,7 +303,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -351,7 +351,7 @@ class KayanConfigPluginFunctionalTest {
                     packageName.set("sample.config")
                     flavor.set("prod")
                     customConfigFile.set(layout.projectDirectory.file("custom-overrides.json"))
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -511,7 +511,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -672,7 +672,7 @@ class KayanConfigPluginFunctionalTest {
             buildScript = buildScript(
                 kayanBlock = """
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -696,7 +696,7 @@ class KayanConfigPluginFunctionalTest {
             buildScript = buildScript(
                 kayanBlock = """
                     packageName.set("sample.config")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -722,7 +722,7 @@ class KayanConfigPluginFunctionalTest {
                     packageName.set("sample.config")
                     flavor.set("prod")
                     validationMode.set(io.kayan.KayanValidationMode.STRICT)
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -749,7 +749,7 @@ class KayanConfigPluginFunctionalTest {
                     packageName.set("sample.config")
                     flavor.set("prod")
                     targets("jvm")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -799,7 +799,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -821,7 +821,7 @@ class KayanConfigPluginFunctionalTest {
     @Test
     fun generatesCustomTypedPropertiesUsingBuildTimeAdapter() {
         val adapterClasspathEntry = File(
-            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI()
+            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI(),
         ).absolutePath.replace("\\", "\\\\")
         val projectDir = createProject(
             buildScript = buildScript(
@@ -842,7 +842,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -879,7 +879,7 @@ class KayanConfigPluginFunctionalTest {
     @Test
     fun generatesNullableCustomTypedPropertiesWhenAdapterValueIsMissing() {
         val adapterClasspathEntry = File(
-            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI()
+            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI(),
         ).absolutePath.replace("\\", "\\\\")
         val projectDir = createProject(
             buildScript = buildScript(
@@ -900,7 +900,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -939,7 +939,7 @@ class KayanConfigPluginFunctionalTest {
     @Test
     fun reusesConfigurationCacheWhenCustomAdapterComesFromBuildscriptClasspath() {
         val adapterClasspathEntry = File(
-            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI()
+            ReleaseStageAdapter::class.java.protectionDomain.codeSource.location.toURI(),
         ).absolutePath.replace("\\", "\\\\")
         val projectDir = createProject(
             buildScript = buildScript(
@@ -960,7 +960,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -980,7 +980,7 @@ class KayanConfigPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, firstRun.task(":generateKayanConfig")?.outcome)
         assertTrue(
-            secondRun.task(":generateKayanConfig")?.outcome in setOf(TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE)
+            secondRun.task(":generateKayanConfig")?.outcome in setOf(TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE),
         )
         assertTrue(firstRun.output.contains("Configuration cache entry stored."))
         assertTrue(secondRun.output.contains("Configuration cache entry reused."))
@@ -998,7 +998,7 @@ class KayanConfigPluginFunctionalTest {
             buildScript = buildScript(
                 kayanBlock = """
                     packageName.set("sample.config")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -1093,7 +1093,7 @@ class KayanConfigPluginFunctionalTest {
                     packageName.set("sample.config")
                     jsonSchemaOutputFile.set(layout.projectDirectory.file("docs/kayan.schema.json"))
                     markdownSchemaOutputFile.set(layout.projectDirectory.file("docs/kayan-schema.md"))
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -1170,7 +1170,7 @@ class KayanConfigPluginFunctionalTest {
                 kayanBlock = """
                     packageName.set("sample.config")
                     flavor.set("prod")
-                """.trimIndent()
+                """.trimIndent(),
             ),
             baseJson = """
                 {
@@ -1271,7 +1271,7 @@ class KayanConfigPluginFunctionalTest {
                 }
 
                 rootProject.name = "sample"
-            """.trimIndent()
+            """.trimIndent(),
         )
         File(projectDir, "build.gradle.kts").writeText(buildScript)
         File(projectDir, baseFileName).writeText(baseJson)
@@ -1283,11 +1283,7 @@ class KayanConfigPluginFunctionalTest {
         return projectDir
     }
 
-    private fun buildScript(
-        kayanBlock: String,
-        schemaBlock: String = "",
-        buildscriptBlock: String = "",
-    ): String = """
+    private fun buildScript(kayanBlock: String, schemaBlock: String = "", buildscriptBlock: String = ""): String = """
         buildscript {
             $buildscriptBlock
         }
@@ -1321,10 +1317,7 @@ class KayanConfigPluginFunctionalTest {
         }
     """.trimIndent()
 
-    private fun jvmBuildScript(
-        kayanBlock: String,
-        schemaBlock: String = "",
-    ): String = """
+    private fun jvmBuildScript(kayanBlock: String, schemaBlock: String = ""): String = """
         plugins {
             kotlin("jvm") version "2.3.20"
             id("io.github.mohamadjaara.kayan")
@@ -1350,11 +1343,10 @@ class KayanConfigPluginFunctionalTest {
         }
     """.trimIndent()
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withPluginClasspath()
-            .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
+        .withProjectDir(projectDir)
+        .withPluginClasspath()
+        .withArguments(*tasks, "--stacktrace")
 
     private fun createMultiProject(
         rootBuildScript: String,
@@ -1386,7 +1378,7 @@ class KayanConfigPluginFunctionalTest {
 
                 rootProject.name = "sample-root"
                 include(":$childProjectName")
-            """.trimIndent()
+            """.trimIndent(),
         )
         File(projectDir, "build.gradle.kts").writeText(rootBuildScript)
         File(projectDir, sharedConfigFileName).writeText(sharedConfigJson)
@@ -1407,10 +1399,7 @@ class KayanConfigPluginFunctionalTest {
         return projectDir
     }
 
-    private fun assertContainsNormalized(
-        actual: String,
-        expected: String,
-    ) {
+    private fun assertContainsNormalized(actual: String, expected: String) {
         assertTrue(
             normalizeWhitespace(actual).contains(normalizeWhitespace(expected)),
             "Expected normalized source to contain <$expected>.\nActual:\n$actual",

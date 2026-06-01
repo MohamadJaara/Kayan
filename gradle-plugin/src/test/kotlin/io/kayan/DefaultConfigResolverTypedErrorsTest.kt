@@ -111,6 +111,7 @@ class DefaultConfigResolverTypedErrorsTest {
             )
         ) {
             is Either.Left -> fail("Expected parsed config from canonical tree.")
+
             is Either.Right -> {
                 assertEquals(
                     ConfigValue.StringValue("Example"),

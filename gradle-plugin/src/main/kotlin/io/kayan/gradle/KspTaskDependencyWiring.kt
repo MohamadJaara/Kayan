@@ -59,10 +59,7 @@ private fun Task.kspDeclaredSourceDirectories(): Set<File> {
     }
 }
 
-private fun Task.invokeKspMethodOrReport(
-    target: Any,
-    methodName: String,
-): Any? {
+private fun Task.invokeKspMethodOrReport(target: Any, methodName: String): Any? {
     val method = target.methodOrNull(methodName, 0)
     if (method == null) {
         reportKspIntrospectionIssue(
@@ -93,11 +90,7 @@ private fun Task.invokeKspMethodOrReport(
     }
 }
 
-private fun Task.reportKspIntrospectionIssue(
-    methodName: String,
-    detail: String,
-    cause: Throwable? = null,
-) {
+private fun Task.reportKspIntrospectionIssue(methodName: String, detail: String, cause: Throwable? = null) {
     val message =
         "$detail Task '$name' may be using an unsupported KSP version or API shape; " +
             "Kayan will skip automatic KSP dependency wiring for this task. " +

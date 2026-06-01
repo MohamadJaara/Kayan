@@ -31,6 +31,7 @@ class YamlConfigFormatParserTest {
             )
         ) {
             is Either.Left -> fail("Expected YAML to parse successfully.")
+
             is Either.Right -> {
                 assertEquals(
                     ConfigNode.BooleanNode(true),

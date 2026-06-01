@@ -96,7 +96,7 @@ class GenerateKayanConfigSupportTest {
                       },
                       "brand_name_typo": "Example"
                     }
-                """.trimIndent()
+                """.trimIndent(),
             )
         }
         val schema = requireSchema(listOf(bundleIdEntry().serialize()))
@@ -468,7 +468,7 @@ class GenerateKayanConfigSupportTest {
                         }
                       }
                     }
-                """.trimIndent()
+                """.trimIndent(),
             ),
             customFile = null,
         )
@@ -606,18 +606,12 @@ class GenerateKayanConfigSupportTest {
         nullable = bundleId.nullable,
     )
 
-    private fun createConfigFile(
-        contents: String,
-        fileName: String = "default.json",
-    ): File {
+    private fun createConfigFile(contents: String, fileName: String = "default.json"): File {
         val tempDir = createTempDirectory(prefix = "kayan-support-test").toFile()
         return File(tempDir, fileName).apply { writeText(contents) }
     }
 
-    private fun assertHasCauseMessage(
-        error: Throwable,
-        expectedMessage: String,
-    ) {
+    private fun assertHasCauseMessage(error: Throwable, expectedMessage: String) {
         val messages = generateSequence(error.cause) { it.cause }
             .map(Throwable::message)
             .filterNotNull()
