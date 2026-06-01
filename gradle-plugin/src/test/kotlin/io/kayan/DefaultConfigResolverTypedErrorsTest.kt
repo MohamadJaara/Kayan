@@ -219,4 +219,112 @@ class DefaultConfigResolverTypedErrorsTest {
             is Either.Right -> fail("Expected a typed config error.")
         }
     }
+
+    @Test
+    fun parseEitherReturnsStructuredInvalidTargetSectionError() {
+        when (
+            val result = resolver.parseEither(
+                configJson = """
+                    {
+                      "targets": {
+                        "ios": []
+                      },
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                sourceName = "default.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidType>(result.value)
+                assertEquals("value for target 'ios'", error.subject)
+                assertEquals("object", error.expectedType)
+                assertEquals("array", error.actualType)
+                assertEquals("$.targets.ios", error.context.path)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
+
+    @Test
+    fun parseEitherReturnsStructuredStringListMapEntryError() {
+        val supportLinks = ConfigDefinition(
+            jsonKey = "regional_support_links",
+            propertyName = "REGIONAL_SUPPORT_LINKS",
+            kind = ConfigValueKind.STRING_LIST_MAP,
+        )
+        val schema = ConfigSchema(listOf(this.schema.entries.single(), supportLinks))
+
+        when (
+            val result = resolver.parseEither(
+                configJson = """
+                    {
+                      "regional_support_links": {
+                        "eu": [true]
+                      },
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                sourceName = "default.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidType>(result.value)
+                assertEquals("list entry for key 'regional_support_links'", error.subject)
+                assertEquals("string", error.expectedType)
+                assertEquals("boolean", error.actualType)
+                assertEquals("$.regional_support_links.eu[0]", error.context.path)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
+
+    @Test
+    fun parseEitherReturnsStructuredInvalidEnumNormalizationError() {
+        val releaseStage = ConfigDefinition(
+            jsonKey = "release_stage",
+            propertyName = "RELEASE_STAGE",
+            kind = ConfigValueKind.ENUM,
+            enumTypeName = "sample.ReleaseStage",
+        )
+        val schema = ConfigSchema(listOf(this.schema.entries.single(), releaseStage))
+
+        when (
+            val result = resolver.parseEither(
+                configJson = """
+                    {
+                      "release_stage": "---",
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                sourceName = "default.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidEnumValue>(result.value)
+                assertEquals("release_stage", error.jsonKey)
+                assertEquals("$.release_stage", error.context.path)
+                assertEquals("Enum values must contain at least one letter or digit.", error.detail)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
 }
