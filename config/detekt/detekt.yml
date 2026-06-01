@@ -1,10 +1,7 @@
-build:
-  maxIssues: 0
-
 config:
   validation: true
   warningsAsErrors: true
-  excludes: ""
+  excludes: []
 
 style:
   BracesOnIfStatements:
@@ -44,8 +41,8 @@ complexity:
     excludes:
       - '**/src/test/**'
       - '**/src/*Test/**'
-    thresholdInClasses: 15
-    thresholdInObjects: 15
+    allowedFunctionsPerClass: 15
+    allowedFunctionsPerObject: 15
 
 potential-bugs:
   DontDowncastCollectionTypes:
@@ -58,8 +55,18 @@ naming:
     active: true
     allowedPattern: '^(is|has|are)'
 
-formatting:
+ktlint:
   active: true
+  BlankLineBetweenWhenConditions:
+    active: false
+  ClassSignature:
+    active: false
+  FunctionSignature:
+    active: false
+  FunctionExpressionBody:
+    active: false
+  Kdoc:
+    active: false
   NoBlankLineBeforeRbrace:
     active: true
   NoBlankLineInList:
@@ -68,4 +75,10 @@ formatting:
     active: true
   NoWildcardImports:
     # Intentionally disabled to avoid duplicate violations with style.WildcardImport.
+    active: false
+  PropertyName:
+    active: false
+  TrailingCommaOnCallSite:
+    active: false
+  TrailingCommaOnDeclarationSite:
     active: false

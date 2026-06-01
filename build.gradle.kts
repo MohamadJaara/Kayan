@@ -1,5 +1,5 @@
-import io.gitlab.arturbosch.detekt.Detekt
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.extensions.DetektExtension
 
 plugins {
     alias(libs.plugins.detekt) apply false
@@ -37,7 +37,7 @@ subprojects {
     }
 
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-        apply(plugin = "io.gitlab.arturbosch.detekt")
+        apply(plugin = "dev.detekt")
 
         tasks.named("detekt").configure {
             dependsOn(
@@ -52,10 +52,10 @@ subprojects {
     }
 
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        apply(plugin = "io.gitlab.arturbosch.detekt")
+        apply(plugin = "dev.detekt")
     }
 
-    plugins.withId("io.gitlab.arturbosch.detekt") {
+    plugins.withId("dev.detekt") {
         dependencies {
             add("detektPlugins", libs.detekt.formatting)
         }
@@ -67,13 +67,13 @@ subprojects {
         }
 
         tasks.withType<Detekt>().configureEach {
-            jvmTarget = "11"
+            jvmTarget.set("11")
 
             reports {
+                checkstyle.required.set(true)
                 html.required.set(true)
                 sarif.required.set(true)
-                xml.required.set(true)
-                txt.required.set(false)
+                markdown.required.set(false)
             }
         }
     }
