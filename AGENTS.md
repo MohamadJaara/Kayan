@@ -12,7 +12,7 @@ over duplicating version numbers that already have a source of truth.
 
 - Use the checked-in Gradle wrapper (`./gradlew`) for all root build work.
   The wrapper version lives in `gradle/wrapper/gradle-wrapper.properties`
-  and is currently Gradle 9.1.0.
+  and is currently Gradle 9.5.1.
 - Run Gradle with JDK 17 or newer. CI uses JDK 17 for verification and JDK 21
   for publishing.
 - The plugin itself is compiled with `jvmToolchain(11)` and must stay Java 11
