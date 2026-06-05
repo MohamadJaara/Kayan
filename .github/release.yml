@@ -5,6 +5,7 @@ changelog:
       - skip-changelog
     authors:
       - dependabot[bot]
+      - renovate[bot]
   categories:
     - title: Breaking Changes
       labels:
