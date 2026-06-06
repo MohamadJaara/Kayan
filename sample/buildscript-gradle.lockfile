@@ -3,7 +3,7 @@
 # This file is expected to be part of source control.
 com.google.code.gson:gson:2.11.0=classpath
 com.google.errorprone:error_prone_annotations:2.27.0=classpath
-com.squareup:kotlinpoet-jvm:2.2.0=classpath
+com.squareup:kotlinpoet-jvm:2.3.0=classpath
 io.arrow-kt:arrow-annotations-jvm:2.2.3=classpath
 io.arrow-kt:arrow-annotations:2.2.3=classpath
 io.arrow-kt:arrow-atomic-jvm:2.2.3=classpath
