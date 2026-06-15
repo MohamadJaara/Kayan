@@ -37,10 +37,12 @@ export default defineConfig({
 					label: 'Configuration',
 					items: [
 						{ label: 'Resolution Order', slug: 'docs/resolution-order' },
-						{ label: 'JSON Shape', slug: 'docs/json-shape' },
+						{ label: 'Config File Shape', slug: 'docs/json-shape' },
 						{ label: 'Gradle Usage', slug: 'docs/gradle-usage' },
+						{ label: 'Target-Specific Generation', slug: 'docs/target-specific-generation' },
 						{ label: 'Build-Time Config Access', slug: 'docs/build-time-config' },
 						{ label: 'Schema Types', slug: 'docs/schema-types' },
+						{ label: 'Custom Adapters', slug: 'docs/custom-adapters' },
 						{ label: 'Schema Export', slug: 'docs/schema-export' },
 					],
 				},
@@ -49,12 +51,14 @@ export default defineConfig({
 					items: [
 						{ label: 'BuildConfig Migration', slug: 'docs/buildconfig-migration' },
 						{ label: 'White-Label Setup', slug: 'docs/white-label' },
+						{ label: 'Multi-Module Shared Config', slug: 'docs/multi-module-shared-config' },
 					],
 				},
 				{
 					label: 'Reference',
 					items: [
 						{ label: 'Validation', slug: 'docs/validation' },
+						{ label: 'Security', slug: 'docs/security' },
 						{ label: 'Commands', slug: 'docs/commands' },
 						{ label: 'API Reference', link: apiReferenceLink },
 					],

@@ -13,6 +13,8 @@ Kayan works well as a gradual replacement for Android-only `BuildConfig`.
 4. Declare matching schema entries in `kayan { schema { ... } }`
 5. Keep generated property names aligned with existing constant names first
 6. Swap imports from `BuildConfig` to the generated Kayan object
+7. Move Gradle-time decisions to `buildValue()` only when the build script itself
+   needs the resolved value
 
 ## Before and after
 
@@ -28,3 +30,8 @@ val baseUrl = SampleConfig.API_BASE_URL
 
 The generated object lives in shared code, so every platform target can read it directly
 without platform-specific `expect`/`actual` wiring.
+
+If different KMP targets need different values behind the same shared API, use
+[Target-Specific Generation](../target-specific-generation/). If the old
+`BuildConfig` value drove dependencies, packaging metadata, or source-set wiring,
+use [Build-Time Config Access](../build-time-config/).

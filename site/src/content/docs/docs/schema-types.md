@@ -5,27 +5,77 @@ description: All supported schema types in the Kayan DSL.
 
 The following types are available in the `kayan { schema { ... } }` DSL:
 
-| Type | Kotlin type | Description |
+| DSL | Generated Kotlin type | Raw config shape |
 |------|-------------|-------------|
-| `string` | `String` | Plain text value |
-| `boolean` | `Boolean` | `true` or `false` |
-| `int` | `Int` | 32-bit integer |
-| `long` | `Long` | 64-bit integer |
-| `double` | `Double` | Floating-point number |
-| `stringMap` | `Map<String, String>` | Key-value pairs |
-| `stringList` | `List<String>` | List of strings |
-| `stringListMap` | `Map<String, List<String>>` | Map of string to list of strings |
-| `enumValue` | Generated enum | Normalized enum generation |
-| `custom` | Consumer-defined | Adapter-based custom types |
+| `string` | `String` | string |
+| `boolean` | `Boolean` | boolean |
+| `int` | `Int` | integer |
+| `long` | `Long` | integer |
+| `double` | `Double` | number |
+| `stringMap` | `Map<String, String>` | object with string values |
+| `stringList` | `List<String>` | array of strings |
+| `stringListMap` | `Map<String, List<String>>` | object with array-of-string values |
+| `enumValue` / `enum` | Generated enum | string |
+| `custom` | Adapter-defined | raw kind selected by the adapter declaration |
 
 ## Modifiers
 
-Use `nullable = true` to allow explicit `null` in config files. Use `required = true` when
-the final resolved value must always exist.
+Every schema entry supports the same constraint flags:
+
+| Flag | Meaning |
+| --- | --- |
+| `required = true` | The final resolved value must exist for the selected flavor and optional target. |
+| `nullable = true` | Config files may explicitly set the value to `null`. |
+| `preventOverride = true` | The custom override file cannot set this key; only the base config file may define it. |
+
+`required` and `nullable` cannot both be true for the same entry.
+
+```kotlin
+schema {
+    string(
+        jsonKey = "bundle_id",
+        propertyName = "BUNDLE_ID",
+        required = true,
+    )
+    string(
+        jsonKey = "internal_distribution_id",
+        propertyName = "INTERNAL_DISTRIBUTION_ID",
+        preventOverride = true,
+    )
+}
+```
+
+## Names
+
+`jsonKey` is the key Kayan reads from JSON or YAML. `propertyName` is the Kotlin
+property generated into the config object.
+
+Generated property names must be valid Kotlin identifiers and must be unique.
+JSON keys must be unique and cannot use Kayan's reserved keys: `flavors` and
+`targets`.
+
+## Enums
+
+Use `enumValue(...)` or its alias `enum(...)` when config stores a string but
+generated Kotlin should expose an enum value:
+
+```kotlin
+schema {
+    enum(
+        jsonKey = "release_stage",
+        propertyName = "RELEASE_STAGE",
+        enumTypeName = "sample.ReleaseStage",
+    )
+}
+```
+
+Enum config values are normalized into enum constant names during generation.
+At Gradle configuration time, `buildValue("release_stage").asEnumName()` returns
+the normalized constant name as a `String`.
 
 ## Custom types
 
-For types that don't fit the built-in kinds, use the `custom` declaration with an adapter:
+For types that do not fit the built-in kinds, use `custom(...)` with an adapter:
 
 ```kotlin
 custom(
@@ -37,4 +87,6 @@ custom(
 )
 ```
 
-The adapter class must implement the conversion from the raw config value kind to your target type.
+The adapter converts the raw validated value into a consumer-owned type and
+renders the Kotlin expression used in generated source. See
+[Custom Adapters](../custom-adapters/) for the full contract.

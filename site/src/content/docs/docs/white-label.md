@@ -28,7 +28,7 @@ val brandConfigPath =
     providers.gradleProperty("brandConfigPath")
         .orElse(
             layout.projectDirectory
-                .file("config/brands/wafflewizard.json")
+                .file("config/brands/acme.json")
                 .asFile.absolutePath
         )
 
@@ -53,11 +53,11 @@ kayan {
 Fetch the brand override and pass it as a Gradle property:
 
 ```bash
-curl -o /tmp/wafflewizard.json \
-  https://example.com/mobile-branding/wafflewizard.json
+curl -o /tmp/acme.json \
+  https://example.com/mobile-branding/acme.json
 
 ./gradlew generateKayanConfig \
-  -PbrandConfigPath=/tmp/wafflewizard.json \
+  -PbrandConfigPath=/tmp/acme.json \
   -PkayanFlavor=prod
 ```
 
@@ -65,10 +65,14 @@ Or reference a file from another local checkout:
 
 ```bash
 ./gradlew generateKayanConfig \
-  -PbrandConfigPath=../branding/bananabeacon.json \
+  -PbrandConfigPath=../branding/partner-a.json \
   -PkayanFlavor=staging
 ```
 
 By the time Kayan runs, the external override has already been materialized somewhere on
 disk. Kayan only sees a file path, which keeps the plugin focused on validation, merge
 rules, and source generation.
+
+Use `preventOverride = true` on schema entries that must come only from the base
+app config and must not be replaced by a brand override. For shared config across
+several modules, see [Multi-Module Shared Config](../multi-module-shared-config/).

@@ -19,8 +19,9 @@ Kayan is trying to protect:
   to inject arbitrary Kotlin code into generated sources.
 - Predictable resolution: defaults, flavor overrides, and optional custom
   overrides should resolve deterministically and fail loudly on invalid input.
-- Developer visibility: unknown keys, missing required values, invalid types,
-  and unknown flavors should surface as actionable build failures.
+- Developer visibility: missing required values, invalid types, unknown
+  flavors, and unknown keys in strict validation mode should surface as
+  actionable build failures.
 - Schema fidelity: exported JSON Schema and Markdown should reflect the declared
   Kayan schema rather than unvalidated user input.
 
@@ -65,7 +66,7 @@ The main trust boundaries are:
 
 Attackers or accidental changes may try to:
 
-- introduce unknown keys that look similar to valid ones
+- introduce undeclared keys that look similar to valid ones
 - provide the wrong value type for a declared schema entry
 - omit required values and rely on silent fallback behavior
 - add custom-only flavors that do not exist in the base config
@@ -73,7 +74,9 @@ Attackers or accidental changes may try to:
 
 What Kayan is trying to do:
 
-- reject unknown keys instead of ignoring them
+- reject unknown keys in `KayanValidationMode.STRICT`
+- ignore undeclared keys in the Gradle plugin's default
+  `KayanValidationMode.SUBSET` while still validating declared keys
 - enforce declared types and nullability
 - require `flavors` and explicit flavor resolution
 - fail when a custom override introduces an unknown flavor
@@ -168,7 +171,8 @@ Residual risk:
 
 ## Current Mitigations In The Codebase
 
-- Schema-driven parsing rejects unknown keys and unexpected value kinds.
+- Schema-driven parsing rejects unknown keys in strict validation mode and
+  rejects unexpected value kinds for declared keys.
 - Required-after-resolution semantics prevent silent omission of mandatory
   values.
 - Built-in string rendering escapes characters that would otherwise alter the
@@ -184,6 +188,8 @@ Residual risk:
 To keep Kayan in a safe operating envelope:
 
 - do not store secrets in Kayan-managed config
+- use `KayanValidationMode.STRICT` when a module owns the whole config file and
+  undeclared keys should fail the build
 - treat custom adapters as trusted code with the same review bar as any Gradle
   plugin or build logic
 - keep write locations for generated artifacts inside expected project or build

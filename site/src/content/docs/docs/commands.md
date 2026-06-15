@@ -28,3 +28,10 @@ description: Useful Gradle commands for working with Kayan.
 # Export JSON Schema + Markdown
 ./gradlew -p sample exportKayanSchema
 ```
+
+## Docs site
+
+```bash
+# Build the Astro/Starlight docs site
+npm run build --prefix site
+```

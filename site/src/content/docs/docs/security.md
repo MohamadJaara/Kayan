@@ -3,7 +3,7 @@ title: Security
 description: What Kayan is designed to protect, and what stays outside its threat model.
 ---
 
-Kayan is intentionally strict about config validation, but it is not trying to
+Kayan validates config against the schema you declare, but it is not trying to
 solve every security problem around build tooling.
 
 The short version is:
@@ -14,6 +14,13 @@ The short version is:
 
 That split is the most important part of the threat model.
 
+By default, the Gradle plugin uses `KayanValidationMode.SUBSET`: it validates
+keys declared in the local schema and ignores undeclared keys so several
+modules can read one shared config file. If one module owns the whole config
+file and undeclared keys should fail the build, opt into
+`KayanValidationMode.STRICT`. See [Validation](../validation/) and
+[Multi-Module Shared Config](../multi-module-shared-config/) for the tradeoff.
+
 ## What Kayan is trying to protect
 
 Kayan is mainly trying to protect build integrity and generated-source safety.
@@ -22,7 +29,8 @@ instead of guessing what the author meant.
 
 That means Kayan is designed to:
 
-- reject unknown keys instead of silently accepting them
+- validate schema-declared keys instead of guessing what undeclared data means
+- reject unknown keys when `KayanValidationMode.STRICT` is enabled
 - enforce declared value types and nullability
 - require explicit flavor resolution
 - reject custom-only flavors that do not exist in the base config
@@ -53,6 +61,7 @@ safe. A custom `BuildTimeConfigAdapter` can execute arbitrary logic and can
 render arbitrary Kotlin expressions.
 
 If you use adapters, review them like any other Gradle plugin or build logic.
+See [Custom Adapters](../custom-adapters/) for the adapter contract.
 
 ## `buildValue()` deserves extra care
 
@@ -69,6 +78,8 @@ reviewed with the same care as code changes.
 
 - Do not store secrets in Kayan-managed config.
 - Keep config review strict, especially for changes that affect `buildValue()`.
+- Use `KayanValidationMode.STRICT` when a single module owns the full config
+  file and unexpected keys should fail the build.
 - Treat adapter code as trusted code.
 - Let CI run config resolution so broken or suspicious changes fail early.
 

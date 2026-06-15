@@ -140,6 +140,20 @@ when (kayan.buildValue("release_stage").asEnumName()) {
 
 `asString()` also works for enum values and returns their normalized constant names.
 
+## Target-specific values
+
+When Gradle logic needs a value resolved with target overlays, pass the target
+name as the second argument:
+
+```kotlin
+val desktopBundleId =
+    kayan.buildValue("bundle_id", "jvm")
+        .asString()
+```
+
+The target name is the key inside the config file's `targets` object. For KMP
+source-set mappings, see [Target-Specific Generation](../target-specific-generation/).
+
 ## Error behavior
 
 `buildValue()` fails early with Gradle-friendly messages:
@@ -156,7 +170,8 @@ when (kayan.buildValue("release_stage").asEnumName()) {
 - custom adapters are not applied at configuration time
 
 That last point is intentional: Gradle build logic usually needs `Boolean`, `String`, or
-`List<String>`, not consumer-owned domain types.
+`List<String>`, not consumer-owned domain types. See [Custom Adapters](../custom-adapters/)
+for generation-time custom type conversion.
 
 ## Configuration cache
 

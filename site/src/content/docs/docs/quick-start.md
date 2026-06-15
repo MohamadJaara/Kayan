@@ -5,6 +5,8 @@ description: Four steps to typed config with Kayan.
 
 ## 1. Add your config
 
+Save the default JSON config as `default.json`:
+
 ```json
 {
   "flavors": {
@@ -34,6 +36,9 @@ flavors:
 brand_name: Example App
 ```
 
+If you use YAML, save the file as `default.yml` or `default.yaml` and set
+`configFormat` in the Gradle block below.
+
 ## 2. Apply the plugin and declare schema
 
 ```kotlin
@@ -46,7 +51,12 @@ plugins {
 
 kayan {
     packageName.set("sample.generated")
+    className.set("SampleConfig")
     flavor.set("prod")
+
+    // Keep the default for default.json, or use YAML explicitly:
+    // baseConfigFile.set(layout.projectDirectory.file("default.yml"))
+    // configFormat.set(io.kayan.ConfigFormat.YAML)
 
     schema {
         string("api_base_url", "API_BASE_URL",
