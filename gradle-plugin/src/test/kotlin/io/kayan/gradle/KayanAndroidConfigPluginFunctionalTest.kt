@@ -6,6 +6,7 @@ import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class KayanAndroidConfigPluginFunctionalTest {
     @Test
@@ -179,6 +180,75 @@ class KayanAndroidConfigPluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanDevConfig")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanFdroidConfig")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, result.task(":assertMultiFlavorGeneratedKayanSources")?.outcome)
+    }
+
+    @Test
+    fun keepsDefaultAndAndroidFlavorOutputsAcrossBothGenerationOrders() {
+        val projectDir = createTempDirectory(prefix = "kayan-android-output-isolation-functional-test").toFile()
+
+        writeFakeAndroidBuildSrc(projectDir)
+        writeSettingsGradle(projectDir)
+        writeDefaultJson(projectDir)
+        File(projectDir, "build.gradle.kts").writeText(
+            """
+                @file:OptIn(io.kayan.gradle.ExperimentalKayanGenerationApi::class)
+
+                plugins {
+                    id("com.android.application")
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+
+                kayan {
+                    schema {
+                        string("bundle_id", "BUNDLE_ID", required = true)
+                    }
+
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+
+                    androidFlavorSourceSets {
+                        flavors.set(listOf("prod", "dev", "fdroid"))
+                    }
+                }
+            """.trimIndent(),
+        )
+
+        val defaultFile = File(
+            projectDir,
+            "build/generated/kayan/kotlin/sample/config/KayanConfig.kt",
+        )
+        val flavorFiles = listOf("prod", "dev", "fdroid").map { flavor ->
+            File(
+                projectDir,
+                "build/generated/kayan-android/kotlin/$flavor/sample/config/KayanConfig.kt",
+            )
+        }
+
+        val flavorsFirst = gradleRunner(projectDir, "generateKayanAndroidFlavorConfigs").build()
+
+        assertEquals(TaskOutcome.SUCCESS, flavorsFirst.task(":generateKayanAndroidFlavorConfigs")?.outcome)
+        flavorFiles.forEach(::assertGeneratedFileExists)
+
+        val defaultAfterFlavors = gradleRunner(projectDir, "generateKayanConfig", "--rerun-tasks").build()
+
+        assertEquals(TaskOutcome.SUCCESS, defaultAfterFlavors.task(":generateKayanConfig")?.outcome)
+        assertGeneratedFileExists(defaultFile)
+        flavorFiles.forEach(::assertGeneratedFileExists)
+
+        val flavorsAfterDefault = gradleRunner(
+            projectDir,
+            "generateKayanAndroidFlavorConfigs",
+            "--rerun-tasks",
+        ).build()
+
+        assertEquals(TaskOutcome.SUCCESS, flavorsAfterDefault.task(":generateKayanAndroidFlavorConfigs")?.outcome)
+        assertGeneratedFileExists(defaultFile)
+        flavorFiles.forEach(::assertGeneratedFileExists)
     }
 
     private fun writeSettingsGradle(projectDir: File) {
@@ -514,4 +584,8 @@ class KayanAndroidConfigPluginFunctionalTest {
         .withProjectDir(projectDir)
         .withPluginClasspath()
         .withArguments(*tasks, "--stacktrace")
+
+    private fun assertGeneratedFileExists(file: File) {
+        assertTrue(file.isFile, "Expected generated source at '${file.path}'.")
+    }
 }

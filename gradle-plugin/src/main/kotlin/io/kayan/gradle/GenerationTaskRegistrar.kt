@@ -62,7 +62,7 @@ internal class GenerationTaskRegistrar(
         spec = GenerationSpec(
             taskName = generation.taskName,
             description = "Generates a typed Kayan config object for Android flavor '${generation.flavorName}'.",
-            outputDirectory = "generated/kayan/kotlin/android/${generation.flavorName}",
+            outputDirectory = "generated/kayan-android/kotlin/${generation.flavorName}",
             flavorName = generation.flavorName,
             kotlinPluginApplied = true,
             declarationMode = KayanDeclarationMode.OBJECT,

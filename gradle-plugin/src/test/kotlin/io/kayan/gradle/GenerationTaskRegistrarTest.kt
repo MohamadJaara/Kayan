@@ -28,6 +28,7 @@ class GenerationTaskRegistrarTest {
         assertEquals(fixture.baseFile, task.baseConfigFile.get().asFile)
         assertEquals(fixture.customFile, task.customConfigFile.get().asFile)
         assertEquals(listOf("ios"), task.generatedTargetNames.get())
+        assertTrue(task.outputDir.get().asFile.path.endsWith("generated/kayan/kotlin"))
         assertDependsOn(task, fixture.exportSchemaTask.get())
     }
 
@@ -71,6 +72,14 @@ class GenerationTaskRegistrarTest {
         assertEquals(listOf("prod", "dev"), tasksByFlavor.keys.toList())
         assertEquals("prod", tasksByFlavor.getValue("prod").get().flavor.get())
         assertEquals("dev", tasksByFlavor.getValue("dev").get().flavor.get())
+        assertTrue(
+            tasksByFlavor.getValue("prod").get().outputDir.get().asFile.path
+                .endsWith("generated/kayan-android/kotlin/prod"),
+        )
+        assertTrue(
+            tasksByFlavor.getValue("dev").get().outputDir.get().asFile.path
+                .endsWith("generated/kayan-android/kotlin/dev"),
+        )
         assertDependsOn(aggregateTask, fixture.exportSchemaTask.get())
         assertDependsOn(aggregateTask, tasksByFlavor.getValue("prod").get())
         assertDependsOn(aggregateTask, tasksByFlavor.getValue("dev").get())

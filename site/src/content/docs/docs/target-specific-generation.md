@@ -129,3 +129,6 @@ kayan {
 Kayan registers generation tasks such as `generateKayanProdConfig`,
 `generateKayanDevConfig`, and `generateKayanFdroidConfig`, then wires each
 generated source directory into the matching Android variant source flow.
+Flavor-specific sources are written under
+`build/generated/kayan-android/kotlin/<flavor>`, separate from the default
+`build/generated/kayan/kotlin` output.
