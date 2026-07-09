@@ -18,15 +18,15 @@ group = rootProject.extra["publishedGroup"].toString()
 version = rootProject.extra["publishedVersion"].toString()
 
 dependencies {
+    api(libs.kotlinpoet)
     implementation(gradleApi())
     implementation(localGroovy())
     implementation(libs.arrow.core)
-    implementation(libs.kotlin.gradle.plugin)
-    implementation(libs.kotlinpoet)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.snakeyaml)
 
     testImplementation(gradleTestKit())
+    testImplementation(libs.kotlin.gradle.plugin)
     testImplementation(libs.kotlin.test)
 }
 
@@ -40,6 +40,17 @@ tasks.withType<Test>().configureEach {
         javaToolchains.launcherFor {
             languageVersion.set(JavaLanguageVersion.of(17))
         },
+    )
+}
+
+tasks.named<Test>("test") {
+    dependsOn(
+        tasks.named("generateMetadataFileForPluginMavenPublication"),
+        tasks.named("generatePomFileForPluginMavenPublication"),
+    )
+    systemProperty(
+        "kayan.plugin.publicationDirectory",
+        layout.buildDirectory.dir("publications/pluginMaven").get().asFile.absolutePath,
     )
 }
 

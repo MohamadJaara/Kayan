@@ -11,24 +11,24 @@ import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 
 internal fun Project.wireKspTaskDependencies(
-    sourceSet: KotlinSourceSet,
+    sourceSetName: String,
+    kotlinSources: SourceDirectorySet,
     generateTask: TaskProvider<GenerateKayanConfigTask>,
 ) {
     tasks.configureEach { task ->
-        if (task.consumesKotlinSourceSet(sourceSet)) {
+        if (task.consumesKotlinSourceSet(sourceSetName, kotlinSources)) {
             task.dependsOn(generateTask)
         }
     }
 }
 
-private fun Task.consumesKotlinSourceSet(sourceSet: KotlinSourceSet): Boolean {
-    val sourceDirectories = sourceSet.kotlin.srcDirs.map(File::normalizedAbsoluteFile).toSet()
+private fun Task.consumesKotlinSourceSet(sourceSetName: String, kotlinSources: SourceDirectorySet): Boolean {
+    val sourceDirectories = kotlinSources.srcDirs.map(File::normalizedAbsoluteFile).toSet()
 
-    return consumesNamedKotlinSourceSet(sourceSet.name) ||
+    return consumesNamedKotlinSourceSet(sourceSetName) ||
         consumesDeclaredSourceDirectories(sourceDirectories)
 }
 

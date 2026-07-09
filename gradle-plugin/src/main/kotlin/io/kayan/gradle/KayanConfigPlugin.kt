@@ -3,11 +3,12 @@ package io.kayan.gradle
 import arrow.core.getOrElse
 import io.kayan.ConfigFormat
 import io.kayan.KayanValidationMode
+import org.gradle.api.Named
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.tasks.TaskProvider
-import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 /** @suppress */
 @OptIn(ExperimentalKayanGenerationApi::class)
@@ -89,8 +90,8 @@ public class KayanConfigPlugin : Plugin<Project> {
                     )
                 }
             }
-            val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
-            kotlinExtension.sourceSets.matching { sourceSet ->
+            val kotlinSourceSets = project.kotlinSourceSets()
+            kotlinSourceSets.matching { sourceSet ->
                 sourceSet.name == sourceSetName
             }.configureEach { sourceSet ->
                 sourceSet.registerGeneratedKayanSources(project, generateTask)
@@ -104,9 +105,9 @@ public class KayanConfigPlugin : Plugin<Project> {
         generationTaskRegistrar: GenerationTaskRegistrar,
     ) {
         project.pluginManager.withPlugin(KOTLIN_MULTIPLATFORM_PLUGIN_ID) {
-            val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
+            val kotlinSourceSets = project.kotlinSourceSets()
             val availableSourceSetNames = project.objects.listProperty(String::class.java)
-            kotlinExtension.sourceSets.configureEach { sourceSet ->
+            kotlinSourceSets.configureEach { sourceSet ->
                 availableSourceSetNames.add(sourceSet.name)
             }
             extension.whenTargetSourceSetMappingAdded { mapping ->
@@ -118,7 +119,7 @@ public class KayanConfigPlugin : Plugin<Project> {
                     task.availableKotlinSourceSetNames.set(availableSourceSetNames)
                 }
 
-                kotlinExtension.sourceSets.matching { sourceSet ->
+                kotlinSourceSets.matching { sourceSet ->
                     sourceSet.name == generation.sourceSetName
                 }.configureEach { sourceSet ->
                     sourceSet.registerGeneratedKayanSources(project, targetTask)
@@ -171,12 +172,27 @@ public class KayanConfigPlugin : Plugin<Project> {
     }
 }
 
-private fun KotlinSourceSet.registerGeneratedKayanSources(
+private fun Project.kotlinSourceSets(): NamedDomainObjectContainer<Named> {
+    val kotlinExtension = extensions.getByName("kotlin")
+    val sourceSets = kotlinExtension.invokeNoArgOrNull("getSourceSets")
+    check(sourceSets is NamedDomainObjectContainer<*>) {
+        "The Kotlin Gradle plugin extension did not expose a sourceSets container."
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    return sourceSets as NamedDomainObjectContainer<Named>
+}
+
+private fun Named.registerGeneratedKayanSources(
     project: Project,
     generateTask: TaskProvider<GenerateKayanConfigTask>,
 ) {
-    kotlin.srcDir(generateTask)
-    project.wireKspTaskDependencies(this, generateTask)
+    val kotlinSources = invokeNoArgOrNull("getKotlin") as? SourceDirectorySet
+    checkNotNull(kotlinSources) {
+        "Kotlin source set '$name' did not expose a Kotlin source directory set."
+    }
+    kotlinSources.srcDir(generateTask)
+    project.wireKspTaskDependencies(name, kotlinSources, generateTask)
 }
 
 private fun <T> arrow.core.Either<KayanGradleError, T>.getOrThrowGradle(): T =

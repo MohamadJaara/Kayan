@@ -7,9 +7,7 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Nested
 import org.gradle.testfixtures.ProjectBuilder
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
-import java.lang.reflect.Proxy
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
@@ -26,7 +24,6 @@ class KspTaskDependencyWiringTest {
         val sourceDirectorySet = project.objects.sourceDirectorySet("jvmMain", "jvmMain").apply {
             srcDir(matchingDirectory)
         }
-        val sourceSet = kotlinSourceSet(sourceDirectorySet)
         val generateTask = project.tasks.register("generateKayanJvmMainConfig", GenerateKayanConfigTask::class.java)
         val matchingTask = project.tasks.register("kspKotlinJvm", FakeKspTask::class.java).get()
         val unrelatedTask = project.tasks.register("kspKotlinIosArm64", FakeKspTask::class.java).get()
@@ -34,7 +31,7 @@ class KspTaskDependencyWiringTest {
         matchingTask.kspConfig.sourceRoots.from(project.objects.fileTree().from(matchingDirectory))
         unrelatedTask.kspConfig.sourceRoots.from(project.objects.fileTree().from(unrelatedDirectory))
 
-        project.wireKspTaskDependencies(sourceSet, generateTask)
+        project.wireKspTaskDependencies("jvmMain", sourceDirectorySet, generateTask)
 
         assertTrue("generateKayanJvmMainConfig" in taskDependencyNames(matchingTask))
         assertFalse("generateKayanJvmMainConfig" in taskDependencyNames(unrelatedTask))
@@ -47,7 +44,6 @@ class KspTaskDependencyWiringTest {
         val sourceDirectorySet = project.objects.sourceDirectorySet("jvmMain", "jvmMain").apply {
             srcDir(matchingDirectory)
         }
-        val sourceSet = kotlinSourceSet(sourceDirectorySet)
         val generateTask = project.tasks.register("generateKayanJvmMainConfig", GenerateKayanConfigTask::class.java)
         val task = project.tasks.register("kspKotlinJvm", FakeKspTask::class.java).get()
 
@@ -57,7 +53,7 @@ class KspTaskDependencyWiringTest {
             },
         )
 
-        project.wireKspTaskDependencies(sourceSet, generateTask)
+        project.wireKspTaskDependencies("jvmMain", sourceDirectorySet, generateTask)
 
         assertTrue("generateKayanJvmMainConfig" in taskDependencyNames(task))
         assertTrue(task.consumesNamedKotlinSourceSet("jvmMain"))
@@ -257,19 +253,6 @@ private class FlexibleKspConfig(
 private class MissingCommonAndJavaRootsKspConfig(private val sourceRoots: Any?) {
     fun getSourceRoots(): Any? = sourceRoots
 }
-
-private fun kotlinSourceSet(sourceDirectorySet: org.gradle.api.file.SourceDirectorySet): KotlinSourceSet =
-    Proxy.newProxyInstance(
-        KotlinSourceSet::class.java.classLoader,
-        arrayOf(KotlinSourceSet::class.java),
-    ) { _, method, _ ->
-        when (method.name) {
-            "getKotlin" -> sourceDirectorySet
-            "getName" -> sourceDirectorySet.name
-            "toString" -> "FakeKotlinSourceSet"
-            else -> error("Unexpected KotlinSourceSet method: ${method.name}")
-        }
-    } as KotlinSourceSet
 
 private fun taskDependencyNames(task: org.gradle.api.Task): Set<String> =
     task.dependsOn.mapNotNullTo(linkedSetOf()) { dependency ->

@@ -87,6 +87,7 @@ class KayanConfigPluginFunctionalTest {
         val projectDir = createMultiProject(
             rootBuildScript = """
                 plugins {
+                    kotlin("multiplatform") version "2.3.21" apply false
                     id("io.github.mohamadjaara.kayan")
                 }
 
