@@ -323,6 +323,21 @@ internal sealed interface GenerationError : KayanGradleError {
         override fun message(): String = "Custom adapter '$className' must expose '$propertyName' as a $expectedType."
     }
 
+    data class AdapterPropertyReadFailure(
+        val className: String,
+        val propertyName: String,
+        override val cause: Throwable,
+    ) : GenerationError {
+        override fun message(): String =
+            "Failed to read '$propertyName' from custom adapter '$className': ${cause.message}"
+    }
+
+    data class InvalidAdapterRawKind(val className: String, val rawKind: String, override val cause: Throwable) :
+        GenerationError {
+        override fun message(): String =
+            "Custom adapter '$className' exposes rawKind '$rawKind', which is not a valid ConfigValueKind."
+    }
+
     data class AdapterRawKindMismatch(val definition: ConfigDefinition, val actualKind: ConfigValueKind) :
         GenerationError {
         override val cause: Throwable? = null

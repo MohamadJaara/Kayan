@@ -30,6 +30,7 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.lang.reflect.InvocationTargetException
 import java.net.URLClassLoader
 
 @CacheableTask
@@ -233,7 +234,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
 
         val adapterClass = instance.javaClass
         val kotlinType = reflectiveTypeNamePropertyEither(adapterClass, instance, "kotlinType", className).bind()
-        val rawKind = reflectiveRawKindProperty(adapterClass, instance)
+        val rawKind = reflectiveRawKindPropertyEither(adapterClass, instance, className).bind()
         val parseMethod = reflectiveSingleArgumentMethodEither(adapterClass, "parse", className).bind()
         val renderMethod = reflectiveSingleArgumentMethodEither(
             adapterClass,
@@ -386,7 +387,7 @@ private fun validateAdapterEither(
     definition: ConfigDefinition,
     adapter: LoadedCustomAdapter,
 ): Either<GenerationError, Unit> = when {
-    adapter.rawKind != null && adapter.rawKind != definition.kind -> {
+    adapter.rawKind != definition.kind -> {
         GenerationError.AdapterRawKindMismatch(definition, adapter.rawKind).left()
     }
 
@@ -427,19 +428,75 @@ private fun reflectiveTypeNamePropertyEither(
         ?: GenerationError.AdapterPropertyWrongType(className, propertyName, "TypeName").left()
 }
 
-private fun reflectiveRawKindProperty(adapterClass: Class<*>, instance: Any): ConfigValueKind? {
-    val rawValue = Either.catch {
-        adapterClass.getMethod(getterName("rawKind")).invoke(instance)
-    }.getOrElse {
-        Either.catch {
-            adapterClass.getDeclaredField("rawKind").apply { isAccessible = true }.get(instance)
-        }.getOrNull()
-    } ?: return null
+private fun reflectiveRawKindPropertyEither(
+    adapterClass: Class<*>,
+    instance: Any,
+    className: String,
+): Either<GenerationError, ConfigValueKind> {
+    val rawValue = when (val result = reflectiveRawKindValueEither(adapterClass, instance, className)) {
+        is Either.Left -> return result
+        is Either.Right -> result.value
+    }
 
     return when (rawValue) {
-        is ConfigValueKind -> rawValue
-        is String -> Either.catch { ConfigValueKind.valueOf(rawValue) }.getOrNull()
-        else -> null
+        is ConfigValueKind -> rawValue.right()
+
+        is String -> when (val parsedKind = Either.catch { ConfigValueKind.valueOf(rawValue) }) {
+            is Either.Left -> GenerationError.InvalidAdapterRawKind(
+                className = className,
+                rawKind = rawValue,
+                cause = parsedKind.value,
+            ).left()
+
+            is Either.Right -> parsedKind.value.right()
+        }
+
+        else -> GenerationError.AdapterPropertyWrongType(
+            className = className,
+            propertyName = "rawKind",
+            expectedType = "ConfigValueKind or a valid ConfigValueKind name",
+        ).left()
+    }
+}
+
+private fun reflectiveRawKindValueEither(
+    adapterClass: Class<*>,
+    instance: Any,
+    className: String,
+): Either<GenerationError, Any?> = when (val getter = Either.catch { adapterClass.getMethod(getterName("rawKind")) }) {
+    is Either.Left -> when (val cause = getter.value) {
+        is NoSuchMethodException -> reflectiveRawKindFieldValueEither(adapterClass, instance, className)
+        else -> GenerationError.AdapterPropertyReadFailure(className, "rawKind", cause).left()
+    }
+
+    is Either.Right -> when (val value = Either.catch { getter.value.invoke(instance) }) {
+        is Either.Left -> GenerationError.AdapterPropertyReadFailure(
+            className = className,
+            propertyName = "rawKind",
+            cause = (value.value as? InvocationTargetException)?.targetException ?: value.value,
+        ).left()
+
+        is Either.Right -> value.value.right()
+    }
+}
+
+private fun reflectiveRawKindFieldValueEither(
+    adapterClass: Class<*>,
+    instance: Any,
+    className: String,
+): Either<GenerationError, Any?> = when (val field = Either.catch { adapterClass.getDeclaredField("rawKind") }) {
+    is Either.Left -> when (val cause = field.value) {
+        is NoSuchFieldException -> GenerationError.MissingAdapterProperty(className, "rawKind", cause).left()
+        else -> GenerationError.AdapterPropertyReadFailure(className, "rawKind", cause).left()
+    }
+
+    is Either.Right -> when (
+        val value = Either.catch {
+            field.value.apply { isAccessible = true }.get(instance)
+        }
+    ) {
+        is Either.Left -> GenerationError.AdapterPropertyReadFailure(className, "rawKind", value.value).left()
+        is Either.Right -> value.value.right()
     }
 }
 

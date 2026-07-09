@@ -117,6 +117,75 @@ class GenerateKayanConfigTaskTest {
     }
 
     @Test
+    fun generateRendersValuesThroughReflectiveAdapterWithEnumRawKind() {
+        val generatedSource = generateWithReflectiveAdapter(ReflectiveEnumRawKindAdapter::class.java.name)
+
+        assertTrue(generatedSource.contains("public val ENVIRONMENT: String = \"PROD\""))
+    }
+
+    @Test
+    fun generateRendersValuesThroughReflectiveAdapterWithStringRawKind() {
+        val generatedSource = generateWithReflectiveAdapter(ReflectiveStringRawKindAdapter::class.java.name)
+
+        assertTrue(generatedSource.contains("public val ENVIRONMENT: String = \"PROD\""))
+    }
+
+    @Test
+    fun generateRendersValuesThroughReflectiveAdapterWithFieldOnlyRawKind() {
+        val generatedSource = generateWithReflectiveAdapter(ReflectiveFieldOnlyRawKindAdapter::class.java.name)
+
+        assertTrue(generatedSource.contains("public val ENVIRONMENT: String = \"PROD\""))
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithoutRawKind() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveMissingRawKindAdapter::class.java.name)
+
+        assertMessageContains(error, "must expose a 'rawKind' property or getter")
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithNullRawKind() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveNullRawKindAdapter::class.java.name)
+
+        assertMessageContains(error, "must expose 'rawKind' as a ConfigValueKind or a valid ConfigValueKind name")
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithWrongRawKindType() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveWrongTypeRawKindAdapter::class.java.name)
+
+        assertMessageContains(error, "must expose 'rawKind' as a ConfigValueKind or a valid ConfigValueKind name")
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithInvalidRawKindName() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveInvalidRawKindAdapter::class.java.name)
+
+        assertMessageContains(error, "exposes rawKind 'TEXT', which is not a valid ConfigValueKind")
+        assertTrue(error.cause is IllegalArgumentException)
+    }
+
+    @Test
+    fun generateDoesNotBypassThrowingReflectiveRawKindGetter() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveThrowingRawKindGetterAdapter::class.java.name)
+
+        assertMessageContains(error, "Failed to read 'rawKind'", "rawKind getter failed")
+        assertTrue(error.cause is IllegalStateException)
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterRawKindMismatch() {
+        val error = generateWithReflectiveAdapterFails(ReflectiveMismatchedRawKindAdapter::class.java.name)
+
+        assertMessageContains(
+            error,
+            "declares raw kind 'BOOLEAN'",
+            "schema expects 'STRING'",
+        )
+    }
+
+    @Test
     fun generateRejectsCustomAdapterRawKindMismatch() {
         val projectDir = createTempDirectory(prefix = "kayan-generate-task-test").toFile()
         val task = configuredGenerateTask(
@@ -172,6 +241,41 @@ class GenerateKayanConfigTaskTest {
         }.get()
     }
 
+    private fun generateWithReflectiveAdapter(adapterClassName: String): String {
+        val projectDir = createTempDirectory(prefix = "kayan-reflective-adapter-test").toFile()
+        configuredReflectiveAdapterTask(projectDir, adapterClassName).generate()
+
+        return File(projectDir, "build/generated/kayan/kotlin/sample/config/KayanConfig.kt").readText()
+    }
+
+    private fun generateWithReflectiveAdapterFails(adapterClassName: String): GradleException {
+        val projectDir = createTempDirectory(prefix = "kayan-reflective-adapter-test").toFile()
+        val task = configuredReflectiveAdapterTask(projectDir, adapterClassName)
+
+        return assertFailsWith {
+            task.generate()
+        }
+    }
+
+    private fun configuredReflectiveAdapterTask(projectDir: File, adapterClassName: String): GenerateKayanConfigTask =
+        configuredGenerateTask(
+            projectDir = projectDir,
+            baseConfig = """
+                {
+                  "environment": "prod",
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schemaEntries = listOf(
+                bundleIdEntry(),
+                environmentEntry(adapterClassName = adapterClassName),
+            ),
+        )
+
     private fun bundleIdEntry(): KayanSchemaEntrySpec = KayanSchemaEntrySpec(
         jsonKey = "bundle_id",
         propertyName = "BUNDLE_ID",
@@ -206,4 +310,56 @@ internal object BooleanRawKindAdapter : BuildTimeConfigAdapter<String> {
     override fun parse(rawValue: Any): String = rawValue.toString()
 
     override fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal abstract class ReflectiveTaskAdapter {
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString().uppercase()
+
+    public fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal object ReflectiveEnumRawKindAdapter : ReflectiveTaskAdapter() {
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+}
+
+internal object ReflectiveStringRawKindAdapter : ReflectiveTaskAdapter() {
+    @Suppress("MayBeConstant")
+    public val rawKind: String = "STRING"
+}
+
+internal object ReflectiveFieldOnlyRawKindAdapter : ReflectiveTaskAdapter() {
+    @JvmField
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+}
+
+internal object ReflectiveMissingRawKindAdapter : ReflectiveTaskAdapter()
+
+internal object ReflectiveNullRawKindAdapter : ReflectiveTaskAdapter() {
+    public val rawKind: ConfigValueKind? = null
+}
+
+internal object ReflectiveWrongTypeRawKindAdapter : ReflectiveTaskAdapter() {
+    @Suppress("MayBeConstant")
+    public val rawKind: Int = 1
+}
+
+internal object ReflectiveInvalidRawKindAdapter : ReflectiveTaskAdapter() {
+    @Suppress("MayBeConstant")
+    public val rawKind: String = "TEXT"
+}
+
+internal object ReflectiveThrowingRawKindGetterAdapter : ReflectiveTaskAdapter() {
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+        get() = if (field == ConfigValueKind.STRING) {
+            error("rawKind getter failed")
+        } else {
+            field
+        }
+}
+
+internal object ReflectiveMismatchedRawKindAdapter : ReflectiveTaskAdapter() {
+    @Suppress("MayBeConstant")
+    public val rawKind: String = "BOOLEAN"
 }

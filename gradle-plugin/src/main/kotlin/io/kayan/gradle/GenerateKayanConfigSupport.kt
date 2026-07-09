@@ -39,7 +39,7 @@ internal data class GenerationInputs(
 )
 
 internal data class LoadedCustomAdapter(
-    val rawKind: ConfigValueKind?,
+    val rawKind: ConfigValueKind,
     val kotlinType: TypeName,
     val parse: (ConfigDefinition, Any) -> Either<GenerationError, Any>,
     val renderKotlin: (ConfigDefinition, Any) -> Either<GenerationError, String>,
@@ -63,7 +63,7 @@ internal fun loadedTypedAdapter(adapter: BuildTimeConfigAdapter<Any>): LoadedCus
 internal fun loadedReflectiveAdapter(
     className: String,
     instance: Any,
-    rawKind: ConfigValueKind?,
+    rawKind: ConfigValueKind,
     kotlinType: TypeName,
     parseMethod: Method,
     renderMethod: Method,
