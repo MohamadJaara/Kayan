@@ -105,19 +105,17 @@ public class KayanConfigPlugin : Plugin<Project> {
     ) {
         project.pluginManager.withPlugin(KOTLIN_MULTIPLATFORM_PLUGIN_ID) {
             val kotlinExtension = project.extensions.getByType(KotlinProjectExtension::class.java)
+            val availableSourceSetNames = project.objects.listProperty(String::class.java)
+            kotlinExtension.sourceSets.configureEach { sourceSet ->
+                availableSourceSetNames.add(sourceSet.name)
+            }
             extension.whenTargetSourceSetMappingAdded { mapping ->
                 val generation = targetSourceGeneration(mapping)
                 val targetTask = generationTaskRegistrar.registerTargetGenerateTask(generation)
 
                 targetTask.configure { task ->
-                    task.doFirst {
-                        validateConfiguredSourceSetsEither(
-                            availableSourceSets = kotlinExtension.sourceSets
-                                .map { sourceSet -> sourceSet.name }
-                                .toSet(),
-                            configuredGenerations = listOf(generation),
-                        ).getOrThrowGradle()
-                    }
+                    task.configuredKotlinSourceSetName.set(generation.sourceSetName)
+                    task.availableKotlinSourceSetNames.set(availableSourceSetNames)
                 }
 
                 kotlinExtension.sourceSets.matching { sourceSet ->

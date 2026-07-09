@@ -831,6 +831,50 @@ class KayanConfigPluginFunctionalTest {
     }
 
     @Test
+    fun reusesConfigurationCacheForTargetSourceGeneration() {
+        val projectDir = createProject(
+            buildScript = buildScript(
+                kayanBlock = """
+                    packageName.set("sample.config")
+                    flavor.set("prod")
+                    targets("jvm")
+                """.trimIndent(),
+            ),
+            baseJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  },
+                  "targets": {
+                    "jvm": {
+                      "bundle_id": "com.example.jvm"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            commonSource = "package sample",
+        )
+
+        val firstRun = gradleRunner(
+            projectDir,
+            "generateKayanJvmMainConfig",
+            "--configuration-cache",
+        ).build()
+        val secondRun = gradleRunner(
+            projectDir,
+            "generateKayanJvmMainConfig",
+            "--configuration-cache",
+        ).build()
+
+        assertEquals(TaskOutcome.SUCCESS, firstRun.task(":generateKayanJvmMainConfig")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, secondRun.task(":generateKayanJvmMainConfig")?.outcome)
+        assertTrue(firstRun.output.contains("Configuration cache entry stored."))
+        assertTrue(secondRun.output.contains("Configuration cache entry reused."))
+    }
+
+    @Test
     fun failsOnTypeMismatches() {
         val projectDir = createProject(
             buildScript = buildScript(

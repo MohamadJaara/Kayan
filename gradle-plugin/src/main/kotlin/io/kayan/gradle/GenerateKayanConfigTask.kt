@@ -56,6 +56,14 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     @get:Input
     public abstract val declarationMode: Property<KayanDeclarationMode>
 
+    @get:Optional
+    @get:Input
+    public abstract val configuredKotlinSourceSetName: Property<String>
+
+    @get:Optional
+    @get:Input
+    public abstract val availableKotlinSourceSetNames: ListProperty<String>
+
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
     public abstract val baseConfigFile: RegularFileProperty
@@ -83,6 +91,7 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     @TaskAction
     public fun generate() {
         requireKotlinPlugin()
+        requireConfiguredKotlinSourceSet()
         generateEither().getOrElse { throw it.toGradleException() }
     }
 
@@ -90,6 +99,20 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
         if (!kotlinPluginApplied.get()) {
             throw PluginConfigurationError.MissingKotlinPlugin.toGradleException()
         }
+    }
+
+    private fun requireConfiguredKotlinSourceSet() {
+        val sourceSetName = configuredKotlinSourceSetName.orNull ?: return
+        validateConfiguredSourceSetsEither(
+            availableSourceSets = availableKotlinSourceSetNames.orNull.orEmpty().toSet(),
+            configuredGenerations = listOf(
+                TargetSourceGeneration(
+                    sourceSetName = sourceSetName,
+                    targetName = target.orNull.orEmpty(),
+                    taskName = name,
+                ),
+            ),
+        ).getOrElse { throw it.toGradleException() }
     }
 
     private fun generateEither(): Either<KayanGradleError, Unit> = either {
