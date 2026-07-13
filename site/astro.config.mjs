@@ -13,7 +13,7 @@ export default defineConfig({
 		starlight({
 			title: 'Kayan',
 			logo: {
-				src: './src/assets/kayan-icon.png',
+				src: './src/assets/kayan-logo-transparent.png',
 				alt: 'Kayan',
 			},
 			favicon: '/favicon.png',
