@@ -22,6 +22,7 @@ import io.kayan.parserFor
 import io.kayan.resolveConfigFormatEither
 import org.gradle.api.GradleException
 import java.io.File
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 
 internal data class GenerationInputs(
@@ -333,7 +334,7 @@ internal fun invokeAdapterMethodEither(
             GenerationError.AdapterMethodInvocationFailure(
                 className = className,
                 methodName = methodName,
-                cause = result.value,
+                cause = (result.value as? InvocationTargetException)?.targetException ?: result.value,
             ),
         )
 

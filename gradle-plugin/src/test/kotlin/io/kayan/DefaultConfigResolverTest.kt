@@ -676,6 +676,84 @@ class DefaultConfigResolverTest {
     }
 
     @Test
+    fun rejectsWrongTopLevelShapesForEveryConfigValueKind() {
+        data class InvalidValue(
+            val definition: ConfigDefinition,
+            val rawJson: String,
+            val expectedType: String,
+            val actualType: String,
+        )
+
+        listOf(
+            InvalidValue(brandName, "true", "string", "boolean"),
+            InvalidValue(searchEnabled, "\"true\"", "boolean", "string"),
+            InvalidValue(maxWorkspaceCount, "1.5", "int", "double"),
+            InvalidValue(maxCacheBytes, "\"42\"", "long", "string"),
+            InvalidValue(rolloutRatio, "\"0.5\"", "double", "string"),
+            InvalidValue(supportLabels, "[]", "object mapping strings to strings", "array"),
+            InvalidValue(supportLinks, "{}", "list of strings", "object"),
+            InvalidValue(
+                regionalSupportLinks,
+                "[]",
+                "object mapping strings to lists of strings",
+                "array",
+            ),
+            InvalidValue(releaseStage, "false", "string", "boolean"),
+            InvalidValue(supportEmail, "false", "string or null", "boolean"),
+        ).forEach { invalidValue ->
+            val error = assertFailsWith<ConfigValidationException> {
+                resolver.parse(
+                    configJson = """
+                        {
+                          "${invalidValue.definition.jsonKey}": ${invalidValue.rawJson},
+                          "flavors": {}
+                        }
+                    """.trimIndent(),
+                    schema = ConfigSchema(listOf(invalidValue.definition)),
+                    sourceName = "invalid-kind.json",
+                )
+            }
+
+            assertMessageContains(
+                error,
+                "path '$.${invalidValue.definition.jsonKey}'",
+                "expected ${invalidValue.expectedType}",
+                "found ${invalidValue.actualType}",
+            )
+        }
+    }
+
+    @Test
+    fun promotesIntegerNodesForLongAndDoubleDefinitions() {
+        val longFromInt = ConfigDefinition("long_from_int", "LONG_FROM_INT", ConfigValueKind.LONG)
+        val longFromLong = ConfigDefinition("long_from_long", "LONG_FROM_LONG", ConfigValueKind.LONG)
+        val doubleFromInt = ConfigDefinition("double_from_int", "DOUBLE_FROM_INT", ConfigValueKind.DOUBLE)
+        val doubleFromLong = ConfigDefinition("double_from_long", "DOUBLE_FROM_LONG", ConfigValueKind.DOUBLE)
+        val doubleFromDouble = ConfigDefinition("double_from_double", "DOUBLE_FROM_DOUBLE", ConfigValueKind.DOUBLE)
+        val parsed = resolver.parse(
+            configJson = """
+                {
+                  "long_from_int": 42,
+                  "long_from_long": 9223372036854775807,
+                  "double_from_int": 7,
+                  "double_from_long": 2147483648,
+                  "double_from_double": 0.5,
+                  "flavors": {}
+                }
+            """.trimIndent(),
+            schema = ConfigSchema(
+                listOf(longFromInt, longFromLong, doubleFromInt, doubleFromLong, doubleFromDouble),
+            ),
+        )
+
+        assertEquals(ConfigValue.LongValue(42), parsed.defaults[longFromInt])
+        assertEquals(ConfigValue.LongValue(Long.MAX_VALUE), parsed.defaults[longFromLong])
+        assertEquals(ConfigValue.DoubleValue(7.0), parsed.defaults[doubleFromInt])
+        assertEquals(ConfigValue.DoubleValue(2147483648.0), parsed.defaults[doubleFromLong])
+        assertEquals(ConfigValue.DoubleValue(0.5), parsed.defaults[doubleFromDouble])
+    }
+
+    @Test
     fun subsetValidationModeStillValidatesDeclaredTargetSpecificKeys() {
         val error = assertFailsWith<ConfigValidationException> {
             resolver.resolve(

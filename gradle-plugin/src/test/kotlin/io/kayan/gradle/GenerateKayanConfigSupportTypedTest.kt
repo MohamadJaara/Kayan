@@ -142,6 +142,21 @@ class GenerateKayanConfigSupportTypedTest {
         }
     }
 
+    @Test
+    fun readFileEitherReturnsTypedFailureForDirectoryInput() {
+        val directory = createTempDirectory(prefix = "kayan-directory-input").toFile()
+
+        when (val result = readFileEither(directory)) {
+            is Either.Left -> {
+                val error = assertIs<GenerationError.FileReadFailure>(result.value)
+                assertEquals(directory.path, error.path)
+                assertIs<java.io.FileNotFoundException>(error.cause)
+            }
+
+            is Either.Right -> fail("Expected reading a directory as config to fail.")
+        }
+    }
+
     private fun bundleIdEntry(): KayanSchemaEntrySpec = KayanSchemaEntrySpec(
         jsonKey = bundleId.jsonKey,
         propertyName = bundleId.propertyName,

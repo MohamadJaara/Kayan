@@ -5,12 +5,112 @@ import io.kayan.ConfigValueKind
 import io.kayan.SchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class KayanSchemaEntrySpecTypedTest {
+    @Test
+    fun deserializeEitherReturnsStructuredInvalidJsonError() {
+        when (val result = KayanSchemaEntrySpec.deserializeEither("{", 3)) {
+            is Either.Left -> {
+                val error = assertIs<SchemaError.InvalidSerializedJson>(result.value)
+                assertEquals(3, error.entryIndex)
+                assertTrue(error.detail.orEmpty().isNotBlank())
+            }
+
+            is Either.Right -> fail("Expected an invalid serialized JSON error.")
+        }
+    }
+
+    @Test
+    fun deserializeEitherReturnsStructuredInvalidKindError() {
+        val serialized = serializedEntry().replace("\"STRING\"", "\"URI\"")
+
+        when (val result = KayanSchemaEntrySpec.deserializeEither(serialized, 2)) {
+            is Either.Left -> {
+                val error = assertIs<SchemaError.InvalidEnumKind>(result.value)
+                assertEquals(2, error.entryIndex)
+                assertEquals("URI", error.rawValue)
+            }
+
+            is Either.Right -> fail("Expected an invalid schema kind error.")
+        }
+    }
+
+    @Test
+    fun deserializeEitherReportsEveryMissingRequiredField() {
+        listOf("kind", "jsonKey", "propertyName", "required", "nullable").forEach { missingField ->
+            val serialized = serializedEntry(excludedField = missingField)
+
+            when (val result = KayanSchemaEntrySpec.deserializeEither(serialized, 4)) {
+                is Either.Left -> {
+                    val error = assertIs<SchemaError.MissingRequiredField>(result.value)
+                    assertEquals(4, error.entryIndex)
+                    assertEquals(missingField, error.fieldName)
+                }
+
+                is Either.Right -> fail("Expected missing schema field '$missingField'.")
+            }
+        }
+    }
+
+    @Test
+    fun deserializeEitherRejectsNonPrimitiveRequiredFields() {
+        val serialized = serializedEntry().replace("\"required\":false", "\"required\":{}")
+
+        when (val result = KayanSchemaEntrySpec.deserializeEither(serialized, 0)) {
+            is Either.Left -> {
+                val error = assertIs<SchemaError.MissingRequiredField>(result.value)
+                assertEquals("required", error.fieldName)
+            }
+
+            is Either.Right -> fail("Expected invalid required field encoding.")
+        }
+    }
+
+    @Test
+    fun throwingSchemaEntryHelpersPreserveValidationMessages() {
+        val deserializeError = assertFailsWith<IllegalStateException> {
+            KayanSchemaEntrySpec.deserialize("[]")
+        }
+        val schemaError = assertFailsWith<IllegalStateException> {
+            KayanSchemaEntrySpec.toSchema(emptyList())
+        }
+
+        assertTrue(deserializeError.message.orEmpty().contains("Invalid serialized Kayan schema entry"))
+        assertTrue(schemaError.message.orEmpty().contains("Config schema must contain at least one definition"))
+    }
+
+    @Test
+    fun toSchemaEitherRejectsBlankPropertyNameAndMissingEnumType() {
+        val blankPropertyName = KayanSchemaEntrySpec(
+            jsonKey = "bundle_id",
+            propertyName = "   ",
+            kind = ConfigValueKind.STRING,
+            required = false,
+            nullable = false,
+        ).serialize()
+        val missingEnumType = KayanSchemaEntrySpec(
+            jsonKey = "release_stage",
+            propertyName = "RELEASE_STAGE",
+            kind = ConfigValueKind.ENUM,
+            required = false,
+            nullable = false,
+        ).serialize()
+
+        when (val result = KayanSchemaEntrySpec.toSchemaEither(listOf(blankPropertyName, missingEnumType))) {
+            is Either.Left -> {
+                assertTrue(result.value.any { it is SchemaError.BlankPropertyName })
+                assertTrue(result.value.any { it is SchemaError.MissingEnumType })
+            }
+
+            is Either.Right -> fail("Expected blank property and missing enum type errors.")
+        }
+    }
+
     @Test
     fun deserializeDefaultsPreventOverrideToFalseWhenFieldIsMissing() {
         val spec = KayanSchemaEntrySpec.deserialize(
@@ -184,5 +284,20 @@ class KayanSchemaEntrySpecTypedTest {
 
             is Either.Right -> fail("Expected reserved jsonKey schema validation error.")
         }
+    }
+
+    private fun serializedEntry(excludedField: String? = null): String {
+        val fields = linkedMapOf(
+            "jsonKey" to "\"bundle_id\"",
+            "propertyName" to "\"BUNDLE_ID\"",
+            "kind" to "\"STRING\"",
+            "required" to "false",
+            "nullable" to "false",
+        )
+
+        return fields
+            .filterKeys { it != excludedField }
+            .entries
+            .joinToString(prefix = "{", postfix = "}") { (key, value) -> "\"$key\":$value" }
     }
 }

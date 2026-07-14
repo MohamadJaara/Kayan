@@ -138,6 +138,20 @@ class GenerateKayanConfigTaskTest {
     }
 
     @Test
+    fun generateInstantiatesReflectiveAdapterWithPublicConstructor() {
+        val generatedSource = generateWithReflectiveAdapter(ReflectiveConstructibleAdapter::class.java.name)
+
+        assertTrue(generatedSource.contains("public val ENVIRONMENT: String = \"PROD\""))
+    }
+
+    @Test
+    fun generateRendersValuesThroughReflectiveAdapterWithFieldOnlyKotlinType() {
+        val generatedSource = generateWithReflectiveAdapter(ReflectiveFieldOnlyKotlinTypeAdapter::class.java.name)
+
+        assertTrue(generatedSource.contains("public val ENVIRONMENT: String = \"PROD\""))
+    }
+
+    @Test
     fun generateRejectsReflectiveAdapterWithoutRawKind() {
         val error = generateWithReflectiveAdapterFails(ReflectiveMissingRawKindAdapter::class.java.name)
 
@@ -231,6 +245,42 @@ class GenerateKayanConfigTaskTest {
         assertMessageContains(
             error,
             "Custom adapter '$className' must define a 'parse' method that accepts exactly one argument",
+        )
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithNonStringRenderedValue() {
+        val className = ReflectiveNonStringRenderAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(
+            error,
+            "Failed to render key 'environment' with custom adapter '$className'",
+            "must return a String from renderKotlin",
+        )
+    }
+
+    @Test
+    fun generateWrapsReflectiveAdapterParseFailures() {
+        val className = ReflectiveThrowingParseAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(
+            error,
+            "Failed to parse key 'environment' with custom adapter '$className'",
+            "parse failed for prod",
+        )
+    }
+
+    @Test
+    fun generateWrapsReflectiveAdapterRenderFailures() {
+        val className = ReflectiveThrowingRenderAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(
+            error,
+            "Failed to render key 'environment' with custom adapter '$className'",
+            "render failed for PROD",
         )
     }
 
@@ -383,6 +433,20 @@ internal object ReflectiveFieldOnlyRawKindAdapter : ReflectiveTaskAdapter() {
     public val rawKind: ConfigValueKind = ConfigValueKind.STRING
 }
 
+internal class ReflectiveConstructibleAdapter : ReflectiveTaskAdapter() {
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+}
+
+internal object ReflectiveFieldOnlyKotlinTypeAdapter {
+    @JvmField
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString().uppercase()
+
+    public fun renderKotlin(value: String): String = "\"$value\""
+}
+
 internal object ReflectiveMissingRawKindAdapter : ReflectiveTaskAdapter()
 
 internal object ReflectiveNullRawKindAdapter : ReflectiveTaskAdapter() {
@@ -438,4 +502,31 @@ internal object ReflectiveMissingParseMethodAdapter {
     public val rawKind: ConfigValueKind = ConfigValueKind.STRING
 
     public fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal object ReflectiveNonStringRenderAdapter {
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString().uppercase()
+
+    public fun renderKotlin(value: String): Int = value.length
+}
+
+internal object ReflectiveThrowingParseAdapter {
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = error("parse failed for $rawValue")
+
+    public fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal object ReflectiveThrowingRenderAdapter {
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString().uppercase()
+
+    public fun renderKotlin(value: String): String = error("render failed for $value")
 }

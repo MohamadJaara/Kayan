@@ -365,6 +365,103 @@ class KayanExtensionTest {
     }
 
     @Test
+    fun targetsDslStoresAllRemainingConvenienceMappings() {
+        val extension = createExtension()
+
+        extension.targets {
+            android()
+            js()
+            wasmJs()
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "androidMain", targetName = "android"),
+                KayanTargetSourceSetMapping(sourceSetName = "jsMain", targetName = "js"),
+                KayanTargetSourceSetMapping(sourceSetName = "wasmJsMain", targetName = "wasmJs"),
+            ),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsActionAddsConfiguredMapping() {
+        val extension = createExtension()
+
+        extension.targetSourceSets(
+            Action { targets ->
+                targets.sourceSet(
+                    Action { spec ->
+                        spec.sourceSetName.set("nativeMain")
+                        spec.targetName.set("native")
+                    },
+                )
+            },
+        )
+
+        assertEquals(
+            listOf(KayanTargetSourceSetMapping(sourceSetName = "nativeMain", targetName = "native")),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsIgnoreExactDuplicateMappings() {
+        val extension = createExtension()
+
+        extension.targets {
+            sourceSet("jvmMain", "jvm")
+            sourceSet("jvmMain", "jvm")
+        }
+
+        assertEquals(
+            listOf(KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm")),
+            extension.targetSourceSetMappings(),
+        )
+    }
+
+    @Test
+    fun targetSourceSetsRejectConflictingMappings() {
+        val extension = createExtension()
+
+        val error = assertFailsWith<GradleException> {
+            extension.targets {
+                sourceSet("jvmMain", "jvm")
+                sourceSet("jvmMain", "desktop")
+            }
+        }
+
+        assertMessageContains(
+            error,
+            "Kayan target source generation maps source set 'jvmMain' more than once",
+            "'jvm'",
+            "'desktop'",
+        )
+    }
+
+    @Test
+    fun targetSourceSetListenersReceiveExistingAndNewMappings() {
+        val extension = createExtension()
+        extension.targets {
+            ios()
+        }
+        val observedMappings = mutableListOf<KayanTargetSourceSetMapping>()
+
+        extension.whenTargetSourceSetMappingAdded(observedMappings::add)
+        extension.targets {
+            jvm()
+        }
+
+        assertEquals(
+            listOf(
+                KayanTargetSourceSetMapping(sourceSetName = "iosMain", targetName = "ios"),
+                KayanTargetSourceSetMapping(sourceSetName = "jvmMain", targetName = "jvm"),
+            ),
+            observedMappings,
+        )
+    }
+
+    @Test
     fun pluginDefaultsValidationModeToSubset() {
         val project = ProjectBuilder.builder().build()
         project.plugins.apply(KayanConfigPlugin::class.java)
