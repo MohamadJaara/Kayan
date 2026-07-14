@@ -165,6 +165,99 @@ class DefaultConfigResolverTypedErrorsTest {
     }
 
     @Test
+    fun resolveEitherReturnsStructuredUnknownRootCustomTargetError() {
+        val result = resolver.resolveEither(
+            defaultConfigJson = """
+                {
+                  "targets": {
+                    "ios": {
+                      "bundle_id": "com.example.ios"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+            customConfigJson = """
+                {
+                  "targets": {
+                    "android": {
+                      "bundle_id": "com.example.android"
+                    }
+                  },
+                  "flavors": {}
+                }
+            """.trimIndent(),
+            defaultConfigSourceName = "base.json",
+            customConfigSourceName = "custom.json",
+        )
+
+        when (result) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.UnknownTargetInCustomConfig>(result.value)
+                assertEquals("android", error.customTarget)
+                assertEquals("$.targets.android", error.customContext.path)
+                assertEquals("custom.json", error.customContext.sourceName)
+                assertEquals("base.json", error.defaultConfigSourceName)
+            }
+
+            is Either.Right -> fail("Expected an unknown custom target error.")
+        }
+    }
+
+    @Test
+    fun resolveEitherReturnsStructuredUnknownFlavorCustomTargetError() {
+        val result = resolver.resolveEither(
+            defaultConfigJson = """
+                {
+                  "targets": {
+                    "ios": {
+                      "bundle_id": "com.example.ios"
+                    }
+                  },
+                  "flavors": {
+                    "prod": {
+                      "bundle_id": "com.example.prod"
+                    }
+                  }
+                }
+            """.trimIndent(),
+            schema = schema,
+            customConfigJson = """
+                {
+                  "flavors": {
+                    "prod": {
+                      "targets": {
+                        "android": {
+                          "bundle_id": "com.example.android"
+                        }
+                      }
+                    }
+                  }
+                }
+            """.trimIndent(),
+            defaultConfigSourceName = "base.json",
+            customConfigSourceName = "custom.json",
+        )
+
+        when (result) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.UnknownTargetInCustomConfig>(result.value)
+                assertEquals("android", error.customTarget)
+                assertEquals("$.flavors.prod.targets.android", error.customContext.path)
+                assertEquals("custom.json", error.customContext.sourceName)
+                assertEquals("base.json", error.defaultConfigSourceName)
+            }
+
+            is Either.Right -> fail("Expected an unknown custom target error.")
+        }
+    }
+
+    @Test
     fun resolveEitherReturnsStructuredPreventedCustomOverrideError() {
         val protectedSchema = ConfigSchema(
             listOf(
@@ -246,6 +339,36 @@ class DefaultConfigResolverTypedErrorsTest {
                 assertEquals("object", error.expectedType)
                 assertEquals("array", error.actualType)
                 assertEquals("$.targets.ios", error.context.path)
+            }
+
+            is Either.Right -> fail("Expected a typed config error.")
+        }
+    }
+
+    @Test
+    fun parseEitherReturnsStructuredInvalidTargetsObjectError() {
+        when (
+            val result = resolver.parseEither(
+                configJson = """
+                    {
+                      "targets": [],
+                      "flavors": {
+                        "prod": {
+                          "bundle_id": "com.example.prod"
+                        }
+                      }
+                    }
+                """.trimIndent(),
+                schema = schema,
+                sourceName = "default.json",
+            )
+        ) {
+            is Either.Left -> {
+                val error = assertIs<ConfigError.InvalidType>(result.value)
+                assertEquals("value for key 'targets'", error.subject)
+                assertEquals("object", error.expectedType)
+                assertEquals("array", error.actualType)
+                assertEquals("$.targets", error.context.path)
             }
 
             is Either.Right -> fail("Expected a typed config error.")

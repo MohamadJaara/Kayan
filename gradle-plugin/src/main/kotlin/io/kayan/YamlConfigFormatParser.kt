@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.MappingNode
 import org.yaml.snakeyaml.nodes.Node
+import org.yaml.snakeyaml.nodes.NodeTuple
 import org.yaml.snakeyaml.nodes.ScalarNode
 import org.yaml.snakeyaml.nodes.SequenceNode
 import org.yaml.snakeyaml.nodes.Tag
@@ -63,18 +64,28 @@ internal class YamlConfigFormatParser : ConfigFormatParser {
         else -> throw YAMLException("Unsupported YAML node type '${node.nodeId}'.")
     }
 
-    private fun toObjectNode(node: MappingNode): ConfigNode.ObjectNode = ConfigNode.ObjectNode(
-        node.value.associate { entry ->
-            if (entry.keyNode.tag == Tag.MERGE) {
-                throw YAMLException("YAML merge keys are not supported.")
+    private fun toObjectNode(node: MappingNode): ConfigNode.ObjectNode {
+        val entries = linkedMapOf<String, ConfigNode>()
+        node.value.forEach { entry ->
+            val key = mappingKey(entry)
+            if (key in entries) {
+                throw YAMLException("Duplicate YAML mapping key '$key' is not supported.")
             }
 
-            val key = (toConfigNode(entry.keyNode) as? ConfigNode.StringNode)?.value
-                ?: throw YAMLException("YAML mappings must use string keys.")
+            entries[key] = toConfigNode(entry.valueNode)
+        }
 
-            key to toConfigNode(entry.valueNode)
-        },
-    )
+        return ConfigNode.ObjectNode(entries)
+    }
+
+    private fun mappingKey(entry: NodeTuple): String {
+        if (entry.keyNode.tag == Tag.MERGE) {
+            throw YAMLException("YAML merge keys are not supported.")
+        }
+
+        return (toConfigNode(entry.keyNode) as? ConfigNode.StringNode)?.value
+            ?: throw YAMLException("YAML mappings must use string keys.")
+    }
 
     private fun toScalarNode(node: ScalarNode): ConfigNode = when (node.tag) {
         Tag.STR -> ConfigNode.StringNode(node.value)

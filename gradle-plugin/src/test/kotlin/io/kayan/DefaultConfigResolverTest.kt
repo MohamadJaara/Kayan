@@ -36,6 +36,7 @@ class DefaultConfigResolverTest {
         kind = ConfigValueKind.STRING,
         preventOverride = true,
     )
+
     private val onboardingEnabled = ConfigDefinition(
         jsonKey = "onboarding_enabled",
         propertyName = "ONBOARDING_ENABLED",
@@ -113,6 +114,32 @@ class DefaultConfigResolverTest {
             supportEmail,
         ),
     )
+
+    @Test
+    fun explicitYamlResolverParsesYamlThroughPublicApi() {
+        val resolved = DefaultConfigResolver(ConfigFormat.YAML).parse(
+            configJson = """
+                flavors:
+                  prod:
+                    bundle_id: com.example.prod
+            """.trimIndent(),
+            schema = ConfigSchema(listOf(bundleId)),
+        )
+
+        assertEquals(
+            ConfigValue.StringValue("com.example.prod"),
+            resolved.flavors.getValue("prod").values.getValue(bundleId),
+        )
+    }
+
+    @Test
+    fun explicitAutoResolverIsRejectedWithoutSourceName() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            DefaultConfigResolver(ConfigFormat.AUTO)
+        }
+
+        assertTrue(error.message.orEmpty().contains("requires JSON or YAML"))
+    }
 
     @Test
     fun normalizesTopLevelValuesIntoFlavorResolution() {

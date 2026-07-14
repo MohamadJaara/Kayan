@@ -186,6 +186,55 @@ class GenerateKayanConfigTaskTest {
     }
 
     @Test
+    fun generateRejectsMissingCustomAdapterClass() {
+        val error = generateWithReflectiveAdapterFails("sample.missing.Adapter")
+
+        assertMessageContains(
+            error,
+            "Failed to load custom adapter class 'sample.missing.Adapter'",
+            "Ensure it is on the Gradle build classpath",
+        )
+    }
+
+    @Test
+    fun generateRejectsAdapterWithoutPublicZeroArgumentConstructor() {
+        val className = ReflectiveNonInstantiableAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(
+            error,
+            "Custom adapter class '$className' must be a Kotlin object or expose a public zero-argument constructor",
+        )
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithoutKotlinType() {
+        val className = ReflectiveMissingKotlinTypeAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(error, "Custom adapter '$className' must expose a 'kotlinType' property or getter")
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithWrongKotlinType() {
+        val className = ReflectiveWrongKotlinTypeAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(error, "Custom adapter '$className' must expose 'kotlinType' as a TypeName")
+    }
+
+    @Test
+    fun generateRejectsReflectiveAdapterWithoutParseMethod() {
+        val className = ReflectiveMissingParseMethodAdapter::class.java.name
+        val error = generateWithReflectiveAdapterFails(className)
+
+        assertMessageContains(
+            error,
+            "Custom adapter '$className' must define a 'parse' method that accepts exactly one argument",
+        )
+    }
+
+    @Test
     fun generateRejectsCustomAdapterRawKindMismatch() {
         val projectDir = createTempDirectory(prefix = "kayan-generate-task-test").toFile()
         val task = configuredGenerateTask(
@@ -362,4 +411,31 @@ internal object ReflectiveThrowingRawKindGetterAdapter : ReflectiveTaskAdapter()
 internal object ReflectiveMismatchedRawKindAdapter : ReflectiveTaskAdapter() {
     @Suppress("MayBeConstant")
     public val rawKind: String = "BOOLEAN"
+}
+
+internal class ReflectiveNonInstantiableAdapter private constructor(@Suppress("unused") private val value: String)
+
+internal object ReflectiveMissingKotlinTypeAdapter {
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString()
+
+    public fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal object ReflectiveWrongKotlinTypeAdapter {
+    @Suppress("MayBeConstant")
+    public val kotlinType: String = "String"
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun parse(rawValue: Any): String = rawValue.toString()
+
+    public fun renderKotlin(value: String): String = "\"$value\""
+}
+
+internal object ReflectiveMissingParseMethodAdapter {
+    public val kotlinType: com.squareup.kotlinpoet.TypeName = STRING
+    public val rawKind: ConfigValueKind = ConfigValueKind.STRING
+
+    public fun renderKotlin(value: String): String = "\"$value\""
 }

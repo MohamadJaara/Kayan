@@ -580,10 +580,8 @@ class KayanAndroidConfigPluginFunctionalTest {
         }
     }
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withPluginClasspath()
-        .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
+        kayanGradleRunner(projectDir, *tasks)
 
     private fun assertGeneratedFileExists(file: File) {
         assertTrue(file.isFile, "Expected generated source at '${file.path}'.")

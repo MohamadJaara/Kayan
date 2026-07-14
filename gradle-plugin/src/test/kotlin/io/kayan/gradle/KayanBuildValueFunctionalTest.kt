@@ -524,10 +524,8 @@ class KayanBuildValueFunctionalTest {
         $buildLogic
     """.trimIndent()
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withPluginClasspath()
-        .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
+        kayanGradleRunner(projectDir, *tasks)
 
     private fun configurationCacheContains(projectDir: File, needle: String): Boolean {
         val cacheDir = File(projectDir, ".gradle/configuration-cache")

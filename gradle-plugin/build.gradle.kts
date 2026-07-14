@@ -3,6 +3,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
 
@@ -52,6 +53,24 @@ tasks.named<Test>("test") {
         "kayan.plugin.publicationDirectory",
         layout.buildDirectory.dir("publications/pluginMaven").get().asFile.absolutePath,
     )
+    val jacoco = extensions.getByType(JacocoTaskExtension::class.java)
+    val agentPath = jacoco.asJvmArg
+        .substringAfter("-javaagent:")
+        .substringBefore('=')
+    val executionDataFile = requireNotNull(jacoco.destinationFile)
+    val testKitAgentArgument = buildString {
+        append("-javaagent:")
+        append(agentPath)
+        append("=destfile=")
+        append(executionDataFile.absolutePath)
+        append(",append=true")
+        append(",includes=io.kayan.*")
+        append(",dumponexit=false")
+        append(",output=file")
+        append(",jmx=true")
+    }
+
+    systemProperty("kayan.testkit.jacoco.agentArgument", testKitAgentArgument)
 }
 
 dokka {

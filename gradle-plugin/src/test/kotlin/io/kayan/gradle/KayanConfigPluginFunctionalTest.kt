@@ -1426,10 +1426,8 @@ class KayanConfigPluginFunctionalTest {
         }
     """.trimIndent()
 
-    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner = GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withPluginClasspath()
-        .withArguments(*tasks, "--stacktrace")
+    private fun gradleRunner(projectDir: File, vararg tasks: String): GradleRunner =
+        kayanGradleRunner(projectDir, *tasks)
 
     private fun createMultiProject(
         rootBuildScript: String,

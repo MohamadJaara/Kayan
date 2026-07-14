@@ -199,6 +199,81 @@ class ResolvedValueSerializationTest {
     }
 
     @Test
+    fun malformedSerializedJsonThrowsTypedGradleError() {
+        val error = assertFailsWith<GradleException> {
+            deserializeResolvedBuildValue("brand_name", "{")
+        }
+
+        assertMessageContains(error, "Invalid serialized resolved values JSON.")
+    }
+
+    @Test
+    fun missingResolvedValueFieldsThrowTypedGradleErrors() {
+        assertDecodingFails(
+            serialized = """{"value":"Example"}""",
+            "Resolved value 'brand_name' is missing required field 'kind'.",
+        )
+        assertDecodingFails(
+            serialized = """{"kind":"STRING"}""",
+            "Resolved value 'brand_name' is missing required field 'value'.",
+        )
+    }
+
+    @Test
+    fun unsupportedResolvedValueKindThrowsTypedGradleError() {
+        assertDecodingFails(
+            serialized = """{"kind":"URI","value":"https://example.com"}""",
+            "Resolved value 'brand_name' has unsupported kind 'URI'.",
+        )
+    }
+
+    @Test
+    fun invalidPrimitiveEncodingsThrowTypedGradleErrors() {
+        listOf(
+            Triple("STRING", "7", "string"),
+            Triple("BOOLEAN", "0", "boolean"),
+            Triple("INT", "1.5", "int"),
+            Triple("LONG", "1.5", "long"),
+            Triple("DOUBLE", "true", "double"),
+        ).forEach { (kind, value, expectedShape) ->
+            assertDecodingFails(
+                serialized = """{"kind":"$kind","value":$value}""",
+                "Resolved value 'brand_name' for kind '$kind' must be encoded as $expectedShape.",
+            )
+        }
+    }
+
+    @Test
+    fun invalidCollectionShapesThrowTypedGradleErrors() {
+        listOf(
+            Triple("STRING_LIST", "{}", "array of strings"),
+            Triple("STRING_MAP", "[]", "object of strings"),
+            Triple("STRING_LIST_MAP", "[]", "object of string arrays"),
+        ).forEach { (kind, value, expectedShape) ->
+            assertDecodingFails(
+                serialized = """{"kind":"$kind","value":$value}""",
+                "Resolved value 'brand_name' for kind '$kind' must be encoded as $expectedShape.",
+            )
+        }
+    }
+
+    @Test
+    fun invalidMapEntriesThrowTypedGradleErrors() {
+        assertDecodingFails(
+            serialized = """{"kind":"STRING_MAP","value":{"region":7}}""",
+            "Resolved value 'brand_name' entry 'region' must be a string.",
+        )
+        assertDecodingFails(
+            serialized = """{"kind":"STRING_LIST_MAP","value":{"region":"stable"}}""",
+            "Resolved value 'brand_name' entry 'region' must be an array of strings.",
+        )
+        assertDecodingFails(
+            serialized = """{"kind":"STRING_LIST_MAP","value":{"region":["stable",7]}}""",
+            "Resolved value 'brand_name' entry 'region' at index 1 must be a string.",
+        )
+    }
+
+    @Test
     fun invalidEntryEncodingThrowsTypedGradleError() {
         val error = assertFailsWith<GradleException> {
             deserializeResolvedBuildValue(
@@ -225,5 +300,13 @@ class ResolvedValueSerializationTest {
         )
 
         assertEquals(expected, actual)
+    }
+
+    private fun assertDecodingFails(serialized: String, vararg messageFragments: String) {
+        val error = assertFailsWith<GradleException> {
+            deserializeResolvedBuildValue("brand_name", serialized)
+        }
+
+        assertMessageContains(error, *messageFragments)
     }
 }
