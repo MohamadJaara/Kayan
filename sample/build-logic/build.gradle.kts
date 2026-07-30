@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation(libs.kotlinpoet)
+    testImplementation(libs.kotlin.test)
 }
 
 dependencyLocking {

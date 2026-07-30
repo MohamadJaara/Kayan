@@ -1,6 +1,7 @@
 package sample.buildlogic
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.TypeName
 
 private data class SupportRegionSpec(
@@ -58,18 +59,5 @@ object SupportMatrixAdapter {
     private fun renderStringList(values: List<String>): String =
         values.joinToString(prefix = "listOf(", postfix = ")", separator = ", ") { quote(it) }
 
-    private fun quote(value: String): String = buildString {
-        append('"')
-        value.forEach { character ->
-            when (character) {
-                '\\' -> append("\\\\")
-                '"' -> append("\\\"")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> append(character)
-            }
-        }
-        append('"')
-    }
+    private fun quote(value: String): String = CodeBlock.of("%S", value).toString()
 }
