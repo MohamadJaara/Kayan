@@ -10,16 +10,17 @@ class SupportMatrixAdapterTest {
     fun renderKotlinSafelyQuotesConfigDerivedStrings() {
         val injectedExpression = "\${error(\"marker\")}"
         val links = listOf(
+            injectedExpression,
             "\$plainTemplate",
             "quote\" slash\\ newline\n carriage\r tab\t",
             "Grüße",
         )
 
         val rendered = SupportMatrixAdapter.renderKotlin(
-            SupportMatrixAdapter.parse(linkedMapOf(injectedExpression to links)),
+            SupportMatrixAdapter.parse(linkedMapOf("global" to links)),
         )
 
-        (listOf(injectedExpression) + links).forEach { value ->
+        (listOf("global") + links).forEach { value ->
             assertContains(rendered, CodeBlock.of("%S", value).toString())
         }
         assertContains(rendered, "{'${'$'}'}")
