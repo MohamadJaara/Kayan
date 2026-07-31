@@ -3,6 +3,7 @@ package io.kayan.gradle
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import java.io.File
+import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -541,6 +542,39 @@ class KayanConfigPluginFunctionalTest {
         assertFalse(staleFile.exists())
         assertTrue(generatedFile.exists())
         assertTrue(generatedFile.readText().contains("public object KayanConfig"))
+    }
+
+    @Test
+    fun cleansSymlinkedOutputWithoutDeletingTargetContents() {
+        val projectDir = createProject()
+        val victimDir = createTempDirectory("kayan-output-victim").toFile()
+        val victimFile = File(victimDir, "important.txt").apply { writeText("keep me") }
+        val outputDir = File(projectDir, "build/generated/kayan/kotlin")
+        outputDir.parentFile.mkdirs()
+        Files.createSymbolicLink(outputDir.toPath(), victimDir.toPath())
+
+        val result = gradleRunner(projectDir, "generateKayanConfig").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertTrue(victimFile.exists())
+        assertFalse(Files.isSymbolicLink(outputDir.toPath()))
+        assertTrue(File(outputDir, "sample/config/KayanConfig.kt").exists())
+    }
+
+    @Test
+    fun cleansNestedSymlinkWithoutDeletingTargetContents() {
+        val projectDir = createProject()
+        val victimDir = createTempDirectory("kayan-nested-victim").toFile()
+        val victimFile = File(victimDir, "important.txt").apply { writeText("keep me") }
+        val outputDir = File(projectDir, "build/generated/kayan/kotlin").apply { mkdirs() }
+        Files.createSymbolicLink(File(outputDir, "linked").toPath(), victimDir.toPath())
+
+        val result = gradleRunner(projectDir, "generateKayanConfig").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":generateKayanConfig")?.outcome)
+        assertTrue(victimFile.exists())
+        assertFalse(File(outputDir, "linked").exists())
+        assertTrue(File(outputDir, "sample/config/KayanConfig.kt").exists())
     }
 
     @Test

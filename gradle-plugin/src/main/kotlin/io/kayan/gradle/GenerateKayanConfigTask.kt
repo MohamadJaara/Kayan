@@ -32,6 +32,9 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.util.Comparator
 
 @CacheableTask
 internal abstract class GenerateKayanConfigTask : DefaultTask() {
@@ -310,21 +313,19 @@ internal abstract class GenerateKayanConfigTask : DefaultTask() {
     }
 
     private fun cleanOutputDirectoryEither(outputRoot: File): Either<GenerationError, Unit> = either {
-        if (!outputRoot.exists()) {
+        val outputPath = outputRoot.toPath()
+        if (!Files.exists(outputPath, LinkOption.NOFOLLOW_LINKS)) {
             return@either
         }
 
         val cleanupResult = Either.catch {
-            outputRoot.deleteRecursively()
+            Files.walk(outputPath).use { paths ->
+                paths.sorted(Comparator.reverseOrder()).forEach(Files::delete)
+            }
         }
         when (cleanupResult) {
             is Either.Left -> raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, cleanupResult.value))
-
-            is Either.Right -> {
-                if (!cleanupResult.value) {
-                    raise(GenerationError.DirectoryCleanupFailure(outputRoot.path, null))
-                }
-            }
+            is Either.Right -> cleanupResult.value
         }
     }
 }
