@@ -13,7 +13,8 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/gradle.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     name: Release build, publish, and create GitHub release
