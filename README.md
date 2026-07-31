@@ -216,12 +216,6 @@ Run plugin tests:
 ./gradlew :gradle-plugin:test
 ```
 
-Install the local git hooks:
-
-```bash
-pre-commit install --install-hooks
-```
-
 ## Sample app
 
 The sample app in `sample/` demonstrates local plugin consumption, generated config usage, and
