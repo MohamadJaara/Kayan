@@ -546,7 +546,7 @@ class KayanConfigPluginFunctionalTest {
 
     @Test
     fun cleansSymlinkedOutputWithoutDeletingTargetContents() {
-        val projectDir = createProject()
+        val projectDir = createProjectForOutputCleanup()
         val victimDir = createTempDirectory("kayan-output-victim").toFile()
         val victimFile = File(victimDir, "important.txt").apply { writeText("keep me") }
         val outputDir = File(projectDir, "build/generated/kayan/kotlin")
@@ -563,7 +563,7 @@ class KayanConfigPluginFunctionalTest {
 
     @Test
     fun cleansNestedSymlinkWithoutDeletingTargetContents() {
-        val projectDir = createProject()
+        val projectDir = createProjectForOutputCleanup()
         val victimDir = createTempDirectory("kayan-nested-victim").toFile()
         val victimFile = File(victimDir, "important.txt").apply { writeText("keep me") }
         val outputDir = File(projectDir, "build/generated/kayan/kotlin").apply { mkdirs() }
@@ -1399,6 +1399,25 @@ class KayanConfigPluginFunctionalTest {
         sourceFile.writeText(commonSource)
         return projectDir
     }
+
+    private fun createProjectForOutputCleanup(): File = createProject(
+        buildScript = buildScript(
+            kayanBlock = """
+                packageName.set("sample.config")
+                flavor.set("prod")
+            """.trimIndent(),
+        ),
+        baseJson = """
+            {
+              "flavors": {
+                "prod": {
+                  "bundle_id": "com.example.prod"
+                }
+              }
+            }
+        """.trimIndent(),
+        commonSource = "package sample",
+    )
 
     private fun buildScript(kayanBlock: String, schemaBlock: String = "", buildscriptBlock: String = ""): String = """
         buildscript {
