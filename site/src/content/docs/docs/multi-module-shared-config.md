@@ -1,5 +1,5 @@
 ---
-title: Multi-Module Shared Config
+title: Multi-module shared config
 description: Share one config file and root schema across modules without forcing every module to consume every key.
 ---
 
@@ -7,9 +7,9 @@ Use `kayanRoot` when several modules read one shared config file, but each modul
 only needs a subset of the schema. This keeps the file centralized while avoiding
 copy-pasted schema blocks in every subproject.
 
-The Gradle plugin defaults to `KayanValidationMode.SUBSET`, which is designed for
-this setup: each module validates the keys it declares or includes, while unrelated
-keys in the shared file are ignored by that module.
+The Gradle plugin defaults to `KayanValidationMode.SUBSET` for this setup. Each
+module validates the keys it declares or includes and ignores unrelated keys in
+the shared file.
 
 ## Root project
 
@@ -41,9 +41,8 @@ kayanRoot {
 }
 ```
 
-`kayanRoot` provides conventions for child projects. It does not replace the
-normal `kayan` block in a module, because each module still owns its generated
-package, class name, and selected schema entries.
+`kayanRoot` supplies defaults to child projects. Each module still needs a `kayan`
+block for its generated package, class name, and selected schema entries.
 
 ## Child modules
 
@@ -93,9 +92,8 @@ kayan {
 - The inherited `flavor`, config files, `configFormat`, and `validationMode` can
   still be overridden locally when a child module needs different conventions.
 
-If a module needs private keys that are not part of the shared schema, keep that
-module on a normal local `kayan { schema { ... } }` setup or promote the keys into
-`kayanRoot`.
+If a module needs private keys outside the shared schema, give it a local
+`kayan { schema { ... } }` block or add those keys to `kayanRoot`.
 
 ## When to use strict validation
 

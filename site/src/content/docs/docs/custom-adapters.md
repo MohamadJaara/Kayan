@@ -1,14 +1,14 @@
 ---
-title: Custom Adapters
+title: Custom adapters
 description: Convert raw config values into consumer-owned Kotlin types during source generation.
 ---
 
 Use a custom adapter when a config value should become a domain type instead of
 one of Kayan's built-in Kotlin shapes.
 
-Built-in schema entries are data-only. Custom adapters are build code: Kayan loads
-the adapter during source generation, calls it with the raw resolved value, and
-embeds the returned Kotlin expression in generated source.
+Built-in schema entries are data. Custom adapters are build code. During source
+generation, Kayan loads the adapter, passes it the raw resolved value, and embeds
+the returned Kotlin expression in generated source.
 
 ## Schema declaration
 
@@ -34,7 +34,7 @@ property type comes from the adapter's `kotlinType`.
 
 ## Adapter contract
 
-The recommended form is to implement `BuildTimeConfigAdapter<T>`:
+Implement `BuildTimeConfigAdapter<T>` when possible:
 
 ```kotlin
 package sample.buildlogic
@@ -86,8 +86,8 @@ data class EnvironmentSpec(val name: String)
 The rendered string must be a complete Kotlin expression that can compile in the
 generated source file.
 
-Kayan also supports reflective adapters with the same public members and methods,
-but the interface is clearer and gives better compiler help.
+Kayan also accepts reflective adapters with the same public members and methods.
+The interface is safer because the compiler checks the contract.
 
 ## Buildscript classpath
 
@@ -100,8 +100,8 @@ only needs to be visible to Gradle while Kayan generates source.
 
 ## Nulls and build-time access
 
-Custom adapters are not applied by `buildValue()`. Build-time access returns raw
-Gradle-friendly values such as `String`, `Boolean`, `List<String>`, or
+`buildValue()` does not apply custom adapters. It returns raw values such as
+`String`, `Boolean`, `List<String>`, or
 `Map<String, List<String>>`.
 
 Custom adapters also do not receive explicit config `null` values. If a custom

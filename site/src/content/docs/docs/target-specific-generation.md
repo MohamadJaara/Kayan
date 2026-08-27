@@ -1,16 +1,15 @@
 ---
-title: Target-Specific Generation
+title: Target-specific generation
 description: Generate one shared Kayan API with target-specific values for KMP and Android builds.
 ---
 
 Use target-specific generation when shared Kotlin code should import one config API,
 but each platform needs different resolved values.
 
-Without target-specific generation, Kayan writes one generated `object` into the
-normal source set: `commonMain` for Kotlin Multiplatform and `main` for JVM or
-Android. When target source sets are configured for a KMP project, Kayan writes
-an `expect object` into `commonMain` and matching `actual object` declarations
-into the mapped target source sets.
+Without target-specific generation, Kayan writes one generated `object` to
+`commonMain` for Kotlin Multiplatform or `main` for JVM and Android. With KMP
+target mappings, Kayan writes an `expect object` to `commonMain` and matching
+`actual object` declarations to the mapped target source sets.
 
 ## Config shape
 
@@ -35,7 +34,7 @@ flavors:
         bundle_id: com.example.ios
 ```
 
-For the full precedence order, see [Resolution Order](../resolution-order/).
+For the full precedence order, see [Resolution order](../resolution-order/).
 
 ## Conventional KMP targets
 
@@ -105,8 +104,8 @@ val desktopBundleId =
         .asString()
 ```
 
-The second argument is the config target name, not necessarily the Kotlin source-set
-name.
+The second argument names the config target. It does not have to match the Kotlin
+source-set name.
 
 ## Android flavor source sets
 

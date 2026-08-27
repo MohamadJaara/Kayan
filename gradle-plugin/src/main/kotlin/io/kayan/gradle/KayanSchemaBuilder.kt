@@ -192,7 +192,7 @@ public class KayanSchemaBuilder internal constructor() {
         )
     }
 
-    /** Alias for [enumValue] for DSL ergonomics. */
+    /** Short name for [enumValue]. */
     public fun enum(
         jsonKey: String,
         propertyName: String,

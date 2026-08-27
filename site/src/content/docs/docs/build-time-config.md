@@ -1,11 +1,10 @@
 ---
-title: Build-Time Config Access
+title: Build-time config access
 description: Use resolved Kayan values directly in build.gradle.kts for conditional Gradle logic.
 ---
 
-Kayan can expose resolved config values during Gradle configuration, not just in generated
-Kotlin source. This lets build logic use the same validated config that shared code
-reads later.
+`buildValue()` exposes resolved config during Gradle configuration. Build logic can
+therefore read the same validated values that Kayan later writes to generated Kotlin.
 
 Use `buildValue("json_key")` when Gradle decisions need to depend on config:
 
@@ -36,11 +35,9 @@ dependencies {
 }
 ```
 
-By design, this API is meant for non-sensitive build configuration. If a value is appropriate for
-Gradle to read during configuration, it is usually fine for `buildValue()`. Secrets such as API
-keys, passwords, and tokens should stay in dedicated secret-management or environment-specific
-secure storage instead. See [Security](../security/) for the trust model behind
-`buildValue()` and custom adapters.
+Treat every value returned by `buildValue()` as visible build data. Keep API keys,
+passwords, tokens, and other secrets in dedicated secure storage. See
+[Security](../security/) for the trust model behind `buildValue()` and custom adapters.
 
 ## When to use it
 
@@ -61,7 +58,7 @@ value at compile time or runtime.
 
 ## Accessor types
 
-`buildValue("key")` returns a `KayanBuildValue` with three styles of accessors.
+`buildValue("key")` returns a `KayanBuildValue` with three accessor groups.
 
 ### Eager accessors
 
@@ -91,8 +88,8 @@ val supportEmail =
 
 ### Provider accessors
 
-These do the same type checks, but return a Gradle `Provider<T>` instead of the
-plain value. Use them for task inputs and other lazy Gradle wiring:
+Provider accessors run the same type checks and return a Gradle `Provider<T>`.
+Use them for task inputs and other lazy Gradle wiring:
 
 ```kotlin
 val brandName = kayan.buildValue("brand_name").asString()
@@ -128,8 +125,8 @@ tasks.register<PrintBrandTask>("printBrand") {
 
 ## Enum values
 
-At Gradle configuration time, enums are exposed by their normalized name rather than by
-instantiating the enum type:
+At Gradle configuration time, enum accessors return the normalized constant name.
+They do not instantiate the enum type:
 
 ```kotlin
 when (kayan.buildValue("release_stage").asEnumName()) {
@@ -152,11 +149,11 @@ val desktopBundleId =
 ```
 
 The target name is the key inside the config file's `targets` object. For KMP
-source-set mappings, see [Target-Specific Generation](../target-specific-generation/).
+source-set mappings, see [Target-specific generation](../target-specific-generation/).
 
 ## Error behavior
 
-`buildValue()` fails early with Gradle-friendly messages:
+`buildValue()` reports these errors during Gradle configuration:
 
 - unknown schema key: `"Key '<key>' is not defined in the Kayan schema"` with close-match suggestions
 - type mismatch: `"Key '<key>' is <actual kind>, cannot access as <requested type>"`
@@ -166,15 +163,15 @@ source-set mappings, see [Target-Specific Generation](../target-specific-generat
 
 - `flavor` must be configured before `buildValue()` is used
 - keys must still be declared in the Kayan `schema {}`
-- build-time access returns raw Gradle-friendly primitives and collections
+- build-time access returns primitives and collections that Gradle can serialize
 - custom adapters are not applied at configuration time
 
-That last point is intentional: Gradle build logic usually needs `Boolean`, `String`, or
-`List<String>`, not consumer-owned domain types. See [Custom Adapters](../custom-adapters/)
-for generation-time custom type conversion.
+Gradle build logic usually needs a `Boolean`, `String`, or `List<String>`, not a
+consumer-owned domain type. See [Custom adapters](../custom-adapters/) for
+generation-time custom type conversion.
 
 ## Configuration cache
 
-`buildValue()` is backed by a Gradle `ValueSource`, so file changes to the configured
-inputs invalidate resolution while configuration-cache-friendly builds can still reuse the
-requested key between runs without serializing unrelated resolved values.
+`buildValue()` uses a Gradle `ValueSource`. A change to either config input invalidates
+the resolved value. Configuration-cache entries only serialize the requested key, not
+the rest of the resolved config.

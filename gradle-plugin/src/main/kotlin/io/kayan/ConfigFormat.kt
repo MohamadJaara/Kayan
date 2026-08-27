@@ -7,9 +7,9 @@ import arrow.core.right
 /**
  * Selects how Kayan should parse the base config file and optional override file.
  *
- * In Gradle builds, [AUTO] is usually the most convenient choice because Kayan
- * can infer the parser from each file's extension. When both base and custom
- * files are present, they still need to resolve to the same concrete format.
+ * In Gradle builds, [AUTO] selects the parser from each file's extension. When
+ * both base and custom files are present, they must resolve to the same concrete
+ * format.
  */
 public enum class ConfigFormat {
     /** Reads the config source as JSON. */

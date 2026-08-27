@@ -1,5 +1,5 @@
 ---
-title: Gradle Usage
+title: Gradle usage
 description: How to configure the Kayan plugin in your build.
 ---
 
@@ -51,12 +51,11 @@ kayan {
 }
 ```
 
-Generated source is written under `build/generated/kayan/kotlin` and automatically wired
-into the appropriate source set (`commonMain` for KMP, `main` for JVM and Android).
+Kayan writes generated source under `build/generated/kayan/kotlin` and adds that
+directory to `commonMain` for KMP or `main` for JVM and Android.
 
-By design, Kayan targets non-sensitive configuration that you want available as generated Kotlin
-code. If a value should not appear in generated sources, build outputs, or normal Gradle
-configuration, keep it out of Kayan and use your platform's secret-management approach instead.
+Kayan is for non-sensitive values that may appear in generated Kotlin, build
+outputs, and Gradle configuration. Store secrets elsewhere.
 
 ## Defaults
 
@@ -82,9 +81,9 @@ files to use the same concrete format.
 
 ## Related configuration
 
-- Use [Target-Specific Generation](../target-specific-generation/) for KMP
+- Use [Target-specific generation](../target-specific-generation/) for KMP
   `expect` / `actual` generation and Android flavor-specific source sets.
-- Use [Multi-Module Shared Config](../multi-module-shared-config/) when several
+- Use [Multi-module shared config](../multi-module-shared-config/) when several
   modules share one root config file and schema.
 - Use [Validation](../validation/) to choose between subset and strict key
   validation.

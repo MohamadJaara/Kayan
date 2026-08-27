@@ -3,31 +3,28 @@ title: Security
 description: What Kayan is designed to protect, and what stays outside its threat model.
 ---
 
-Kayan validates config against the schema you declare, but it is not trying to
-solve every security problem around build tooling.
+Kayan validates config against the declared schema. It does not secure the rest
+of the build system.
 
-The short version is:
+The trust model is:
 
 - Kayan treats config files as untrusted data.
 - Kayan treats the declared schema as trusted project code.
 - Kayan treats custom adapters as trusted build code.
 
-That split is the most important part of the threat model.
-
-By default, the Gradle plugin uses `KayanValidationMode.SUBSET`: it validates
-keys declared in the local schema and ignores undeclared keys so several
-modules can read one shared config file. If one module owns the whole config
-file and undeclared keys should fail the build, opt into
+By default, the Gradle plugin uses `KayanValidationMode.SUBSET`. It validates
+keys declared in the local schema and ignores undeclared keys, which allows
+several modules to read one shared file. If one module owns the whole config
+file, use
 `KayanValidationMode.STRICT`. See [Validation](../validation/) and
-[Multi-Module Shared Config](../multi-module-shared-config/) for the tradeoff.
+[Multi-module shared config](../multi-module-shared-config/) for the tradeoff.
 
-## What Kayan is trying to protect
+## What Kayan protects
 
-Kayan is mainly trying to protect build integrity and generated-source safety.
-If a config file drifts from the declared schema, the build should fail clearly
-instead of guessing what the author meant.
+Kayan protects build integrity and generated source. If a config file no longer
+matches the schema, the build fails instead of guessing what the author meant.
 
-That means Kayan is designed to:
+Kayan does the following:
 
 - validate schema-declared keys instead of guessing what undeclared data means
 - reject unknown keys when `KayanValidationMode.STRICT` is enabled
@@ -55,13 +52,12 @@ already control code that runs in the build.
 
 Built-in schema entries are data-driven. Custom adapters are code-driven.
 
-That distinction matters. Kayan can validate adapter metadata and surface
-adapter failures with useful context, but it cannot make an untrusted adapter
-safe. A custom `BuildTimeConfigAdapter` can execute arbitrary logic and can
-render arbitrary Kotlin expressions.
+Kayan can validate adapter metadata and report adapter failures with context,
+but it cannot make an untrusted adapter safe. A custom `BuildTimeConfigAdapter`
+can execute arbitrary logic and render arbitrary Kotlin expressions.
 
 If you use adapters, review them like any other Gradle plugin or build logic.
-See [Custom Adapters](../custom-adapters/) for the adapter contract.
+See [Custom adapters](../custom-adapters/) for the adapter contract.
 
 ## `buildValue()` deserves extra care
 
@@ -69,10 +65,9 @@ See [Custom Adapters](../custom-adapters/) for the adapter contract.
 resolved values that generated Kotlin will expose later. It also means config
 can influence dependency wiring, task inputs, and other build decisions.
 
-Kayan keeps this boundary narrow by requiring schema-declared keys and checked
-accessors, but it cannot protect a project from its own design choices. If your
-build uses `buildValue()` for important decisions, config changes should be
-reviewed with the same care as code changes.
+Kayan requires schema-declared keys and checked accessors, but the build author
+still decides what those values control. Review config like code when
+`buildValue()` affects dependencies, packaging, or task wiring.
 
 ## Practical guidance
 
@@ -81,7 +76,7 @@ reviewed with the same care as code changes.
 - Use `KayanValidationMode.STRICT` when a single module owns the full config
   file and unexpected keys should fail the build.
 - Treat adapter code as trusted code.
-- Let CI run config resolution so broken or suspicious changes fail early.
+- Run config resolution in CI so broken or suspicious changes fail before merge.
 
 The full engineering threat model lives in the repository at
 [`THREAT_MODEL.md`](https://github.com/MohamadJaara/Kayan/blob/main/THREAT_MODEL.md).

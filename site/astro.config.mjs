@@ -27,31 +27,31 @@ export default defineConfig({
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [
 				{
-					label: 'Getting Started',
+					label: 'Getting started',
 					items: [
 						{ label: 'Overview', slug: 'docs/overview' },
-						{ label: 'Quick Start', slug: 'docs/quick-start' },
+						{ label: 'Quick start', slug: 'docs/quick-start' },
 					],
 				},
 				{
 					label: 'Configuration',
 					items: [
-						{ label: 'Resolution Order', slug: 'docs/resolution-order' },
-						{ label: 'Config File Shape', slug: 'docs/json-shape' },
-						{ label: 'Gradle Usage', slug: 'docs/gradle-usage' },
-						{ label: 'Target-Specific Generation', slug: 'docs/target-specific-generation' },
-						{ label: 'Build-Time Config Access', slug: 'docs/build-time-config' },
-						{ label: 'Schema Types', slug: 'docs/schema-types' },
-						{ label: 'Custom Adapters', slug: 'docs/custom-adapters' },
-						{ label: 'Schema Export', slug: 'docs/schema-export' },
+						{ label: 'Resolution order', slug: 'docs/resolution-order' },
+						{ label: 'Config file shape', slug: 'docs/json-shape' },
+						{ label: 'Gradle usage', slug: 'docs/gradle-usage' },
+						{ label: 'Target-specific generation', slug: 'docs/target-specific-generation' },
+						{ label: 'Build-time config access', slug: 'docs/build-time-config' },
+						{ label: 'Schema types', slug: 'docs/schema-types' },
+						{ label: 'Custom adapters', slug: 'docs/custom-adapters' },
+						{ label: 'Schema export', slug: 'docs/schema-export' },
 					],
 				},
 				{
 					label: 'Guides',
 					items: [
-						{ label: 'BuildConfig Migration', slug: 'docs/buildconfig-migration' },
-						{ label: 'White-Label Setup', slug: 'docs/white-label' },
-						{ label: 'Multi-Module Shared Config', slug: 'docs/multi-module-shared-config' },
+						{ label: 'BuildConfig migration', slug: 'docs/buildconfig-migration' },
+						{ label: 'White-label setup', slug: 'docs/white-label' },
+						{ label: 'Multi-module shared config', slug: 'docs/multi-module-shared-config' },
 					],
 				},
 				{
@@ -60,7 +60,7 @@ export default defineConfig({
 						{ label: 'Validation', slug: 'docs/validation' },
 						{ label: 'Security', slug: 'docs/security' },
 						{ label: 'Commands', slug: 'docs/commands' },
-						{ label: 'API Reference', link: apiReferenceLink },
+						{ label: 'API reference', link: apiReferenceLink },
 					],
 				},
 			],

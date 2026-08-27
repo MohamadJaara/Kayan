@@ -1,14 +1,14 @@
 ---
-title: White-Label Setup
+title: White-label setup
 description: Build branded apps from one repo using Kayan config overrides.
 ---
 
 Keep one shared base file in the app repo and resolve one override file per brand at
 build time, with environment-specific values inside `flavors`.
 
-The brand file does not need to live in the same repo. Another checkout, object storage
-bucket, or raw URL can provide it. The app repo stays single-source and the branded build
-is selected by a file path, not by forking.
+The brand file can come from another checkout, an object storage bucket, or a raw
+URL. Pass its local path to Gradle. You can build each brand from the same app repo
+without maintaining a fork.
 
 ## Project structure
 
@@ -69,10 +69,9 @@ Or reference a file from another local checkout:
   -PkayanFlavor=staging
 ```
 
-By the time Kayan runs, the external override has already been materialized somewhere on
-disk. Kayan only sees a file path, which keeps the plugin focused on validation, merge
-rules, and source generation.
+Download or copy the external override to disk before Kayan runs. Kayan reads the
+file path, validates the contents, applies the merge rules, and generates source.
 
 Use `preventOverride = true` on schema entries that must come only from the base
 app config and must not be replaced by a brand override. For shared config across
-several modules, see [Multi-Module Shared Config](../multi-module-shared-config/).
+several modules, see [Multi-module shared config](../multi-module-shared-config/).

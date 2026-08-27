@@ -3,7 +3,7 @@ title: Kayan
 description: Kotlin Gradle plugin for layered JSON and YAML config with a typed API. Works with Kotlin Multiplatform, JVM, and Android.
 template: splash
 hero:
-  tagline: Kayan merges base config with optional overrides and generates typed Kotlin values. Shared code reads config directly without platform-specific wiring.
+  tagline: Merge base config with optional overrides, validate it at build time, and read the generated Kotlin values from shared code.
   image:
     file: ../../assets/kayan-logo-transparent.png
   actions:
@@ -21,14 +21,14 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 ## Why Kayan
 
 <CardGrid>
-  <Card title="Shared code first" icon="rocket">
-    No more Android-only `BuildConfig`. Generated typed object readable from shared Kotlin code across every platform target.
+  <Card title="One API in shared code" icon="rocket">
+    Kayan generates a typed object in `commonMain`, or in `main` for JVM and Android. Shared code can read config without an Android-only `BuildConfig`.
   </Card>
-  <Card title="Opinionated merging" icon="puzzle">
-    One base, external brand overrides, predictable resolution. Keep the app in one repo and pull customer overrides at build time without forking.
+  <Card title="A fixed merge order" icon="puzzle">
+    Base defaults, flavor values, and optional external overrides follow one documented precedence order. A branded build only needs a config file, not a fork of the app.
   </Card>
-  <Card title="Build-time guarantees" icon="approve-check-circle">
-    Schema ownership lives with the app. Declared keys, missing values, and type mismatches are checked at build time. Use strict validation when unknown keys should fail too.
+  <Card title="A schema owned by the app" icon="approve-check-circle">
+    The consuming build declares its keys and Kotlin property names. Kayan checks missing values and type mismatches before it generates source. Strict mode rejects unknown keys too.
   </Card>
 </CardGrid>
 
@@ -43,7 +43,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
     - Compile-time feature flags and endpoints
     - Generated JSON Schema and Markdown docs
   </Card>
-  <Card title="Schema kinds" icon="seti:json">
+  <Card title="Built-in schema types" icon="seti:json">
     - `string`, `boolean`, `int`, `long`, `double`
     - `stringMap`, `stringList`, `stringListMap`
     - `enumValue` for normalized enum generation

@@ -3,9 +3,8 @@ package io.kayan
 /**
  * Controls how strictly Kayan validates config keys against the local schema.
  *
- * This is especially useful in multi-module builds where several modules read
- * the same shared config file but each module declares only the subset of keys
- * it consumes locally.
+ * In a multi-module build, several modules can read one shared config file while
+ * each module declares only the keys it consumes.
  */
 public enum class KayanValidationMode {
     /**

@@ -1,9 +1,9 @@
-# Sample App
+# Sample app
 
 This sample is a standalone Compose Multiplatform app that consumes the local Kayan plugin from the
 parent repository using `includeBuild("..")`.
 
-It demonstrates:
+The sample covers:
 
 - applying `io.github.mohamadjaara.kayan`
 - applying Compose Multiplatform with shared UI in `commonMain`
@@ -74,7 +74,7 @@ Try a different flavor:
 ../gradlew -p sample compileKotlinJvm -PkayanFlavor=dev
 ```
 
-The sample now uses `buildValue()` for two realistic build-time decisions:
+The sample uses `buildValue()` for two build-time decisions:
 
 - `bundle_id` and `brand_name` configure Compose Desktop native distribution metadata
 - `theme_name` selects which Kotlin file under `sample/themes/<name>/kotlin/` is copied into generated `commonMain` sources
@@ -86,18 +86,17 @@ The default sample setup uses `custom-overrides.json`, so `prod` resolves to:
 - `themeName=aurora`
 - generated theme source: `build/generated/theme-source/commonMain/kotlin/sample/SelectedThemePalette.kt`
 
-To exercise YAML with the smallest possible change, the sample keeps the same app and schema and
-switches to the checked-in `default.yml` plus `custom-overrides.yml` pair:
+To try the YAML parser without changing the app or schema, switch to the checked-in
+`default.yml` and `custom-overrides.yml` files:
 
 ```bash
 ../gradlew -p sample generateKayanConfig \
   -PkayanConfigFormat=YAML
 ```
 
-That still avoids maintaining a second sample app. The build script just changes which config files
-it points at based on `kayanConfigFormat`.
+The build script chooses the config pair from `kayanConfigFormat`.
 
-While `dev` resolves to:
+The `dev` flavor resolves to:
 
 - `brandName=Example App`
 - `featureSearchEnabled=true`
@@ -108,8 +107,8 @@ The generated metadata file lands at:
 
 - `build/generated/branding/brand-metadata.json`
 
-This shows the difference between using Kayan from generated app code and using the same
-resolved values to drive packaging and compiled UI selection inside Gradle configuration.
+Generated app code reads the values at runtime. The Gradle build reads the same
+values earlier to configure packaging and select the compiled theme source.
 
 Generate config for a brand file that lives outside this repo:
 
@@ -118,7 +117,7 @@ Generate config for a brand file that lives outside this repo:
   -PbrandConfigPath=/absolute/path/to/wafflewizard-brand.json
 ```
 
-Example no-fork flow with a fetch step before Gradle:
+Fetch a brand file before running Gradle:
 
 ```bash
 curl -o /tmp/wafflewizard-brand.json https://example.com/mobile-branding/wafflewizard.json
@@ -128,13 +127,12 @@ curl -o /tmp/wafflewizard-brand.json https://example.com/mobile-branding/wafflew
   -PkayanFlavor=prod
 ```
 
-How the sample is wired:
+## How the sample is wired
 
 - `-PkayanConfigFormat=JSON` uses `default.json` and `custom-overrides.json`
 - `-PkayanConfigFormat=YAML` uses `default.yml` and `custom-overrides.yml`
 - `-PbaseConfigPath` and `-PbrandConfigPath` can still override either path explicitly
-- Kayan can receive override file paths through `-PbrandConfigPath` and `-PbaseConfigPath`
-- that path can point to a file inside this repo or anywhere else on disk
+- either path can point to a file inside this repo or anywhere else on disk
 - CI or a wrapper script can fetch the file first from another repo, storage bucket, or internal service
 - the app repo stays unchanged while another system decides which brand file to inject
 

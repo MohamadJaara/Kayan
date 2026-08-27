@@ -1,5 +1,5 @@
 ---
-title: Schema Types
+title: Schema types
 description: All supported schema types in the Kayan DSL.
 ---
 
@@ -89,4 +89,4 @@ custom(
 
 The adapter converts the raw validated value into a consumer-owned type and
 renders the Kotlin expression used in generated source. See
-[Custom Adapters](../custom-adapters/) for the full contract.
+[Custom adapters](../custom-adapters/) for the full contract.

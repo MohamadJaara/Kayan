@@ -147,8 +147,8 @@ public abstract class KayanExtension {
     /**
      * Configures target-specific KMP source generation using the Kotlin DSL.
      *
-     * This is an ergonomic alias for [targetSourceSets] that keeps the DSL
-     * focused on target-oriented mappings such as `targets { ios(); jvm() }`.
+     * This alias gives target mappings a shorter DSL such as
+     * `targets { ios(); jvm() }`.
      *
      * @see targetSourceSets
      */

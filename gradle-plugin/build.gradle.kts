@@ -103,7 +103,7 @@ tasks.named("test") {
 
 tasks.register("checkPublicApiDocs") {
     group = "verification"
-    description = "Generates Dokka documentation for the published public API surface."
+    description = "Generates Dokka documentation for the published APIs."
     dependsOn(tasks.named("dokkaGeneratePublicationHtml"))
 }
 

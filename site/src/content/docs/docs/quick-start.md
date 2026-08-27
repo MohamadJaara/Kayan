@@ -1,5 +1,5 @@
 ---
-title: Quick Start
+title: Quick start
 description: Four steps to typed config with Kayan.
 ---
 
@@ -78,8 +78,8 @@ Add `mavenCentral()` to `pluginManagement.repositories` when resolving the publi
 ./gradlew generateKayanConfig
 ```
 
-Generated source lands in `build/generated/kayan/kotlin` and is wired into the appropriate
-source set automatically (`commonMain` for KMP, `main` for JVM/Android).
+Kayan writes the generated source to `build/generated/kayan/kotlin` and adds that
+directory to `commonMain` for KMP or `main` for JVM and Android.
 
 ## 4. Use generated values
 

@@ -1,5 +1,5 @@
 ---
-title: Config File Shape
+title: Config file shape
 description: Expected JSON and YAML structure for Kayan config files.
 ---
 
@@ -40,8 +40,8 @@ This page shows the JSON form of the shape. YAML uses the same structure and res
 Flavor objects accept the same keys as the top-level defaults section, plus an
 optional `targets` object with the same per-target shape.
 
-An optional override file uses the same shape and can selectively replace top-level, target,
-flavor, or flavor-target values.
+An optional override file uses the same shape. It can replace top-level defaults,
+target defaults, flavor values, and flavor-target values.
 
 ## Reserved keys
 
@@ -57,4 +57,4 @@ fail validation.
 
 Target overlays only affect generated values when Kayan is asked to resolve a
 target. For KMP `expect` / `actual` generation and target-aware `buildValue()`,
-see [Target-Specific Generation](../target-specific-generation/).
+see [Target-specific generation](../target-specific-generation/).

@@ -1,33 +1,33 @@
-# Kayan Threat Model
+# Kayan threat model
 
 This document describes the main attack vectors for Kayan and the security
-properties the plugin is trying to preserve.
+properties the plugin preserves.
 
 Kayan is a Gradle plugin that reads layered JSON or YAML config files, resolves
 them against an explicit schema, and generates Kotlin source and schema
 documentation. It is designed for non-secret application and build
 configuration, not for secret storage.
 
-## Security Goals
+## Security goals
 
-Kayan is trying to protect:
+Kayan protects:
 
-- Build integrity: malformed or hostile config should not silently change the
+- Build integrity. Malformed or hostile config must not silently change the
   meaning of the build without passing through schema validation and explicit
   flavor resolution.
-- Generated source safety: config values for built-in types should not be able
+- Generated source safety. Config values for built-in types must not be able
   to inject arbitrary Kotlin code into generated sources.
-- Predictable resolution: defaults, flavor overrides, and optional custom
+- Predictable resolution. Defaults, flavor overrides, and optional custom
   overrides should resolve deterministically and fail loudly on invalid input.
-- Developer visibility: missing required values, invalid types, unknown
+- Useful diagnostics. Missing required values, invalid types, unknown
   flavors, and unknown keys in strict validation mode should surface as
-  actionable build failures.
-- Schema fidelity: exported JSON Schema and Markdown should reflect the declared
+  build failures that identify the source and key path.
+- Schema fidelity. Exported JSON Schema and Markdown should reflect the declared
   Kayan schema rather than unvalidated user input.
 
-## Non-Goals
+## Non-goals
 
-Kayan is not trying to protect:
+Kayan does not protect:
 
 - Secrets at rest or in generated code. API keys, passwords, tokens, and other
   sensitive values should not be stored in Kayan config files.
@@ -37,16 +37,15 @@ Kayan is not trying to protect:
 - A hostile custom adapter implementation. Custom adapters are trusted build
   code and can execute arbitrary logic when loaded.
 
-## Assets Worth Protecting
+## Assets worth protecting
 
 - The correctness of generated Kotlin config objects.
 - The integrity of Gradle configuration decisions made through `buildValue()`.
 - The contents of schema export artifacts.
 - CI reliability and the ability to fail fast on invalid config.
-- Developer confidence that config changes only affect declared keys and known
-  flavors.
+- The rule that config changes only affect declared keys and known flavors.
 
-## Trust Boundaries
+## Trust boundaries
 
 The main trust boundaries are:
 
@@ -60,7 +59,7 @@ The main trust boundaries are:
   locations. These are derived artifacts and should not become a path for
   silent corruption or confusing behavior.
 
-## Attack Surfaces And Threats
+## Attack surfaces and threats
 
 ### 1. Malicious or malformed config files
 
@@ -72,7 +71,7 @@ Attackers or accidental changes may try to:
 - add custom-only flavors that do not exist in the base config
 - craft invalid JSON or YAML to trigger confusing parsing behavior
 
-What Kayan is trying to do:
+Kayan responds by:
 
 - reject unknown keys in `KayanValidationMode.STRICT`
 - ignore undeclared keys in the Gradle plugin's default
@@ -84,10 +83,10 @@ What Kayan is trying to do:
 
 ### 2. Kotlin source injection through config values
 
-Because Kayan generates Kotlin source, a natural threat is trying to smuggle
-code through config values.
+Because Kayan generates Kotlin source, a config value may try to smuggle code
+into the output.
 
-For built-in scalar and collection types, Kayan tries to protect against this by:
+For built-in scalar and collection types, Kayan prevents injection by:
 
 - rendering literals from parsed values instead of concatenating raw file text
 - escaping string content before writing Kotlin source
@@ -102,10 +101,10 @@ Residual risk:
 ### 3. Abuse of build-time config access
 
 `buildValue()` lets Gradle logic consume resolved Kayan values during the build.
-That increases the blast radius of config changes because config can influence
-dependency wiring, task inputs, and other build decisions.
+Config changes can therefore affect dependency wiring, task inputs, and other
+build decisions.
 
-What Kayan is trying to do:
+Kayan responds by:
 
 - restrict lookups to keys declared in the schema
 - preserve the resolved value kind and validate requested accessor types
@@ -128,7 +127,7 @@ Threats:
 - adapter parse or render methods throw, hang, or consume excessive resources
 - adapter output does not match the declared raw kind or Kotlin type
 
-What Kayan is trying to do:
+Kayan responds by:
 
 - validate adapter metadata such as raw kind and Kotlin type shape
 - wrap adapter failures with context so they fail as explicit build errors
@@ -144,7 +143,7 @@ Residual risk:
 Large files, deeply nested structures, or intentionally expensive adapter logic
 can slow or break builds.
 
-Current posture:
+Current behavior:
 
 - Kayan fails on parse, schema, and resolution errors instead of attempting to
   continue with partial state
@@ -161,7 +160,7 @@ Even without an external attacker, teams can misuse Kayan by placing secrets in
 files that are checked into source control, exported into schema docs, exposed
 through generated Kotlin, or surfaced to Gradle build logic.
 
-What Kayan is trying to do:
+Kayan responds by:
 
 - set expectations in documentation that Kayan is for non-sensitive config
 
@@ -169,7 +168,7 @@ Residual risk:
 
 - the plugin does not detect or redact secrets automatically
 
-## Current Mitigations In The Codebase
+## Current mitigations in the codebase
 
 - Schema-driven parsing rejects unknown keys in strict validation mode and
   rejects unexpected value kinds for declared keys.
@@ -183,11 +182,11 @@ Residual risk:
 - Errors preserve context such as file path, key, flavor, and adapter class to
   make failures diagnosable.
 
-## Operational Guidance
+## Operational guidance
 
-To keep Kayan in a safe operating envelope:
+Projects using Kayan should:
 
-- do not store secrets in Kayan-managed config
+- keep secrets out of Kayan-managed config
 - use `KayanValidationMode.STRICT` when a module owns the whole config file and
   undeclared keys should fail the build
 - treat custom adapters as trusted code with the same review bar as any Gradle
@@ -199,9 +198,9 @@ To keep Kayan in a safe operating envelope:
 - run CI on config and schema changes so invalid or suspicious changes fail
   early
 
-## Out Of Scope But Important
+## Outside Kayan's scope
 
-These threats matter, but they must be handled outside Kayan itself:
+Kayan cannot address:
 
 - repository compromise
 - malicious third-party Gradle plugins or dependencies
@@ -211,8 +210,8 @@ These threats matter, but they must be handled outside Kayan itself:
 
 ## Summary
 
-Kayan's main security posture is: treat config as untrusted data, treat schema
-and adapters as trusted build code, generate built-in Kotlin literals safely,
-and fail closed when config does not match the declared model. The largest
-remaining risks are misuse for secrets, trusted-code compromise in build logic
-or adapters, and build-time denial of service from expensive inputs.
+Kayan treats config as untrusted data and treats the schema and adapters as
+trusted build code. It renders built-in Kotlin literals from parsed values and
+fails when config does not match the declared model. The main remaining risks
+are secret exposure, compromised build logic or adapters, and denial of service
+from large inputs or expensive adapters.

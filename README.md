@@ -15,9 +15,9 @@
   <a href="https://mohamadjaara.github.io/Kayan/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Docs"></a>
 </p>
 
-Kayan is a Kotlin Gradle plugin that generates a typed Kotlin object from layered JSON and YAML config files.
-It works with Kotlin Multiplatform, Kotlin/JVM, and Kotlin Android projects, so shared code can read
-config directly without platform-specific `BuildConfig` wiring.
+Kayan is a Kotlin Gradle plugin that turns layered JSON or YAML config into a typed
+Kotlin object. Kotlin Multiplatform, JVM, and Android projects can read that object
+without platform-specific `BuildConfig` wiring.
 
 The name comes from the Arabic word `كيان` (`Kayan`), which means "entity", "structure", or "being".
 JSON is valid YAML, but Kayan still makes the format choice explicit so your builds do not develop a split personality.
@@ -110,8 +110,8 @@ val searchEnabled = SampleConfig.FEATURE_SEARCH_ENABLED
 val brandName = SampleConfig.BRAND_NAME
 ```
 
-Generated source lands in `build/generated/kayan/kotlin` and is wired into the appropriate source
-set automatically.
+Kayan writes generated source to `build/generated/kayan/kotlin` and adds the
+directory to the appropriate source set.
 
 ## Target-specific overrides
 
@@ -154,10 +154,9 @@ kayan {
 }
 ```
 
-By design, Kayan is a fit for non-sensitive build and app configuration. Values declared in the
-schema can be generated into source or consumed by Gradle during the build, so secrets such as API
-keys, passwords, and tokens should stay in dedicated secret-management or environment-specific
-secure storage.
+Kayan is for non-sensitive build and app configuration. Schema values may appear
+in generated source or Gradle configuration, so keep API keys, passwords, tokens,
+and other secrets in dedicated secure storage.
 
 > `buildValue()` is experimental.
 > Opt in with `@file:OptIn(io.kayan.gradle.ExperimentalKayanGradleApi::class)` when using
@@ -182,25 +181,25 @@ dependencies {
 }
 ```
 
-This is useful for conditional dependencies, task inputs, and other configuration-time
-decisions. Provider variants such as `asStringProvider()` are also available for lazy task
-wiring.
+Use this for conditional dependencies, task inputs, and other configuration-time
+decisions. Provider variants such as `asStringProvider()` defer resolution for
+lazy task wiring.
 
 ## Learn more
 
 - [Overview](https://mohamadjaara.github.io/Kayan/docs/overview/)
-- [Quick Start](https://mohamadjaara.github.io/Kayan/docs/quick-start/)
-- [Gradle Usage](https://mohamadjaara.github.io/Kayan/docs/gradle-usage/)
-- [Build-Time Config Access](https://mohamadjaara.github.io/Kayan/docs/build-time-config/)
-- [Resolution Order](https://mohamadjaara.github.io/Kayan/docs/resolution-order/)
-- [JSON Shape](https://mohamadjaara.github.io/Kayan/docs/json-shape/)
-- [Schema Types](https://mohamadjaara.github.io/Kayan/docs/schema-types/)
+- [Quick start](https://mohamadjaara.github.io/Kayan/docs/quick-start/)
+- [Gradle usage](https://mohamadjaara.github.io/Kayan/docs/gradle-usage/)
+- [Build-time config access](https://mohamadjaara.github.io/Kayan/docs/build-time-config/)
+- [Resolution order](https://mohamadjaara.github.io/Kayan/docs/resolution-order/)
+- [Config file shape](https://mohamadjaara.github.io/Kayan/docs/json-shape/)
+- [Schema types](https://mohamadjaara.github.io/Kayan/docs/schema-types/)
 - [Validation](https://mohamadjaara.github.io/Kayan/docs/validation/)
-- [Schema Export](https://mohamadjaara.github.io/Kayan/docs/schema-export/)
-- [BuildConfig Migration](https://mohamadjaara.github.io/Kayan/docs/buildconfig-migration/)
-- [White-label Configs](https://mohamadjaara.github.io/Kayan/docs/white-label/)
+- [Schema export](https://mohamadjaara.github.io/Kayan/docs/schema-export/)
+- [BuildConfig migration](https://mohamadjaara.github.io/Kayan/docs/buildconfig-migration/)
+- [White-label setup](https://mohamadjaara.github.io/Kayan/docs/white-label/)
 - [Commands](https://mohamadjaara.github.io/Kayan/docs/commands/)
-- [Threat Model](THREAT_MODEL.md)
+- [Threat model](THREAT_MODEL.md)
 
 ## Development
 
@@ -218,8 +217,8 @@ Run plugin tests:
 
 ## Sample app
 
-The sample app in `sample/` demonstrates local plugin consumption, generated config usage, and
-Compose Multiplatform targets for desktop, web, and Apple platforms.
+The app in `sample/` consumes the local plugin and uses its generated config on
+desktop, web, and Apple targets.
 
 Run the desktop sample:
 
