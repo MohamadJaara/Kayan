@@ -8,7 +8,7 @@ vanniktechMavenPublish = "0.37.0"
 detekt = "2.0.0-alpha.6"
 dokka = "2.2.0"
 arrow = "2.2.3"
-snakeyaml = "2.6"
+snakeyaml = "2.7"
 kotlinpoet = "2.3.0"
 
 [libraries]
