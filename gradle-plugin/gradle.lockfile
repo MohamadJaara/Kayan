@@ -151,5 +151,5 @@ org.ow2.asm:asm-tree:9.9=jacocoAnt
 org.ow2.asm:asm:9.9=jacocoAnt
 org.slf4j:slf4j-api:2.0.18=detektPlugins
 org.snakeyaml:snakeyaml-engine:2.10=detekt
-org.yaml:snakeyaml:2.6=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.yaml:snakeyaml:2.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 empty=annotationProcessor,dokkaHtmlModuleOutputDirectoriesResolver~internal,dokkaHtmlPublicationPluginResolver~internal,implementationDependenciesMetadata,kotlinCompilerPluginClasspath,kotlinNativeCompilerPluginClasspath,kotlinScriptDefExtensions,testAnnotationProcessor,testImplementationDependenciesMetadata,testKotlinScriptDefExtensions
