@@ -44,5 +44,5 @@ org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0=classpath
 org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0=classpath
 org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0=classpath
 org.jetbrains:annotations:13.0=classpath
-org.yaml:snakeyaml:2.6=classpath
+org.yaml:snakeyaml:2.7=classpath
 empty=
