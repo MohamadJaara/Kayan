@@ -1,6 +1,7 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
+# To regenerate this file, run: ./gradlew :gradle-plugin:dependencies --write-locks
 com.fasterxml.jackson.core:jackson-annotations:2.15.3=dokkaHtmlGeneratorRuntimeResolver~internal
 com.fasterxml.jackson.core:jackson-core:2.15.3=dokkaHtmlGeneratorRuntimeResolver~internal
 com.fasterxml.jackson.core:jackson-databind:2.15.3=dokkaHtmlGeneratorRuntimeResolver~internal
@@ -60,10 +61,10 @@ org.checkerframework:checker-qual:3.19.0=detekt
 org.codehaus.woodstox:stax2-api:4.2.1=dokkaHtmlGeneratorRuntimeResolver~internal
 org.freemarker:freemarker:2.3.32=dokkaHtmlGeneratorRuntimeResolver~internal
 org.hamcrest:hamcrest-core:1.3=testCompileClasspath,testRuntimeClasspath
-org.jacoco:org.jacoco.agent:0.8.14=jacocoAgent,jacocoAnt
-org.jacoco:org.jacoco.ant:0.8.14=jacocoAnt
-org.jacoco:org.jacoco.core:0.8.14=jacocoAnt
-org.jacoco:org.jacoco.report:0.8.14=jacocoAnt
+org.jacoco:org.jacoco.agent:0.8.15=jacocoAgent,jacocoAnt
+org.jacoco:org.jacoco.ant:0.8.15=jacocoAnt
+org.jacoco:org.jacoco.core:0.8.15=jacocoAnt
+org.jacoco:org.jacoco.report:0.8.15=jacocoAnt
 org.jcommander:jcommander:1.85=detekt
 org.jetbrains.dokka:analysis-kotlin-symbols:2.2.0=dokkaHtmlGeneratorRuntimeResolver~internal
 org.jetbrains.dokka:analysis-markdown:2.2.0=dokkaHtmlGeneratorRuntimeResolver~internal
@@ -149,9 +150,9 @@ org.jetbrains:annotations:23.0.0=detekt,dokkaHtmlGeneratorRuntimeResolver~intern
 org.jetbrains:markdown-jvm:0.7.3=dokkaHtmlGeneratorRuntimeResolver~internal
 org.jetbrains:markdown:0.7.3=dokkaHtmlGeneratorRuntimeResolver~internal
 org.jsoup:jsoup:1.16.1=dokkaHtmlGeneratorRuntimeResolver~internal
-org.ow2.asm:asm-commons:9.9=jacocoAnt
-org.ow2.asm:asm-tree:9.9=jacocoAnt
-org.ow2.asm:asm:9.9=jacocoAnt
+org.ow2.asm:asm-commons:9.10.1=jacocoAnt
+org.ow2.asm:asm-tree:9.10.1=jacocoAnt
+org.ow2.asm:asm:9.10.1=jacocoAnt
 org.slf4j:slf4j-api:2.0.18=detektPlugins
 org.snakeyaml:snakeyaml-engine:2.10=detekt
 org.yaml:snakeyaml:2.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
