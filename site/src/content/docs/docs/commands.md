@@ -25,6 +25,9 @@ description: Useful Gradle commands for working with Kayan.
 # Generate config source
 ./gradlew -p sample generateKayanConfig
 
+# Validate every flavor and configured target without generating artifacts
+./gradlew -p sample validateKayanConfig
+
 # Export JSON Schema + Markdown
 ./gradlew -p sample exportKayanSchema
 
@@ -32,6 +35,10 @@ description: Useful Gradle commands for working with Kayan.
 ./gradlew -p sample explainKayanConfig
 ./gradlew -p sample explainKayanConfig --flavor prod --target ios
 ```
+
+In consuming projects, run `./gradlew validateKayanConfig` for standalone CI
+validation, or `./gradlew check` when a check lifecycle is available. See
+[Validation](../validation/) for target coverage and required-value behavior.
 
 See [Explaining configuration](../explaining-configuration/) for selectors and output details.
 

@@ -36,6 +36,7 @@ public class KayanConfigPlugin : Plugin<Project> {
             )
         }
 
+        registerKayanConfigValidation(project, extension)
         project.registerExplainKayanConfigTask(extension)
 
         val exportSchemaTask = project.tasks.register("exportKayanSchema", ExportKayanSchemaTask::class.java) { task ->
