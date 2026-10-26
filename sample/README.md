@@ -23,7 +23,7 @@ Configured targets:
 
 - JVM desktop
 - Web (`wasmJs`)
-- iOS (`iosX64`, `iosArm64`, `iosSimulatorArm64`)
+- iOS (`iosArm64`, `iosSimulatorArm64`)
 - macOS (`macosArm64`)
 
 Run the desktop app:
