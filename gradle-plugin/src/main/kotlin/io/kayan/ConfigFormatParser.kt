@@ -33,7 +33,9 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
         either {
             validateJsonSyntaxEither(configText, sourceName).bind()
             val root = try {
-                json.parseToJsonElement(configText)
+                val parsedRoot = json.parseToJsonElement(configText)
+                JsonDuplicateKeyValidator(configText, json, sourceName).validateEither().bind()
+                parsedRoot
             } catch (error: SerializationException) {
                 raise(
                     ConfigError.InvalidConfigSyntax(

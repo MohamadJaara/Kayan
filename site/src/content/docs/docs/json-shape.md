@@ -17,6 +17,12 @@ or `1.`, and non-JSON literals such as `NaN` are rejected with a syntax error
 naming the source file. JSON escapes, Unicode, and exponent notation such as
 `1.5e-2` are supported; numeric values must be finite.
 
+JSON and YAML reject duplicate keys within any object, including defaults,
+flavors, targets, and map values, in both `SUBSET` and `STRICT` validation modes.
+JSON compares decoded keys, so `"value"` and `"\u0076alue"` count as the same key.
+Errors identify the source file and, for JSON duplicates, the key's path.
+The same key can appear in separate objects or files; normal layering still applies.
+
 ```json
 {
   "targets": {
