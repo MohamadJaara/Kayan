@@ -92,7 +92,10 @@ class ValidateKayanConfigFunctionalTest {
             """.trimIndent(),
             configuration = """
                 flavor.set("prod")
-                targets("jvm", "ios")
+                targetSourceSets {
+                    sourceSet("jvmMain", " jvm ")
+                    sourceSet("iosMain", " ios ")
+                }
             """.trimIndent(),
             plugins = """
                 kotlin("multiplatform") version "2.3.21"

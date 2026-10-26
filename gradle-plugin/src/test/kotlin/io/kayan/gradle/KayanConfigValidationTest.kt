@@ -40,6 +40,27 @@ class KayanConfigValidationTest {
     }
 
     @Test
+    fun normalizesConfiguredTargetsLikeSourceGeneration() {
+        val result = validate(
+            base = """{"targets":{"jvm":{"api_url":"jvm"}},"flavors":{"prod":{}}}""",
+            targets = listOf(" jvm ", "jvm"),
+        )
+
+        val summary = assertIs<Either.Right<String>>(result).value
+        assertTrue(summary.contains("1 flavor(s) for targets 'jvm'"))
+    }
+
+    @Test
+    fun preservesInferredTargetNamesFromConfigurationFiles() {
+        val result = validate(
+            base = """{"targets":{" jvm ":{"api_url":"jvm"}},"flavors":{"prod":{}}}""",
+        )
+
+        val summary = assertIs<Either.Right<String>>(result).value
+        assertTrue(summary.contains("1 flavor(s) for targets ' jvm '"))
+    }
+
+    @Test
     fun infersTargetsFromDefaultsAndAllBaseFlavorsWithoutMappings() {
         val result = validate(
             base = """

@@ -28,7 +28,7 @@ internal fun validateConfigEither(
         configuredFormat = configFormat,
     ).mapLeft(GenerationError::ConfigResolutionFailure).bind()
     val resolver = DefaultConfigResolver(parserFor(format))
-    val targets = configuredTargetNames.distinct().ifEmpty {
+    val targets = configuredTargetNames.map(String::trim).distinct().ifEmpty {
         val base = resolver.parseEither(baseText, schema, baseFile.absolutePath, validationMode)
             .mapLeft(GenerationError::ConfigResolutionFailure).bind()
         buildSet {
