@@ -35,8 +35,13 @@ risk or touched surface warrants it.
 ./gradlew :gradle-plugin:validatePlugins
 ./gradlew :gradle-plugin:checkPublicApiDocs --no-configuration-cache
 ./gradlew detekt
+./gradlew :detekt-rules:test
 ./gradlew build
 ```
+
+Run `npm --prefix site run lint` to check the site source and documentation with
+ESLint, and `npm --prefix site run test:lint` to test its custom rules. Site
+builds run ESLint automatically. Kotlin em dash checks are native detekt rules.
 
 Sample app tasks run as a separate Gradle build under `sample/`:
 
@@ -58,6 +63,7 @@ gradle-plugin/src/test/resources/golden/        Golden output snapshots
 sample/                                         Standalone sample app and build logic
 site/                                           Static docs and landing page
 config/detekt/detekt.yml                       Detekt and formatting rules
+detekt-rules/                                 Repository-specific detekt rules
 ```
 
 Keep core parsing and resolution logic in `io.kayan` free of Gradle API types.
@@ -67,6 +73,8 @@ Gradle-facing exceptions.
 ## Coding Conventions
 
 - Kotlin style is official Kotlin style with detekt-formatting enforced.
+- Do not use em dashes (U+2014) in Kotlin or site source, comments, strings, or
+  site documentation. Use a hyphen or rewrite the sentence.
 - Public API declarations must use explicit `public`; the module has
   `explicitApi()` enabled.
 - Use `internal` for module-scoped implementation details and `private` for

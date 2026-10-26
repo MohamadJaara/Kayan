@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Kayan"
 include(":gradle-plugin")
+include(":detekt-rules")

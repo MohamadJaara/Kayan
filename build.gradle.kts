@@ -2,7 +2,7 @@ import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 
 plugins {
-    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.detekt)
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
@@ -31,6 +31,30 @@ val publishedVersion = providers.gradleProperty("PUBLISH_VERSION")
 extra["publishedGroup"] = publishedGroup
 extra["publishedVersion"] = publishedVersion
 
+dependencies {
+    detektPlugins(project(":detekt-rules"))
+}
+
+detekt {
+    disableDefaultRuleSets = true
+    config.setFrom(layout.projectDirectory.file("config/detekt/no-em-dashes.yml"))
+    source.setFrom(
+        fileTree(layout.projectDirectory) {
+            include("**/*.kt", "**/*.kts")
+            exclude(
+                "**/.git/**",
+                "**/.gradle/**",
+                "**/.kotlin/**",
+                "**/build/**",
+                "**/node_modules/**",
+                "**/.astro/**",
+                "**/dist/**",
+                "site/public/api/**",
+            )
+        },
+    )
+}
+
 subprojects {
     dependencyLocking {
         lockAllConfigurations()
@@ -58,12 +82,21 @@ subprojects {
     plugins.withId("dev.detekt") {
         dependencies {
             add("detektPlugins", libs.detekt.formatting)
+            add("detektPlugins", project(":detekt-rules"))
         }
 
         extensions.configure<DetektExtension> {
             buildUponDefaultConfig = true
-            config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+            config.setFrom(
+                rootProject.file("config/detekt/detekt.yml"),
+                rootProject.file("config/detekt/no-em-dashes.yml"),
+            )
             parallel = true
+        }
+
+        val projectDetekt = tasks.named("detekt")
+        rootProject.tasks.named("detekt") {
+            dependsOn(projectDetekt)
         }
 
         tasks.withType<Detekt>().configureEach {
