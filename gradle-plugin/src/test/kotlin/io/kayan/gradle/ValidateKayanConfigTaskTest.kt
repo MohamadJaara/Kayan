@@ -117,4 +117,28 @@ class ValidateKayanConfigTaskTest {
         assertEquals(KayanValidationMode.SUBSET, task.validationMode.get())
         task.validate()
     }
+
+    @Test
+    fun sharedRootValidationDoesNotBorrowAnUnrelatedConsumerOverride() {
+        val directory = createTempDirectory(prefix = "kayan-root-override-validation-test").toFile()
+        val project = ProjectBuilder.builder().withProjectDir(directory).build()
+        project.plugins.apply(KayanConfigPlugin::class.java)
+        project.extensions.getByType(KayanRootExtension::class.java).apply {
+            baseConfigFile.set(
+                File(directory, "shared.json").apply { writeText("""{"flavors":{"prod":{}}}""") },
+            )
+            schema { string("api_url", "API_URL", required = true) }
+        }
+        project.extensions.getByType(KayanExtension::class.java).customConfigFile.set(
+            File(directory, "consumer-custom.json").apply {
+                writeText("""{"api_url":"consumer","flavors":{}}""")
+            },
+        )
+        val task = project.tasks.named("validateKayanConfig", ValidateKayanConfigTask::class.java).get()
+
+        val error = assertFailsWith<GradleException> { task.validate() }
+        assertMessageContains(error, "api_url")
+        assertMessageContains(error, "prod")
+        assertFalse(task.customConfigFile.isPresent)
+    }
 }

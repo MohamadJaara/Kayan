@@ -29,10 +29,18 @@ internal fun registerKayanConfigValidation(project: Project, extension: KayanExt
     val validateTask = project.tasks.register("validateKayanConfig", ValidateKayanConfigTask::class.java) { task ->
         task.group = "verification"
         task.description = "Validates all Kayan config flavors and targets without generating artifacts."
-        task.baseConfigFile.set(sharedRoot.flatMap { it.baseConfigFile }.orElse(extension.baseConfigFile))
-        task.customConfigFile.set(sharedRoot.flatMap { it.customConfigFile }.orElse(extension.customConfigFile))
-        task.configFormat.set(sharedRoot.flatMap { it.configFormat }.orElse(extension.configFormat))
-        task.validationMode.set(sharedRoot.flatMap { it.validationMode }.orElse(extension.validationMode))
+        task.baseConfigFile.set(
+            project.provider { sharedRoot.orNull?.baseConfigFile ?: extension.baseConfigFile }.flatMap { it },
+        )
+        task.customConfigFile.set(
+            project.provider { sharedRoot.orNull?.customConfigFile ?: extension.customConfigFile }.flatMap { it },
+        )
+        task.configFormat.set(
+            project.provider { sharedRoot.orNull?.configFormat ?: extension.configFormat }.flatMap { it },
+        )
+        task.validationMode.set(
+            project.provider { sharedRoot.orNull?.validationMode ?: extension.validationMode }.flatMap { it },
+        )
         task.schemaEntries.set(
             sharedRoot.map { it.serializedSchemaEntries() }
                 .orElse(project.provider { extension.serializedSchemaEntries() }),

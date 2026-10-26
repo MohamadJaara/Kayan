@@ -249,6 +249,18 @@ class ValidateKayanConfigFunctionalTest {
         assertTrue(failed.output.contains("Reusing configuration cache."))
         assertTrue(failed.output.contains("custom.yaml"))
         assertTrue(failed.output.contains("unknown"))
+
+        File(directory, "build.gradle.kts").appendText(
+            "\nkayanRoot { customConfigFile.unset() }\n" +
+                "kayan { customConfigFile.set(layout.projectDirectory.file(\"consumer-custom.json\")) }\n",
+        )
+        File(directory, "consumer-custom.json").writeText("""{"api_url":42,"flavors":{}}""")
+        val noSharedOverride = kayanGradleRunner(directory, "check", "--configuration-cache").build()
+        val reusedWithoutOverride = kayanGradleRunner(directory, "check", "--configuration-cache").build()
+
+        assertValidationOnly(noSharedOverride, directory)
+        assertValidationOnly(reusedWithoutOverride, directory)
+        assertTrue(reusedWithoutOverride.output.contains("Reusing configuration cache."))
     }
 
     private fun assertValidationOnly(result: BuildResult, directory: File) {
