@@ -31,6 +31,48 @@ val publishedVersion = providers.gradleProperty("PUBLISH_VERSION")
 extra["publishedGroup"] = publishedGroup
 extra["publishedVersion"] = publishedVersion
 
+val checkNoEmDashes = tasks.register("checkNoEmDashes") {
+    group = "verification"
+    description = "Rejects em dashes in Kotlin source files, comments, and strings."
+
+    val repositoryDirectory = layout.projectDirectory.asFile
+    val kotlinSources = fileTree(repositoryDirectory) {
+        include("**/*.kt", "**/*.kts")
+        exclude(
+            "**/.git/**",
+            "**/.gradle/**",
+            "**/.kotlin/**",
+            "**/build/**",
+            "**/node_modules/**",
+            "**/.astro/**",
+            "**/dist/**",
+            "site/public/api/**",
+        )
+    }
+    inputs.files(kotlinSources)
+        .withPropertyName("kotlinSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    doLast {
+        val violations = kotlinSources.files.sortedBy { it.path }.flatMap { file ->
+            val path = file.relativeTo(repositoryDirectory).invariantSeparatorsPath
+            file.readLines(Charsets.UTF_8).flatMapIndexed { lineIndex, line ->
+                line.mapIndexedNotNull { columnIndex, character ->
+                    if (character == '\u2014') {
+                        "$path:${lineIndex + 1}:${columnIndex + 1}: " +
+                            "Em dashes (U+2014) are not allowed. Use a hyphen or rewrite the sentence."
+                    } else {
+                        null
+                    }
+                }
+            }
+        }
+        if (violations.isNotEmpty()) {
+            throw GradleException(violations.joinToString("\n"))
+        }
+    }
+}
+
 subprojects {
     dependencyLocking {
         lockAllConfigurations()
@@ -67,6 +109,7 @@ subprojects {
         }
 
         tasks.withType<Detekt>().configureEach {
+            dependsOn(checkNoEmDashes)
             jvmTarget.set("11")
 
             reports {

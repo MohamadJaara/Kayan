@@ -34,9 +34,13 @@ risk or touched surface warrants it.
 ./gradlew :gradle-plugin:test --tests "io.kayan.gradle.KayanConfigPluginFunctionalTest"
 ./gradlew :gradle-plugin:validatePlugins
 ./gradlew :gradle-plugin:checkPublicApiDocs --no-configuration-cache
+./gradlew checkNoEmDashes
 ./gradlew detekt
 ./gradlew build
 ```
+
+Run `npm --prefix site run lint` to check the site source and documentation.
+The em dash checks also run with detekt and before the site build, respectively.
 
 Sample app tasks run as a separate Gradle build under `sample/`:
 
@@ -67,6 +71,8 @@ Gradle-facing exceptions.
 ## Coding Conventions
 
 - Kotlin style is official Kotlin style with detekt-formatting enforced.
+- Do not use em dashes (U+2014) in Kotlin or site source, comments, strings, or
+  site documentation. Use a hyphen or rewrite the sentence.
 - Public API declarations must use explicit `public`; the module has
   `explicitApi()` enabled.
 - Use `internal` for module-scoped implementation details and `private` for
