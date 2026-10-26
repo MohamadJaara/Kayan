@@ -34,13 +34,14 @@ risk or touched surface warrants it.
 ./gradlew :gradle-plugin:test --tests "io.kayan.gradle.KayanConfigPluginFunctionalTest"
 ./gradlew :gradle-plugin:validatePlugins
 ./gradlew :gradle-plugin:checkPublicApiDocs --no-configuration-cache
-./gradlew checkNoEmDashes
 ./gradlew detekt
+./gradlew :detekt-rules:test
 ./gradlew build
 ```
 
-Run `npm --prefix site run lint` to check the site source and documentation.
-The em dash checks also run with detekt and before the site build, respectively.
+Run `npm --prefix site run lint` to check the site source and documentation with
+ESLint, and `npm --prefix site run test:lint` to test its custom rules. Site
+builds run ESLint automatically. Kotlin em dash checks are native detekt rules.
 
 Sample app tasks run as a separate Gradle build under `sample/`:
 
@@ -62,6 +63,7 @@ gradle-plugin/src/test/resources/golden/        Golden output snapshots
 sample/                                         Standalone sample app and build logic
 site/                                           Static docs and landing page
 config/detekt/detekt.yml                       Detekt and formatting rules
+detekt-rules/                                 Repository-specific detekt rules
 ```
 
 Keep core parsing and resolution logic in `io.kayan` free of Gradle API types.

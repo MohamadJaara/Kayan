@@ -31,8 +31,16 @@ jobs:
       uses: actions/setup-node@v7
       with:
         node-version: 24
+        cache: npm
+        cache-dependency-path: site/package-lock.json
+    - name: Install site dependencies
+      run: npm ci
+      working-directory: site
     - name: Lint site sources and documentation
       run: npm run lint
+      working-directory: site
+    - name: Test site lint rules
+      run: npm run test:lint
       working-directory: site
 
   detekt:
@@ -53,8 +61,8 @@ jobs:
       uses: gradle/actions/setup-gradle@v6
       with:
         cache-disabled: true
-    - name: Run detekt
-      run: ./gradlew detekt
+    - name: Run detekt and rule tests
+      run: ./gradlew detekt :detekt-rules:test
 
   build:
     name: ${{ matrix.target }} (${{ matrix.kind }})

@@ -2,7 +2,7 @@ import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 
 plugins {
-    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.detekt)
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
@@ -31,46 +31,28 @@ val publishedVersion = providers.gradleProperty("PUBLISH_VERSION")
 extra["publishedGroup"] = publishedGroup
 extra["publishedVersion"] = publishedVersion
 
-val checkNoEmDashes = tasks.register("checkNoEmDashes") {
-    group = "verification"
-    description = "Rejects em dashes in Kotlin source files, comments, and strings."
+dependencies {
+    detektPlugins(project(":detekt-rules"))
+}
 
-    val repositoryDirectory = layout.projectDirectory.asFile
-    val kotlinSources = fileTree(repositoryDirectory) {
-        include("**/*.kt", "**/*.kts")
-        exclude(
-            "**/.git/**",
-            "**/.gradle/**",
-            "**/.kotlin/**",
-            "**/build/**",
-            "**/node_modules/**",
-            "**/.astro/**",
-            "**/dist/**",
-            "site/public/api/**",
-        )
-    }
-    inputs.files(kotlinSources)
-        .withPropertyName("kotlinSources")
-        .withPathSensitivity(PathSensitivity.RELATIVE)
-
-    doLast {
-        val violations = kotlinSources.files.sortedBy { it.path }.flatMap { file ->
-            val path = file.relativeTo(repositoryDirectory).invariantSeparatorsPath
-            file.readLines(Charsets.UTF_8).flatMapIndexed { lineIndex, line ->
-                line.mapIndexedNotNull { columnIndex, character ->
-                    if (character == '\u2014') {
-                        "$path:${lineIndex + 1}:${columnIndex + 1}: " +
-                            "Em dashes (U+2014) are not allowed. Use a hyphen or rewrite the sentence."
-                    } else {
-                        null
-                    }
-                }
-            }
-        }
-        if (violations.isNotEmpty()) {
-            throw GradleException(violations.joinToString("\n"))
-        }
-    }
+detekt {
+    disableDefaultRuleSets = true
+    config.setFrom(layout.projectDirectory.file("config/detekt/no-em-dashes.yml"))
+    source.setFrom(
+        fileTree(layout.projectDirectory) {
+            include("**/*.kt", "**/*.kts")
+            exclude(
+                "**/.git/**",
+                "**/.gradle/**",
+                "**/.kotlin/**",
+                "**/build/**",
+                "**/node_modules/**",
+                "**/.astro/**",
+                "**/dist/**",
+                "site/public/api/**",
+            )
+        },
+    )
 }
 
 subprojects {
@@ -100,16 +82,24 @@ subprojects {
     plugins.withId("dev.detekt") {
         dependencies {
             add("detektPlugins", libs.detekt.formatting)
+            add("detektPlugins", project(":detekt-rules"))
         }
 
         extensions.configure<DetektExtension> {
             buildUponDefaultConfig = true
-            config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+            config.setFrom(
+                rootProject.file("config/detekt/detekt.yml"),
+                rootProject.file("config/detekt/no-em-dashes.yml"),
+            )
             parallel = true
         }
 
+        val projectDetekt = tasks.named("detekt")
+        rootProject.tasks.named("detekt") {
+            dependsOn(projectDetekt)
+        }
+
         tasks.withType<Detekt>().configureEach {
-            dependsOn(checkNoEmDashes)
             jvmTarget.set("11")
 
             reports {

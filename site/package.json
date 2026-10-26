@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "lint": "node scripts/check-no-em-dashes.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "test:lint": "node --test eslint-rules/*.test.mjs",
     "prebuild": "npm run lint",
     "build": "astro build",
     "preview": "astro preview",
@@ -18,5 +19,14 @@
   },
   "overrides": {
     "esbuild": "0.28.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@eslint/markdown": "^8.0.3",
+    "eslint": "^10.13.0",
+    "eslint-plugin-astro": "^3.2.1",
+    "globals": "^17.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0"
   }
 }
