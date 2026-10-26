@@ -100,6 +100,17 @@ Generate the config source:
 ./gradlew generateKayanConfig
 ```
 
+Validate every flavor and configured target in CI without generating artifacts:
+
+```bash
+./gradlew validateKayanConfig
+```
+
+Validation also runs as part of an existing `check` lifecycle. It needs only the
+Kayan plugin, schema, and input files; Kotlin/Android plugins and generation names
+are optional. See the [validation guide](https://mohamadjaara.github.io/Kayan/docs/validation/)
+for target-aware validation behavior.
+
 Use the generated object from shared code:
 
 ```kotlin
@@ -112,6 +123,19 @@ val brandName = SampleConfig.BRAND_NAME
 
 Kayan writes generated source to `build/generated/kayan/kotlin` and adds the
 directory to the appropriate source set.
+
+To inspect resolved values and the source file, layer, and key path that supplied
+each value, run:
+
+```bash
+./gradlew explainKayanConfig                    # Uses kayan.flavor
+./gradlew explainKayanConfig --flavor prod --target ios
+```
+
+The task prints every declared key, distinguishing `<absent>` from explicit
+`null`. It uses the same validation and precedence as generation, including
+`preventOverride`, and needs no Kotlin plugin, `packageName`, or `className`.
+It writes no generated files. See [Explaining configuration](https://mohamadjaara.github.io/Kayan/docs/explaining-configuration/).
 
 ## Target-specific overrides
 
