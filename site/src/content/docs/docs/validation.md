@@ -38,4 +38,38 @@ Kayan fails the build in these cases:
 Validation errors identify the source file and key path. Flavor-specific errors
 also name the flavor.
 
+## Validate configuration in CI
+
+```bash
+./gradlew validateKayanConfig
+```
+
+`validateKayanConfig` validates the configured schema and base/custom JSON or YAML
+files using `configFormat` and `validationMode`. It checks every base flavor,
+regardless of `kayan.flavor`, including required values, types, protected overrides,
+unknown custom flavors and targets, and the selected unknown-key policy. Failures
+stop the build with the existing resolver diagnostics; success reports the number
+of flavors, targets, and validation mode.
+
+The task belongs to the `verification` group and runs as part of `check` whenever
+that lifecycle task exists, including when another plugin registers it later.
+It can also run with only the Kayan plugin applied: no Kotlin or Android plugin,
+`packageName`, `className`, or selected `flavor` is required. It writes no Kotlin
+source or schema artifacts and has no dependency on generation or schema export.
+Validation runs on every invocation, including when the configuration cache is reused.
+
+With `targets(...)` or `targetSourceSets { ... }` mappings, required values must
+resolve for every base flavor and every mapped target. Required values may come
+entirely from target overlays; a separate base-only required-value check is not
+performed. A mapped target without its own overlay inherits the ordinary base and
+custom values, following the resolver's normal precedence. All sections are still
+parsed and checked for types, unknown keys, unknown custom targets, and protected
+overrides, even if their target has no generation mapping.
+
+Without generation mappings, the task resolves every target declared anywhere in
+the base file, across every base flavor. This allows standalone CI validation of
+target-aware files. Custom files may only use targets declared in the base file.
+If the base declares no targets, the task resolves each flavor without target
+overlays. These rules apply only to validation; source generation is unchanged.
+
 For shared root schemas, see [Multi-module shared config](../multi-module-shared-config/).

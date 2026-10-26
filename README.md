@@ -100,6 +100,17 @@ Generate the config source:
 ./gradlew generateKayanConfig
 ```
 
+Validate every flavor and configured target in CI without generating artifacts:
+
+```bash
+./gradlew validateKayanConfig
+```
+
+Validation also runs as part of an existing `check` lifecycle. It needs only the
+Kayan plugin, schema, and input files; Kotlin/Android plugins and generation names
+are optional. See the [validation guide](https://mohamadjaara.github.io/Kayan/docs/validation/)
+for target-aware validation behavior.
+
 Use the generated object from shared code:
 
 ```kotlin
