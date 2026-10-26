@@ -10,6 +10,7 @@ import arrow.core.right
 import com.squareup.kotlinpoet.TypeName
 import io.kayan.ConfigDefinition
 import io.kayan.ConfigFormat
+import io.kayan.ConfigResolutionTrace
 import io.kayan.ConfigValue
 import io.kayan.ConfigValueKind
 import io.kayan.DefaultConfigResolver
@@ -168,7 +169,23 @@ internal fun resolveConfigEither(
     configFormat: ConfigFormat = ConfigFormat.AUTO,
     validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
     targetName: String? = null,
-): Either<GenerationError, ResolvedConfigsByFlavor> = either {
+): Either<GenerationError, ResolvedConfigsByFlavor> = resolveConfigWithTraceEither(
+    schema = schema,
+    baseFile = baseFile,
+    customFile = customFile,
+    configFormat = configFormat,
+    validationMode = validationMode,
+    targetName = targetName,
+).map(ConfigResolutionTrace::resolved)
+
+internal fun resolveConfigWithTraceEither(
+    schema: io.kayan.ConfigSchema,
+    baseFile: File,
+    customFile: File?,
+    configFormat: ConfigFormat = ConfigFormat.AUTO,
+    validationMode: KayanValidationMode = KayanValidationMode.SUBSET,
+    targetName: String? = null,
+): Either<GenerationError, ConfigResolutionTrace> = either {
     val baseText = readFileEither(baseFile).bind()
     val customText = customFile?.let { readFileEither(it).bind() }
     val resolvedFormat = when (
@@ -181,7 +198,7 @@ internal fun resolveConfigEither(
         is Either.Left -> raise(GenerationError.ConfigResolutionFailure(result.value))
         is Either.Right -> result.value
     }
-    val resolved = DefaultConfigResolver(parserFor(resolvedFormat)).resolveEither(
+    val resolved = DefaultConfigResolver(parserFor(resolvedFormat)).resolveWithTraceEither(
         defaultConfigJson = baseText,
         schema = schema,
         customConfigJson = customText,

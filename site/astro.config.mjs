@@ -37,6 +37,7 @@ export default defineConfig({
 					label: 'Configuration',
 					items: [
 						{ label: 'Resolution order', slug: 'docs/resolution-order' },
+						{ label: 'Explaining configuration', slug: 'docs/explaining-configuration' },
 						{ label: 'Config file shape', slug: 'docs/json-shape' },
 						{ label: 'Gradle usage', slug: 'docs/gradle-usage' },
 						{ label: 'Target-specific generation', slug: 'docs/target-specific-generation' },
