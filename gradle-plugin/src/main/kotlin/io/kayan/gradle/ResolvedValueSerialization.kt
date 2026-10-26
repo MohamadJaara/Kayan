@@ -209,7 +209,7 @@ private val resolvedValueJson: Json = Json {
     isLenient = false
 }
 
-private fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
+internal fun ConfigValue?.toJsonElement(): JsonElement = when (this) {
     null,
     is ConfigValue.NullValue,
     -> JsonNull

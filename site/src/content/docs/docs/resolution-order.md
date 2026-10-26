@@ -10,7 +10,7 @@ For a selected flavor without a target, values resolve in this priority order:
 3. Base config flavor value
 4. Base config top-level default value, lowest priority
 
-When a target is selected through target-specific source generation, values resolve in this
+When a target is selected through target-specific source generation or `explainKayanConfig --target`, values resolve in this
 priority order:
 
 1. Custom config flavor target value
@@ -25,5 +25,6 @@ priority order:
 If a schema entry is marked `required`, it must resolve to a non-null value for the
 selected flavor and optional target or the build fails.
 
-The order never changes between builds. To trace a resolved value, start at the
-top of the list and use the first layer that defines the key.
+The first layer that defines the key wins, including an explicit `null` for a
+nullable entry. Use [explainKayanConfig](../explaining-configuration/) to print
+the winning source file, layer, and key path for each declared key.

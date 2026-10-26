@@ -113,6 +113,19 @@ val brandName = SampleConfig.BRAND_NAME
 Kayan writes generated source to `build/generated/kayan/kotlin` and adds the
 directory to the appropriate source set.
 
+To inspect resolved values and the source file, layer, and key path that supplied
+each value, run:
+
+```bash
+./gradlew explainKayanConfig                    # Uses kayan.flavor
+./gradlew explainKayanConfig --flavor prod --target ios
+```
+
+The task prints every declared key, distinguishing `<absent>` from explicit
+`null`. It uses the same validation and precedence as generation, including
+`preventOverride`, and needs no Kotlin plugin, `packageName`, or `className`.
+It writes no generated files. See [Explaining configuration](https://mohamadjaara.github.io/Kayan/docs/explaining-configuration/).
+
 ## Target-specific overrides
 
 For Kotlin Multiplatform projects that need one config API in shared code but different values per

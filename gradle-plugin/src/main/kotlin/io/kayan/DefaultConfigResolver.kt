@@ -216,7 +216,7 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
         targetName: String? = null,
         validationMode: KayanValidationMode = KayanValidationMode.STRICT,
-    ): Either<ConfigError, ResolvedConfigsByFlavor> = resolveInternalEither(
+    ): Either<ConfigError, ResolvedConfigsByFlavor> = resolveWithTraceEither(
         defaultConfigJson = defaultConfigJson,
         schema = schema,
         customConfigJson = customConfigJson,
@@ -224,7 +224,7 @@ public class DefaultConfigResolver : ConfigResolver {
         customConfigSourceName = customConfigSourceName,
         targetName = targetName,
         validationMode = validationMode,
-    )
+    ).map(ConfigResolutionTrace::resolved)
 
     private fun parseInternalEither(
         configJson: String,
@@ -238,15 +238,15 @@ public class DefaultConfigResolver : ConfigResolver {
         validationMode = validationMode,
     )
 
-    private fun resolveInternalEither(
+    internal fun resolveWithTraceEither(
         defaultConfigJson: String,
         schema: ConfigSchema,
         customConfigJson: String?,
         defaultConfigSourceName: String,
-        customConfigSourceName: String,
-        targetName: String?,
-        validationMode: KayanValidationMode,
-    ): Either<ConfigError, ResolvedConfigsByFlavor> = either {
+        customConfigSourceName: String = DEFAULT_CUSTOM_SOURCE_NAME,
+        targetName: String? = null,
+        validationMode: KayanValidationMode = KayanValidationMode.STRICT,
+    ): Either<ConfigError, ConfigResolutionTrace> = either {
         val defaultConfig = parseInternalEither(
             defaultConfigJson,
             schema,
@@ -263,12 +263,14 @@ public class DefaultConfigResolver : ConfigResolver {
             customConfigSourceName = customConfigSourceName,
         ).bind()
 
-        ResolvedConfigsByFlavor(
-            FlavorResolver.resolveFlavorsEither(
+        ConfigResolutionTrace(
+            FlavorResolver.resolveFlavorsWithTraceEither(
                 schema = schema,
                 defaultConfig = defaultConfig,
                 customConfig = customConfig,
                 targetName = targetName,
+                defaultConfigSourceName = defaultConfigSourceName,
+                customConfigSourceName = customConfigSourceName,
             ).bind(),
         )
     }
