@@ -32,7 +32,9 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
     override fun parseRootEither(configText: String, sourceName: String): Either<ConfigError, ConfigNode.ObjectNode> =
         either {
             val root = try {
-                json.parseToJsonElement(configText)
+                val parsedRoot = json.parseToJsonElement(configText)
+                JsonDuplicateKeyValidator(configText, json, sourceName).validateEither().bind()
+                parsedRoot
             } catch (error: SerializationException) {
                 raise(
                     ConfigError.InvalidConfigSyntax(

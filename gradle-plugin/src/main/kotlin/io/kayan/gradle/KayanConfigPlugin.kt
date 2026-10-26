@@ -37,6 +37,8 @@ public class KayanConfigPlugin : Plugin<Project> {
         }
 
         registerKayanConfigValidation(project, extension)
+        project.registerExplainKayanConfigTask(extension)
+
         val exportSchemaTask = project.tasks.register("exportKayanSchema", ExportKayanSchemaTask::class.java) { task ->
             task.group = "documentation"
             task.description = "Exports JSON Schema and Markdown docs for the configured Kayan schema."
