@@ -58,6 +58,12 @@ It can also run with only the Kayan plugin applied: no Kotlin or Android plugin,
 source or schema artifacts and has no dependency on generation or schema export.
 Validation runs on every invocation, including when the configuration cache is reused.
 
+In a root project that declares a shared `kayanRoot` schema and has no consumer
+schema in `kayan`, validation uses the full shared root schema, files, format, and
+validation mode. A root consumer with its own declared or inherited schema keeps
+its consumer configuration, as do child projects. This lets root `check` validate
+shared configuration without requiring a second schema declaration.
+
 With `targets(...)` or `targetSourceSets { ... }` mappings, required values must
 resolve for every base flavor and every mapped target. Required values may come
 entirely from target overlays; a separate base-only required-value check is not

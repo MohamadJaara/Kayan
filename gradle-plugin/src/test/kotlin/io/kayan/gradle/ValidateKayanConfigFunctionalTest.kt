@@ -166,6 +166,88 @@ class ValidateKayanConfigFunctionalTest {
         assertTrue(customFailure.output.contains("missing.json"))
     }
 
+    @Test
+    fun rootCheckValidatesSharedConfigurationAndPreservesChildInputsWithConfigurationCache() {
+        val directory = createTempDirectory(prefix = "kayan-shared-validation-test").toFile()
+        File(directory, "settings.gradle.kts").writeText(
+            """
+                rootProject.name = "shared-validation-test"
+                include(":feature")
+            """.trimIndent(),
+        )
+        File(directory, "build.gradle.kts").writeText(
+            """
+                plugins {
+                    base
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                kayanRoot {
+                    baseConfigFile.set(layout.projectDirectory.file("shared.yaml"))
+                    customConfigFile.set(layout.projectDirectory.file("custom.yaml"))
+                    configFormat.set(io.kayan.ConfigFormat.YAML)
+                    validationMode.set(io.kayan.KayanValidationMode.STRICT)
+                    schema {
+                        string("api_url", "API_URL", required = true)
+                        boolean("feature_enabled", "FEATURE_ENABLED", required = true)
+                    }
+                }
+            """.trimIndent(),
+        )
+        File(directory, "shared.yaml").writeText(
+            """
+                api_url: shared
+                feature_enabled: false
+                flavors:
+                  prod: {}
+                  staging: {}
+            """.trimIndent(),
+        )
+        File(directory, "custom.yaml").writeText(
+            """
+                feature_enabled: true
+                flavors: {}
+            """.trimIndent(),
+        )
+        val feature = File(directory, "feature").apply { mkdirs() }
+        File(feature, "build.gradle.kts").writeText(
+            """
+                plugins {
+                    base
+                    id("io.github.mohamadjaara.kayan")
+                }
+
+                kayan {
+                    inheritFromRoot()
+                    baseConfigFile.set(layout.projectDirectory.file("local.json"))
+                    customConfigFile.set(layout.projectDirectory.file("custom.json"))
+                    configFormat.set(io.kayan.ConfigFormat.JSON)
+                    validationMode.set(io.kayan.KayanValidationMode.SUBSET)
+                    schema { include("api_url") }
+                }
+            """.trimIndent(),
+        )
+        File(feature, "local.json").writeText("""{"api_url":"local","flavors":{"prod":{}}}""")
+        File(feature, "custom.json").writeText("""{"unknown":true,"flavors":{}}""")
+
+        val first = kayanGradleRunner(directory, "check", "--configuration-cache").build()
+        val second = kayanGradleRunner(directory, "check", "--configuration-cache").build()
+
+        assertValidationOnly(first, directory)
+        assertValidationOnly(second, directory)
+        assertEquals(TaskOutcome.SUCCESS, second.task(":feature:validateKayanConfig")?.outcome)
+        assertTrue(second.output.contains("Reusing configuration cache."))
+        assertTrue(second.output.contains("2 flavor(s) without target overlays (STRICT)"))
+        assertTrue(second.output.contains("1 flavor(s) without target overlays (SUBSET)"))
+        assertFalse(File(feature, "build/generated").exists())
+
+        File(directory, "custom.yaml").writeText("unknown: true\nflavors: {}\n")
+        val failed = kayanGradleRunner(directory, "check", "--configuration-cache").buildAndFail()
+        assertTrue(failed.output.contains("Reusing configuration cache."))
+        assertTrue(failed.output.contains("custom.yaml"))
+        assertTrue(failed.output.contains("unknown"))
+    }
+
     private fun assertValidationOnly(result: BuildResult, directory: File) {
         assertEquals(TaskOutcome.SUCCESS, result.task(":validateKayanConfig")?.outcome)
         assertNull(result.task(":generateKayanConfig"))

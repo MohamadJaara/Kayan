@@ -20,14 +20,23 @@ import org.gradle.work.DisableCachingByDefault
 
 @OptIn(ExperimentalKayanGenerationApi::class)
 internal fun registerKayanConfigValidation(project: Project, extension: KayanExtension) {
+    val sharedRoot = project.provider {
+        project.extensions.findByType(KayanRootExtension::class.java)?.takeIf { root ->
+            extension.serializedSchemaEntries().isEmpty() &&
+                (root.schemaBuilder.hasLocalEntries() || root.schemaBuilder.hasRootIncludes())
+        }
+    }
     val validateTask = project.tasks.register("validateKayanConfig", ValidateKayanConfigTask::class.java) { task ->
         task.group = "verification"
         task.description = "Validates all Kayan config flavors and targets without generating artifacts."
-        task.baseConfigFile.set(extension.baseConfigFile)
-        task.customConfigFile.set(extension.customConfigFile)
-        task.configFormat.set(extension.configFormat)
-        task.validationMode.set(extension.validationMode)
-        task.schemaEntries.set(project.provider { extension.serializedSchemaEntries() })
+        task.baseConfigFile.set(sharedRoot.flatMap { it.baseConfigFile }.orElse(extension.baseConfigFile))
+        task.customConfigFile.set(sharedRoot.flatMap { it.customConfigFile }.orElse(extension.customConfigFile))
+        task.configFormat.set(sharedRoot.flatMap { it.configFormat }.orElse(extension.configFormat))
+        task.validationMode.set(sharedRoot.flatMap { it.validationMode }.orElse(extension.validationMode))
+        task.schemaEntries.set(
+            sharedRoot.map { it.serializedSchemaEntries() }
+                .orElse(project.provider { extension.serializedSchemaEntries() }),
+        )
         task.targetNames.set(
             project.provider { extension.targetSourceSetMappings().map(KayanTargetSourceSetMapping::targetName) },
         )

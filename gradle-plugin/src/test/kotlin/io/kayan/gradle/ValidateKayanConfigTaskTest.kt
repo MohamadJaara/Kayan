@@ -1,6 +1,8 @@
 package io.kayan.gradle
 
+import io.kayan.ConfigFormat
 import io.kayan.ConfigValueKind
+import io.kayan.KayanValidationMode
 import io.kayan.assertMessageContains
 import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
@@ -81,5 +83,38 @@ class ValidateKayanConfigTaskTest {
         File(directory, "default.json").writeText("""{"flavors":{"prod":{}}}""")
         task.customConfigFile.set(File(directory, "missing.json"))
         assertMessageContains(assertFailsWith<GradleException> { task.validate() }, "custom config file does not exist")
+    }
+
+    @Test
+    fun explicitRootConsumerSchemaKeepsItsOwnFilesFormatAndValidationMode() {
+        val directory = createTempDirectory(prefix = "kayan-root-consumer-validation-test").toFile()
+        val project = ProjectBuilder.builder().withProjectDir(directory).build()
+        project.plugins.apply(KayanConfigPlugin::class.java)
+        project.extensions.getByType(KayanRootExtension::class.java).apply {
+            baseConfigFile.set(File(directory, "shared.yaml"))
+            customConfigFile.set(File(directory, "shared-custom.yaml"))
+            configFormat.set(ConfigFormat.YAML)
+            validationMode.set(KayanValidationMode.STRICT)
+            schema { boolean("shared", "SHARED", required = true) }
+        }
+        val base = File(directory, "local.json").apply {
+            writeText("""{"api_url":"local","flavors":{"prod":{}}}""")
+        }
+        val custom = File(directory, "custom.json").apply { writeText("""{"unknown":true,"flavors":{}}""") }
+        val extension = project.extensions.getByType(KayanExtension::class.java).apply {
+            baseConfigFile.set(base)
+            customConfigFile.set(custom)
+            configFormat.set(ConfigFormat.JSON)
+            validationMode.set(KayanValidationMode.SUBSET)
+            schema { string("api_url", "API_URL", required = true) }
+        }
+        val task = project.tasks.named("validateKayanConfig", ValidateKayanConfigTask::class.java).get()
+
+        assertEquals(extension.serializedSchemaEntries(), task.schemaEntries.get())
+        assertEquals(base, task.baseConfigFile.get().asFile)
+        assertEquals(custom, task.customConfigFile.get().asFile)
+        assertEquals(ConfigFormat.JSON, task.configFormat.get())
+        assertEquals(KayanValidationMode.SUBSET, task.validationMode.get())
+        task.validate()
     }
 }
