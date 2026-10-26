@@ -31,6 +31,7 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
 
     override fun parseRootEither(configText: String, sourceName: String): Either<ConfigError, ConfigNode.ObjectNode> =
         either {
+            validateJsonSyntaxEither(configText, sourceName).bind()
             val root = try {
                 json.parseToJsonElement(configText)
             } catch (error: SerializationException) {
@@ -85,7 +86,7 @@ internal class JsonConfigFormatParser : ConfigFormatParser {
                     require(value.isFinite()) { "Unsupported non-finite JSON number '${element.contentOrNull}'." }
                     ConfigNode.DoubleNode(value)
                 }
-                ?: ConfigNode.StringNode(requireNotNull(element.contentOrNull))
+                ?: throw IllegalArgumentException("Unsupported unquoted JSON value '${element.contentOrNull}'.")
         }
     }
 }

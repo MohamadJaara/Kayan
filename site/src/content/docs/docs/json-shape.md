@@ -10,6 +10,13 @@ as `android`, `ios`, or `jvm`.
 
 This page shows the JSON form of the shape. YAML uses the same structure and resolution rules.
 
+JSON input must use valid JSON syntax in both `SUBSET` and `STRICT` validation
+modes, including in keys that a module does not consume. Strings and object keys
+must be double-quoted. Unquoted strings, malformed numbers such as `01`, `+1`,
+or `1.`, and non-JSON literals such as `NaN` are rejected with a syntax error
+naming the source file. JSON escapes, Unicode, and exponent notation such as
+`1.5e-2` are supported; numeric values must be finite.
+
 ```json
 {
   "targets": {
