@@ -10,6 +10,12 @@ as `android`, `ios`, or `jvm`.
 
 This page shows the JSON form of the shape. YAML uses the same structure and resolution rules.
 
+JSON and YAML reject duplicate keys within any object, including defaults,
+flavors, targets, and map values, in both `SUBSET` and `STRICT` validation modes.
+JSON compares decoded keys, so `"value"` and `"\u0076alue"` count as the same key.
+Errors identify the source file and, for JSON duplicates, the key's path.
+The same key can appear in separate objects or files; normal layering still applies.
+
 ```json
 {
   "targets": {
