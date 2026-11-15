@@ -1,6 +1,7 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
+# To regenerate this file, run: ./gradlew :dependencies --write-locks
 androidx.annotation:annotation-iosarm64:1.9.1=iosArm64CInterop,iosArm64CompilationDependenciesMetadata,iosArm64CompileKlibraries,iosArm64TestCInterop,iosArm64TestCompilationDependenciesMetadata,iosArm64TestCompileKlibraries
 androidx.annotation:annotation-iossimulatorarm64:1.9.1=iosSimulatorArm64CInterop,iosSimulatorArm64CompilationDependenciesMetadata,iosSimulatorArm64CompileKlibraries,iosSimulatorArm64TestCInterop,iosSimulatorArm64TestCompilationDependenciesMetadata,iosSimulatorArm64TestCompileKlibraries
 androidx.annotation:annotation-jvm:1.9.1=composeHotReloadDevJvmDevRuntimeClasspath,composeHotReloadDevJvmRuntimeClasspath,composeHotReloadDevJvmTestRuntimeClasspath,jvmCompileClasspath,jvmDevCompileClasspath,jvmDevRuntimeClasspath,jvmMainCompileClasspath,jvmMainRuntimeClasspath,jvmRuntimeClasspath,jvmTestCompileClasspath,jvmTestRuntimeClasspath
